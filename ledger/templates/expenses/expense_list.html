@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Expenses</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 32px;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+            background: #f5f7f8;
+            color: #1f2933;
+        }
+
+        .container {
+            max-width: 1500px;
+            margin: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        .header p {
+            margin: 6px 0 0;
+            color: #6b7280;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #1f2933;
+        }
+
+        .btn.primary {
+            background: #174f43;
+            color: white;
+            border-color: #174f43;
+        }
+
+        .btn.danger {
+            background: #b91c1c;
+            color: white;
+            border-color: #b91c1c;
+        }
+
+        .table-panel {
+            background: white;
+            border: 1px solid #e1e5e8;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .table-panel h2 {
+            margin: 0 0 18px;
+            font-size: 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1100px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 10px;
+            font-size: 12px;
+            color: #6b7280;
+            background: #f8fafb;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 13px 10px;
+            font-size: 13px;
+            border-bottom: 1px solid #eef0f2;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .amount {
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .profit-yes {
+            color: #16665a;
+            font-weight: 600;
+        }
+
+        .profit-no {
+            color: #b45309;
+            font-weight: 600;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 7px;
+            white-space: nowrap;
+        }
+
+        .actions-cell .btn {
+            padding: 7px 11px;
+            font-size: 12px;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+
+        .back-link {
+            margin-top: 18px;
+        }
+
+        @media (max-width: 700px) {
+
+            body {
+                padding: 20px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+
+    <!-- HEADER -->
+
+    <div class="header">
+
+        <div>
+
+            <h1>Expenses</h1>
+
+            <p>
+                View and manage recorded business expenses
+            </p>
+
+        </div>
+
+
+        <div class="actions">
+
+            <a
+                href="{% url 'expenses:create' %}"
+                class="btn primary"
+            >
+                + Add Expense
+            </a>
+
+            <a
+                href="{% url 'expenses:dashboard' %}"
+                class="btn"
+            >
+                ← Expense Dashboard
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- EXPENSE TABLE -->
+
+    <div class="table-panel">
+
+        <h2>
+            All Expenses
+        </h2>
+
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Date
+                    </th>
+
+                    <th>
+                        Category
+                    </th>
+
+                    <th>
+                        Description
+                    </th>
+
+                    <th>
+                        Payment
+                    </th>
+
+                    <th>
+                        Vehicle
+                    </th>
+
+                    <th>
+                        Labour
+                    </th>
+
+                    <th>
+                        Paid To
+                    </th>
+
+                    <th>
+                        Amount
+                    </th>
+
+                    <th>
+                        Profit
+                    </th>
+
+                    <th>
+                        Action
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for expense in expenses %}
+
+                    <tr>
+
+                        <td>
+                            {{ expense.expense_date|date:"d-M-Y" }}
+                        </td>
+
+
+                        <td>
+                            {{ expense.category }}
+                        </td>
+
+
+                        <td>
+                            {{ expense.description }}
+                        </td>
+
+
+                        <td>
+                            {{ expense.payment_method }}
+                        </td>
+
+
+                        <td>
+
+                            {% if expense.vehicle %}
+                                {{ expense.vehicle }}
+                            {% else %}
+                                —
+                            {% endif %}
+
+
+
+
+                        <td>
+
+                            {% if expense.labour %}
+                                {{ expense.labour }}
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            {% if expense.paid_to %}
+                                {{ expense.paid_to }}
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </td>
+
+
+                        <td class="amount">
+                            ₹{{ expense.amount|floatformat:2 }}
+                        </td>
+
+
+                        <td>
+
+                            {% if expense.include_in_profit %}
+
+                                <span class="profit-yes">
+                                    Yes
+                                </span>
+
+                            {% else %}
+
+                                <span class="profit-no">
+                                    No
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="actions-cell">
+
+                                <a
+                                    href="{% url 'expenses:edit' expense.id %}"
+                                    class="btn"
+                                >
+                                    Edit
+                                </a>
+
+                                <a
+                                    href="{% url 'expenses:delete' expense.id %}"
+                                    class="btn danger"
+                                >
+                                    Delete
+                                </a>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="11"
+                            class="empty"
+                        >
+                            No expenses found.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- BACK -->
+
+    <div class="back-link">
+
+        <a
+            href="{% url 'core:dashboard' %}"
+            class="btn"
+        >
+            ← Business Dashboard
+        </a>
+
+    </div>
+
+
+</div>
+
+</body>
+
+</html>

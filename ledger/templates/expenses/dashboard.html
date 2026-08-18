@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Expense Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 32px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: #f5f7f8;
+            color: #1f2933;
+        }
+
+        .container {
+            max-width: 1500px;
+            margin: auto;
+        }
+
+        /* HEADER */
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        .header p {
+            margin: 6px 0 0;
+            color: #6b7280;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #1f2933;
+        }
+
+        .btn.primary {
+            background: #174f43;
+            color: white;
+            border-color: #174f43;
+        }
+
+        /* FILTERS */
+
+        .filters {
+            background: white;
+            border: 1px solid #e1e5e8;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .filters-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            align-items: end;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            height: 40px;
+            padding: 0 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            font-size: 13px;
+            color: #1f2933;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .filter-btn {
+            height: 40px;
+            padding: 0 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .apply {
+            background: #174f43;
+            color: white;
+        }
+
+        .clear {
+            background: #f3f4f6;
+            color: #374151;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* SECTION */
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 14px;
+        }
+
+        /* CARDS */
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+        }
+
+        .trip-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e1e5e8;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .amount {
+            font-size: 25px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        /* ANALYSIS GRID */
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: white;
+            border: 1px solid #e1e5e8;
+            border-radius: 10px;
+            padding: 22px;
+        }
+
+        .panel h2 {
+            margin: 0 0 20px;
+            font-size: 19px;
+        }
+
+        /* CATEGORY / VEHICLE / PAYMENT */
+
+        .category-row {
+            margin-bottom: 16px;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 7px;
+            font-size: 14px;
+        }
+
+        .category-name {
+            font-weight: 600;
+        }
+
+        .category-amount {
+            color: #6b7280;
+        }
+
+        .bar {
+            height: 9px;
+            background: #e5e7eb;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: #174f43;
+            border-radius: 20px;
+        }
+
+        /* MONTHLY */
+
+        .monthly-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 130px;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .monthly-bar {
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .monthly-fill {
+            height: 100%;
+            background: #174f43;
+            border-radius: 20px;
+        }
+
+        .monthly-value {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        /* TABLE */
+
+        .table-panel {
+            background: white;
+            border: 1px solid #e1e5e8;
+            border-radius: 10px;
+            padding: 22px;
+            overflow-x: auto;
+        }
+
+        .table-panel h2 {
+            margin: 0 0 20px;
+            font-size: 19px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 13px 10px;
+            border-bottom: 1px solid #edf0f2;
+            text-align: left;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f7f8f9;
+            font-weight: 600;
+        }
+
+        td.amount-cell {
+            font-weight: 600;
+        }
+
+        .empty {
+            text-align: center;
+            color: #6b7280;
+            padding: 25px;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 1200px) {
+
+            .filter-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .cards {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .trip-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 650px) {
+
+            body {
+                padding: 18px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cards,
+            .trip-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- ================================================= -->
+    <!-- HEADER -->
+    <!-- ================================================= -->
+
+    <div class="header">
+
+        <div>
+            <h1>Expense Dashboard</h1>
+
+            <p>
+                Business expense overview and analysis
+            </p>
+        </div>
+
+        <div class="actions">
+
+            <a
+                href="{% url 'expenses:list' %}"
+                class="btn"
+            >
+                View Expenses
+            </a>
+
+            <a
+             href="{% url 'expenses:create' %}"
+                class="btn primary"
+            >
+                + Add Expense
+            </a>
+
+            <a
+    href="{% url 'core:dashboard' %}"
+    class="btn"
+>
+    ← Business Dashboard
+</a>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- FILTERS -->
+    <!-- ================================================= -->
+
+    <form method="get" class="filters">
+
+        <div class="filters-title">
+            Expense Filters
+        </div>
+
+        <div class="filter-grid">
+
+            <div class="field">
+
+                <label for="from_date">
+                    From Date
+                </label>
+
+                <input
+                    type="date"
+                    id="from_date"
+                    name="from_date"
+                    value="{{ from_date }}"
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="to_date">
+                    To Date
+                </label>
+
+                <input
+                    type="date"
+                    id="to_date"
+                    name="to_date"
+                    value="{{ to_date }}"
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="category">
+                    Category
+                </label>
+
+                <select
+                    id="category"
+                    name="category"
+                >
+
+                    <option value="">
+                        All Categories
+                    </option>
+
+                    {% for category in categories %}
+
+                        <option
+                            value="{{ category.id }}"
+                            {% if selected_category == category.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ category.name }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="payment_method">
+                    Payment Method
+                </label>
+
+                <select
+                    id="payment_method"
+                    name="payment_method"
+                >
+
+                    <option value="">
+                        All Payment Methods
+                    </option>
+
+                    {% for method in payment_methods %}
+
+                        <option
+                            value="{{ method.id }}"
+                            {% if selected_payment_method == method.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ method.name }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="vehicle">
+                    Vehicle
+                </label>
+
+                <select
+                    id="vehicle"
+                    name="vehicle"
+                >
+
+                    <option value="">
+                        All Vehicles
+                    </option>
+
+                    {% for vehicle in vehicles %}
+
+                        <option
+                            value="{{ vehicle.id }}"
+                            {% if selected_vehicle == vehicle.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ vehicle.registration_number }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="labour">
+                    Labour
+                </label>
+
+                <select
+                    id="labour"
+                    name="labour"
+                >
+
+                    <option value="">
+                        All Labour
+                    </option>
+
+                    {% for labour in labours %}
+
+                        <option
+                            value="{{ labour.id }}"
+                            {% if selected_labour == labour.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ labour.name }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <div class="filter-actions">
+
+            <button
+                type="submit"
+                class="filter-btn apply"
+            >
+                Apply Filters
+            </button>
+
+            <a
+                href="/expenses/dashboard/"
+                class="filter-btn clear"
+            >
+                Clear Filters
+            </a>
+
+        </div>
+
+    </form>
+
+
+    <!-- ================================================= -->
+    <!-- EXPENSE SUMMARY -->
+    <!-- ================================================= -->
+
+    <div class="section">
+
+        <h2 class="section-title">
+            Expense Summary
+        </h2>
+
+        <div class="cards">
+
+            <div class="card">
+
+                <div class="card-title">
+                    Total Expenses
+                </div>
+
+                <div class="amount">
+                    ₹{{ total_expense|floatformat:2 }}
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-title">
+                    This Month
+                </div>
+
+                <div class="amount">
+                    ₹{{ this_month|floatformat:2 }}
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-title">
+                    Diesel / Fuel
+                </div>
+
+                <div class="amount">
+                    ₹{{ diesel_fuel|floatformat:2 }}
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-title">
+                    Labour
+                </div>
+
+                <div class="amount">
+                    ₹{{ labour_expense|floatformat:2 }}
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-title">
+                    Vehicle Related
+                </div>
+
+                <div class="amount">
+                    ₹{{ vehicle_expense|floatformat:2 }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================================================= -->
+<!-- BUSINESS OVERVIEW -->
+<!-- ================================================= -->
+
+<div class="section">
+
+    <h2 class="section-title">
+        Business Overview
+    </h2>
+
+    <div class="trip-cards">
+
+        <div class="card">
+
+            <div class="card-title">
+                Total Revenue
+            </div>
+
+            <div class="amount">
+                ₹{{ total_revenue|floatformat:2 }}
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                Total Expenses
+            </div>
+
+            <div class="amount">
+                ₹{{ total_business_expense|floatformat:2 }}
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                Net Profit
+            </div>
+
+            <div class="amount">
+                ₹{{ net_profit|floatformat:2 }}
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                Net Profit Margin
+            </div>
+
+            <div class="amount">
+                {{ net_profit_margin }}%
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+    <!-- ================================================= -->
+    <!-- TRIP PROFITABILITY SUMMARY -->
+    <!-- ================================================= -->
+
+    <div class="section">
+
+        <h2 class="section-title">
+            Trip Profitability
+        </h2>
+
+        <div class="trip-cards">
+
+            <div class="card">
+
+                <div class="card-title">
+                    Total Trip Revenue
+                </div>
+
+                <div class="amount">
+                    ₹{{ total_trip_revenue|floatformat:2 }}
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-title">
+                    Total Trip Expense
+                </div>
+
+                <div class="amount">
+                    ₹{{ total_trip_expense|floatformat:2 }}
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-title">
+                    Total Trip Profit
+                </div>
+
+                <div class="amount">
+                    ₹{{ total_trip_profit|floatformat:2 }}
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-title">
+                    Overall Profit Margin
+                </div>
+
+                <div class="amount">
+                    {{ overall_profit_margin }}%
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- EXPENSE ANALYSIS -->
+    <!-- ================================================= -->
+
+    <div class="section">
+
+        <h2 class="section-title">
+            Expense Analysis
+        </h2>
+
+        <div class="analysis-grid">
+
+
+            <!-- CATEGORY -->
+
+            <div class="panel">
+
+                <h2>
+                    Category-wise Expense
+                </h2>
+
+                {% for item in category_expenses %}
+
+                    <div class="category-row">
+
+                        <div class="category-header">
+
+                            <span class="category-name">
+                                {{ item.category__name }}
+                            </span>
+
+                            <span class="category-amount">
+                                ₹{{ item.total|floatformat:2 }}
+                                ({{ item.percentage }}%)
+                            </span>
+
+                        </div>
+
+                        <div class="bar">
+
+                            <div
+                                class="bar-fill"
+                                style="width: {{ item.percentage }}%;"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+                {% empty %}
+
+                    <p class="empty">
+                        No expense data available.
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- MONTHLY -->
+
+            <div class="panel">
+
+                <h2>
+                    Last 6 Months
+                </h2>
+
+                {% for item in monthly_expenses %}
+
+                    <div class="monthly-row">
+
+                        <div>
+                            {{ item.month }}
+                        </div>
+
+                        <div class="monthly-bar">
+
+                            <div
+                                class="monthly-fill"
+                                style="width: {{ item.percentage }}%;"
+                            ></div>
+
+                        </div>
+
+                        <div class="monthly-value">
+                            ₹{{ item.total|floatformat:2 }}
+                            ({{ item.percentage }}%)
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- VEHICLE -->
+
+            <div class="panel">
+
+                <h2>
+                    Vehicle-wise Expense
+                </h2>
+
+                {% for item in vehicle_expenses %}
+
+                    <div class="category-row">
+
+                        <div class="category-header">
+
+                            <span class="category-name">
+                                {{ item.vehicle__registration_number }}
+                            </span>
+
+                            <span class="category-amount">
+                                ₹{{ item.total|floatformat:2 }}
+                                ({{ item.percentage }}%)
+                            </span>
+
+                        </div>
+
+                        <div class="bar">
+
+                            <div
+                                class="bar-fill"
+                                style="width: {{ item.percentage }}%;"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+                {% empty %}
+
+                    <p class="empty">
+                        No vehicle-linked expense data available.
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- PAYMENT METHOD -->
+
+            <div class="panel">
+
+                <h2>
+                    Payment Method-wise Expense
+                </h2>
+
+                {% for item in payment_expenses %}
+
+                    <div class="category-row">
+
+                        <div class="category-header">
+
+                            <span class="category-name">
+                                {{ item.payment_method__name }}
+                            </span>
+
+                            <span class="category-amount">
+                                ₹{{ item.total|floatformat:2 }}
+                                ({{ item.percentage }}%)
+                            </span>
+
+                        </div>
+
+                        <div class="bar">
+
+                            <div
+                                class="bar-fill"
+                                style="width: {{ item.percentage }}%;"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+                {% empty %}
+
+                    <p class="empty">
+                        No payment method expense data available.
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================================================= -->
+<!-- REVENUE VS EXPENSE TREND -->
+<!-- ================================================= -->
+
+<div class="section">
+
+    <div class="panel">
+
+        <h2>
+            Revenue vs Expense Trend
+        </h2>
+
+        {% for item in monthly_business %}
+
+            <div class="category-row">
+
+                <div class="category-header">
+
+                    <span class="category-name">
+                        {{ item.month }}
+                    </span>
+
+                    <span class="category-amount">
+                        Revenue ₹{{ item.revenue|floatformat:0 }}
+                        &nbsp; | &nbsp;
+                        Expense ₹{{ item.expense|floatformat:0 }}
+                    </span>
+
+                </div>
+
+
+                <!-- REVENUE -->
+
+                <div style="margin-bottom: 6px;">
+
+                    <div
+                        style="
+                            height: 10px;
+                            background: #e5e7eb;
+                            border-radius: 20px;
+                            overflow: hidden;
+                        "
+                    >
+
+                        <div
+                            style="
+                                height: 100%;
+                                background: #174f43;
+                                border-radius: 20px;
+                                width:
+                                {% if item.revenue %}
+                                    100
+                                {% else %}
+                                    0
+                                {% endif %}%;
+                            "
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- EXPENSE -->
+
+                <div>
+
+                    <div
+                        style="
+                            height: 8px;
+                            background: #e5e7eb;
+                            border-radius: 20px;
+                            overflow: hidden;
+                        "
+                    >
+
+                        <div
+                            style="
+                                height: 100%;
+                                background: #9ca3af;
+                                border-radius: 20px;
+                                width:
+                                {% if item.revenue %}
+                                    {% widthratio item.expense item.revenue 100 %}
+                                {% else %}
+                                    0
+                                {% endif %}%;
+                            "
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    style="
+                        margin-top: 6px;
+                        font-size: 12px;
+                        color: #6b7280;
+                    "
+                >
+
+                    Profit:
+                    ₹{{ item.profit|floatformat:0 }}
+
+                    &nbsp; • &nbsp;
+
+                    Margin:
+                    {{ item.margin }}%
+
+                </div>
+
+            </div>
+
+        {% empty %}
+
+            <p class="empty">
+                No monthly business data available.
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+    <!-- ================================================= -->
+<!-- MONTHLY BUSINESS PERFORMANCE -->
+<!-- ================================================= -->
+
+<div class="section">
+
+    <div class="table-panel">
+
+        <h2>
+            Monthly Business Performance
+        </h2>
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Month
+                    </th>
+
+                    <th>
+                        Revenue
+                    </th>
+
+                    <th>
+                        Expense
+                    </th>
+
+                    <th>
+                        Profit
+                    </th>
+
+                    <th>
+                        Margin
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for item in monthly_business %}
+
+                    <tr>
+
+                        <td>
+                            {{ item.month }}
+                        </td>
+
+                        <td class="amount-cell">
+                            ₹{{ item.revenue|floatformat:2 }}
+                        </td>
+
+                        <td class="amount-cell">
+                            ₹{{ item.expense|floatformat:2 }}
+                        </td>
+
+                        <td class="amount-cell">
+                            ₹{{ item.profit|floatformat:2 }}
+                        </td>
+
+                        <td>
+                            {{ item.margin }}%
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="5"
+                            class="empty"
+                        >
+                            No monthly business data available.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+    <!-- ================================================= -->
+    <!-- TRIP-WISE PROFITABILITY -->
+    <!-- ================================================= -->
+
+    <div class="section">
+
+        <div class="table-panel">
+
+            <h2>
+                Trip-wise Profitability
+            </h2>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Trip
+                        </th>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Vehicle
+                        </th>
+
+                        <th>
+                            Revenue
+                        </th>
+
+                        <th>
+                            Expense
+                        </th>
+
+                        <th>
+                            Profit
+                        </th>
+
+                        <th>
+                            Margin
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for item in trip_expenses %}
+
+                        <tr>
+
+                            <td>
+                                {{ item.trip__trip_code }}
+                            </td>
+
+                            <td>
+                                {{ item.trip__trip_date|date:"d-M-Y" }}
+                            </td>
+
+                            <td>
+                                {{ item.trip__vehicle__registration_number }}
+                            </td>
+
+                            <td class="amount-cell">
+                                ₹{{ item.trip__total_amount|floatformat:2 }}
+                            </td>
+
+                            <td class="amount-cell">
+                                ₹{{ item.expense_total|floatformat:2 }}
+                            </td>
+
+                            <td class="amount-cell">
+                                ₹{{ item.profit|floatformat:2 }}
+                            </td>
+
+                            <td>
+                                {{ item.profit_percentage }}%
+                            </td>
+
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+
+                            <td
+                                colspan="7"
+                                class="empty"
+                            >
+                                No trips available.
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- RECENT EXPENSES -->
+    <!-- ================================================= -->
+
+    <div class="section">
+
+        <div class="table-panel">
+
+            <h2>
+                Recent Expenses
+            </h2>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Category
+                        </th>
+
+                        <th>
+                            Description
+                        </th>
+
+                        <th>
+                            Vehicle
+                        </th>
+
+                        <th>
+                            Payment
+                        </th>
+
+                        <th>
+                            Amount
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for expense in recent_expenses %}
+
+                        <tr>
+
+                            <td>
+                                {{ expense.expense_date|date:"d-M-Y" }}
+                            </td>
+
+                            <td>
+                                {{ expense.category }}
+                            </td>
+
+                            <td>
+                                {{ expense.description }}
+                            </td>
+
+                            <td>
+
+                                {% if expense.vehicle %}
+                                    {{ expense.vehicle }}
+                                {% else %}
+                                    —
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+                                {{ expense.payment_method }}
+                            </td>
+
+                            <td class="amount-cell">
+                                ₹{{ expense.amount|floatformat:2 }}
+                            </td>
+
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="empty"
+                            >
+                                No expenses found.
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

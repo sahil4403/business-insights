@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Payment Report</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            background: #f5f7f7;
+
+            color: #1f2933;
+        }
+
+        .container {
+            max-width: 1300px;
+
+            margin: 0 auto;
+
+            padding: 30px;
+        }
+
+        .header {
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            margin: 0;
+
+            font-size: 30px;
+        }
+
+        .header p {
+            margin: 6px 0 0;
+
+            color: #6b7280;
+        }
+
+        .card {
+            background: white;
+
+            padding: 22px;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 2px 10px rgba(0, 0, 0, 0.05);
+
+            margin-bottom: 20px;
+        }
+
+        .filter-form {
+            display: flex;
+
+            gap: 14px;
+
+            align-items: end;
+
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+
+            font-weight: 600;
+
+            color: #6b7280;
+        }
+
+        .filter-group input,
+        .filter-group select {
+
+            padding: 10px 12px;
+
+            border: 1px solid #d1d5db;
+
+            border-radius: 8px;
+
+            font-family: inherit;
+
+            background: white;
+        }
+
+        .btn {
+            display: inline-block;
+
+            padding: 10px 16px;
+
+            border-radius: 8px;
+
+            border: none;
+
+            text-decoration: none;
+
+            font-size: 14px;
+
+            font-weight: 600;
+
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #16665a;
+
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+
+            color: #374151;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+
+            padding: 12px 14px;
+
+            border: 1px solid #d1d5db;
+
+            border-radius: 8px;
+
+            font-size: 14px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 1000px;
+        }
+
+        th {
+            text-align: left;
+
+            padding: 14px 12px;
+
+            font-size: 12px;
+
+            color: #6b7280;
+
+            border-bottom:
+                1px solid #e5e7eb;
+        }
+
+        td {
+            padding: 14px 12px;
+
+            border-bottom:
+                1px solid #eef0f2;
+
+            font-size: 14px;
+        }
+
+        th.right,
+        td.right {
+            text-align: right;
+        }
+
+        .customer-name {
+            font-weight: 600;
+        }
+
+        .amount {
+            font-weight: 700;
+        }
+
+        .reference {
+            color: #6b7280;
+
+            font-size: 13px;
+        }
+
+        .notes {
+            color: #6b7280;
+
+            font-size: 13px;
+
+            max-width: 220px;
+        }
+
+        .filter-actions,
+        .export-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .empty {
+            text-align: center;
+
+            padding: 40px;
+
+            color: #6b7280;
+        }
+
+        .month-group-header td {
+            background: #f8fafc;
+            font-weight: 700;
+            font-size: 13px;
+            color: #334155;
+            padding: 10px 12px;
+            letter-spacing: 0.3px;
+        }
+
+        .back-link {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 700px) {
+
+            .container {
+                padding: 14px 10px;
+            }
+
+            .card {
+                padding: 14px;
+            }
+
+            .filter-form {
+                flex-direction: column;
+
+                align-items: stretch;
+            }
+
+            .filter-group {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .filter-group input,
+            .filter-group select {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+            }
+
+            .filter-group input[type="date"] {
+                -webkit-appearance: none;
+                appearance: none;
+                font-size: 15px;
+                padding: 6px 8px;
+                min-height: 40px;
+            }
+
+            .filter-group select {
+                min-height: 44px;
+            }
+
+            .filter-actions,
+            .export-actions {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                width: 100%;
+            }
+
+            .filter-actions .btn,
+            .export-actions .btn {
+                width: 100%;
+                min-height: 44px;
+                display: inline-flex;
+                justify-content: center;
+                align-items: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .search-box input {
+                font-size: 16px;
+                min-height: 44px;
+            }
+
+        }
+
+        /* ===== MOBILE CARDS ===== */
+        @media (max-width: 640px) {
+
+            .table-wrapper {
+                overflow: visible;
+            }
+
+            table,
+            tbody {
+                display: block;
+                width: 100%;
+                min-width: 0 !important;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tr {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 4px 10px;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 12px 14px;
+                margin-bottom: 14px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            }
+
+            td {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                width: auto;
+                min-width: 0;
+                padding: 5px 0;
+                border: 0;
+                text-align: left;
+                font-size: 13px;
+            }
+
+            td::before {
+                content: attr(data-label);
+                font-size: 10px;
+                font-weight: 700;
+                color: #6b7280;
+                text-transform: uppercase;
+                letter-spacing: 0.4px;
+                flex-shrink: 0;
+            }
+
+            /* Date + Amount: first line */
+            td[data-label="Date"] {
+                font-weight: 700;
+                font-size: 14px;
+            }
+
+            td[data-label="Date"]::before {
+                display: none;
+            }
+
+            td[data-label="Amount"] {
+                margin-left: auto;
+                justify-content: flex-end;
+                font-size: 15px;
+                color: #16665a;
+            }
+
+            td[data-label="Amount"]::before {
+                display: none;
+            }
+
+            /* Customer: full width */
+            td[data-label="Customer"] {
+                flex-basis: 100%;
+                order: 1;
+                font-size: 14px;
+                color: #0f172a;
+            }
+
+            td[data-label="Customer"]::before {
+                display: none;
+            }
+
+            /* Trip + Method: inline */
+            td[data-label="Trip"],
+            td[data-label="Method"] {
+                font-size: 12px;
+                color: #475569;
+            }
+
+            /* Reference + Notes: full width */
+            td[data-label="Reference"],
+            td[data-label="Notes"] {
+                flex-basis: 100%;
+                font-size: 12px;
+                color: #6b7280;
+                max-width: none;
+            }
+
+            tr.month-group-header {
+                display: block;
+                background: #f1f5f9;
+                border: none;
+                box-shadow: none;
+                padding: 8px 14px;
+                margin: 18px 0 8px;
+                border-radius: 8px;
+            }
+
+            tr.month-group-header td {
+                display: block;
+                font-size: 12px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: #334155;
+                padding: 0;
+                background: none;
+            }
+
+            td.empty {
+                display: block;
+                padding: 30px 16px;
+                flex-basis: 100%;
+            }
+
+            td.empty::before {
+                display: none;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- HEADER -->
+
+    <div class="header">
+
+        <h1>
+            Payment Report
+        </h1>
+
+        <p>
+            Detailed payment and collection transaction report
+        </p>
+
+        <p style="color: #9ca3af; font-size: 11px; margin: 4px 0 0;">
+            pay v1
+        </p>
+
+    </div>
+
+
+    {% if messages %}
+        <div style="margin-bottom: 16px;">
+            {% for message in messages %}
+                <div style="padding: 12px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+
+    <!-- FILTER -->
+
+    <div class="card">
+
+        <form
+            method="get"
+            class="filter-form"
+        >
+
+            <div class="filter-group">
+
+                <label for="from_date">
+                    From Date
+                </label>
+
+                <input
+                    type="date"
+                    id="from_date"
+                    name="from_date"
+                    value="{{ from_date }}"
+                >
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="to_date">
+                    To Date
+                </label>
+
+                <input
+                    type="date"
+                    id="to_date"
+                    name="to_date"
+                    value="{{ to_date }}"
+                >
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="payment_method">
+                    Payment Method
+                </label>
+
+                <select
+                    id="payment_method"
+                    name="payment_method"
+                >
+
+                    <option value="">
+                        All Methods
+                    </option>
+
+
+                    {% for method in payment_methods %}
+
+                        <option
+                            value="{{ method.id }}"
+                            {% if selected_payment_method == method.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+
+                            {{ method.name }}
+
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-actions">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Apply Filter
+                </button>
+
+
+                <a
+                    href="{% url 'core:payment_report' %}"
+                    class="btn btn-secondary"
+                >
+                    Reset
+                </a>
+
+            </div>
+
+            <div class="export-actions">
+
+                <a
+        href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if selected_payment_method %}&payment_method={{ selected_payment_method }}{% endif %}"
+        class="btn btn-primary"
+    >
+        Export CSV
+    </a>
+            <a
+        href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if selected_payment_method %}&payment_method={{ selected_payment_method }}{% endif %}"
+        class="btn btn-primary"
+    >
+        Export Excel
+    </a>
+            <a
+        href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if selected_payment_method %}&payment_method={{ selected_payment_method }}{% endif %}"
+        target="_blank"
+        class="btn btn-primary"
+    >
+        👁️ Preview PDF
+    </a>
+            <a
+        href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if selected_payment_method %}&payment_method={{ selected_payment_method }}{% endif %}"
+        class="btn btn-primary"
+    >
+        📥 Download PDF
+    </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <!-- REPORT -->
+
+    <div class="card">
+
+
+        <!-- SEARCH -->
+
+        <div class="search-box">
+
+            <form method="get">
+
+                <input
+                    type="hidden"
+                    name="from_date"
+                    value="{{ from_date }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="to_date"
+                    value="{{ to_date }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="payment_method"
+                    value="{{ selected_payment_method }}"
+                >
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search }}"
+                    placeholder="Search customer..."
+                >
+
+            </form>
+
+        </div>
+
+
+        <!-- TABLE -->
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Customer
+                        </th>
+
+                        <th>
+                            Trip
+                        </th>
+
+                        <th class="right">
+                            Amount
+                        </th>
+
+                        <th>
+                            Payment Method
+                        </th>
+
+                        <th>
+                            Reference
+                        </th>
+
+                        <th>
+                            Notes
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                    {% for payment in payments %}
+
+                        {% ifchanged payment.payment_date|date:"F Y" %}
+                            <tr class="month-group-header">
+                                <td colspan="7">📅 {{ payment.payment_date|date:"F Y" }}</td>
+                            </tr>
+                        {% endifchanged %}
+
+                        <tr>
+
+                            <td data-label="Date">
+                                {{ payment.payment_date|date:"d-M-Y" }}
+                            </td>
+
+
+                            <td data-label="Customer" class="customer-name">
+
+                                {% if payment.customer %}
+                                    {{ payment.customer.name }}
+                                {% else %}
+                                    {{ payment.trip.customer.name|default:"—" }}
+                                {% endif %}
+
+                            </td>
+
+
+                            <td data-label="Trip">
+
+                                {% if payment.trip %}
+                                    {{ payment.trip.trip_code }}
+                                {% else %}
+                                    On-Account
+                                {% endif %}
+
+                            </td>
+
+
+                            <td data-label="Amount" class="right amount">
+
+                                ₹{{ payment.amount|floatformat:2 }}
+
+                            </td>
+
+
+                            <td data-label="Method">
+
+                                {{ payment.payment_method.name }}
+
+                            </td>
+
+
+                            <td data-label="Reference" class="reference">
+
+                                {% if payment.reference_number %}
+
+                                    {{ payment.reference_number }}
+
+                                {% else %}
+
+                                    —
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td data-label="Notes" class="notes">
+
+                                {% if payment.notes %}
+
+                                    {{ payment.notes }}
+
+                                {% else %}
+
+                                    —
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+
+                    {% empty %}
+
+                        <tr>
+
+                            <td
+                                colspan="7"
+                                class="empty"
+                            >
+
+                                No payment data found.
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- BACK -->
+
+    <div class="back-link">
+
+        <a
+            href="{% url 'core:dashboard' %}"
+            class="btn btn-secondary"
+        >
+            ← Back to Dashboard
+        </a>
+
+    </div>
+
+
+</div>
+
+
+</body>
+
+</html>

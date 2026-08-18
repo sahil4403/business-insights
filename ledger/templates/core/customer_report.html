@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Customer Report</title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            background: #f5f7f7;
+
+            color: #1f2933;
+        }
+
+
+        .container {
+
+            max-width: 1250px;
+
+            margin: 0 auto;
+
+            padding: 30px;
+        }
+
+
+        /* HEADER */
+
+        .header {
+
+            margin-bottom: 25px;
+        }
+
+
+        .header h1 {
+
+            margin: 0;
+
+            font-size: 30px;
+        }
+
+
+        .header p {
+
+            margin: 6px 0 0;
+
+            color: #6b7280;
+        }
+
+
+        /* CARD */
+
+        .card {
+
+            background: white;
+
+            padding: 22px;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 2px 10px rgba(0, 0, 0, 0.05);
+
+            margin-bottom: 20px;
+        }
+
+
+        /* FILTER */
+
+        /* FILTER CARD STYLES */
+        .filter-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .filter-inputs-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            width: 100%;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group input {
+            width: 100%;
+            height: 42px;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #0f172a;
+            background: #ffffff;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        .filter-group input:focus {
+            outline: none;
+            border-color: #16665a;
+            box-shadow: 0 0 0 3px rgba(22, 102, 90, 0.15);
+        }
+
+        .filter-actions-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-top: 14px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .filter-btn-group,
+        .export-btn-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            height: 40px;
+            box-sizing: border-box;
+        }
+
+        .btn-primary {
+            background: #16665a;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #115248;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-export {
+            background: #f8fafc;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            font-size: 13px;
+        }
+
+        .btn-export:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+            border-color: #94a3b8;
+        }
+
+        /* RESPONSIVE BREAKPOINTS FOR MOBILE & LAPTOP */
+        @media (max-width: 992px) {
+            .filter-inputs-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .filter-inputs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-actions-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-btn-group,
+            .export-btn-group {
+                width: 100%;
+            }
+
+            .filter-btn-group .btn,
+            .export-btn-group .btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
+
+
+        /* SEARCH */
+
+        .search-box {
+
+            margin-bottom: 20px;
+        }
+
+
+        .search-box input {
+
+            width: 100%;
+
+            padding: 12px 14px;
+
+            border: 1px solid #d1d5db;
+
+            border-radius: 8px;
+
+            font-size: 14px;
+        }
+
+
+        /* TABLE */
+
+        .table-wrapper {
+
+            overflow-x: auto;
+        }
+
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 800px;
+        }
+
+
+        th {
+
+            text-align: left;
+
+            padding: 14px 12px;
+
+            font-size: 12px;
+
+            color: #6b7280;
+
+            border-bottom:
+                1px solid #e5e7eb;
+        }
+
+
+        td {
+
+            padding: 14px 12px;
+
+            border-bottom:
+                1px solid #eef0f2;
+
+            font-size: 14px;
+        }
+
+
+        th.right,
+
+        td.right {
+
+            text-align: right;
+        }
+
+
+        .customer-name {
+
+            font-weight: 600;
+        }
+
+
+        .outstanding {
+
+            font-weight: 700;
+        }
+
+
+        .empty {
+
+            text-align: center;
+
+            padding: 40px;
+
+            color: #6b7280;
+        }
+
+
+        /* FOOTER */
+
+        .back-link {
+
+            margin-top: 20px;
+        }
+
+
+        /* MOBILE */
+
+        @media (max-width: 700px) {
+
+            .container {
+                padding: 14px 10px;
+            }
+
+            .card {
+                padding: 14px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .filter-form {
+                flex-direction: column;
+                align-items: stretch;
+                overflow: hidden;
+            }
+
+            .filter-group {
+                width: 100%;
+                min-width: 0;
+                max-width: 100%;
+            }
+
+            .filter-group input,
+            .search-box input {
+                font-size: 16px;
+                min-height: 44px;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+            }
+
+            .filter-group input[type="date"] {
+                -webkit-appearance: none;
+                appearance: none;
+                font-size: 15px;
+                padding: 6px 8px;
+                min-height: 40px;
+            }
+
+            .filter-group input[type="number"] {
+                font-size: 15px;
+                padding: 6px 8px;
+                min-height: 40px;
+            }
+
+            .filter-btn-group,
+            .export-btn-group {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                width: 100%;
+            }
+
+            .filter-btn-group .btn,
+            .export-btn-group .btn {
+                flex: none;
+                width: 100%;
+                min-height: 44px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .btn {
+                width: 100%;
+                min-height: 44px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+        }
+
+        /* MOBILE CUSTOMER CARDS (instead of wide table) */
+        @media (max-width: 640px) {
+
+            .table-wrapper {
+                overflow: visible;
+            }
+
+            table,
+            thead,
+            tbody,
+            tr,
+            td {
+                display: block;
+                width: 100%;
+                min-width: 0 !important;
+            }
+
+            thead {
+                display: none;
+            }
+
+            table {
+                min-width: 0;
+            }
+
+            tr {
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 10px 14px;
+                margin-bottom: 14px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            }
+
+            tr:last-child {
+                margin-bottom: 0;
+            }
+
+            td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                padding: 9px 2px;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: 14px;
+                text-align: left;
+            }
+
+            td:last-child {
+                border-bottom: none;
+            }
+
+            td::before {
+                content: attr(data-label);
+                font-size: 11px;
+                font-weight: 700;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.4px;
+                flex-shrink: 0;
+            }
+
+            td.right::after {
+                content: "";
+                flex: 1;
+            }
+
+            td.right {
+                text-align: right;
+                white-space: nowrap;
+            }
+
+            td.customer-name {
+                font-size: 16px;
+                font-weight: 700;
+                color: #0f172a;
+                border-bottom: 1px solid #e2e8f0;
+                margin-bottom: 4px;
+            }
+
+            td.customer-name::before {
+                display: none;
+            }
+
+            td[data-label="Action"] {
+                display: block;
+                text-align: center;
+                padding-top: 10px;
+            }
+
+            td[data-label="Action"]::before {
+                display: none;
+            }
+
+            td[data-label="Action"] .btn {
+                width: 100%;
+            }
+
+            td.empty {
+                display: block;
+                text-align: center;
+            }
+
+            td.empty::before {
+                display: none;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- HEADER -->
+
+    <div class="header">
+
+        <h1>
+            Customer Report
+        </h1>
+
+        <p>
+            Customer-wise revenue, payments and outstanding overview
+        </p>
+
+        <p style="color: #9ca3af; font-size: 11px; margin: 4px 0 0;">
+            report v2
+        </p>
+
+    </div>
+
+
+    {% if messages %}
+        <div style="margin-bottom: 16px;">
+            {% for message in messages %}
+                <div style="padding: 12px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+
+    <!-- FILTER CARD -->
+    <div class="card" style="padding: 24px;">
+        <form method="get" class="filter-form">
+            <!-- INPUTS GRID -->
+            <div class="filter-inputs-grid">
+                <div class="filter-group">
+                    <label for="from_date">From Date</label>
+                    <input type="date" id="from_date" name="from_date" value="{{ from_date }}">
+                </div>
+
+                <div class="filter-group">
+                    <label for="to_date">To Date</label>
+                    <input type="date" id="to_date" name="to_date" value="{{ to_date }}">
+                </div>
+
+                <div class="filter-group">
+                    <label for="min_amount">Min Amount (₹)</label>
+                    <input type="number" step="0.01" id="min_amount" name="min_amount" value="{{ min_amount }}" placeholder="Min Outstanding ₹">
+                </div>
+
+                <div class="filter-group">
+                    <label for="max_amount">Max Amount (₹)</label>
+                    <input type="number" step="0.01" id="max_amount" name="max_amount" value="{{ max_amount }}" placeholder="Max Outstanding ₹">
+                </div>
+            </div>
+
+            <!-- ACTIONS ROW -->
+            <div class="filter-actions-row">
+                <div class="filter-btn-group">
+                    <button type="submit" class="btn btn-primary">
+                        🔍 Apply Filter
+                    </button>
+                    <a href="{% url 'core:customer_report' %}" class="btn btn-secondary">
+                        Reset
+                    </a>
+                </div>
+
+                <div class="export-btn-group">
+                    <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" class="btn btn-export">
+                        📊 Export CSV
+                    </a>
+                    <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" class="btn btn-export">
+                        📗 Export Excel
+                    </a>
+                    <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" target="_blank" class="btn btn-export">
+                        👁️ Preview PDF
+                    </a>
+                    <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" class="btn btn-export">
+                        📥 Download PDF
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- REPORT -->
+    <div class="card">
+
+        <!-- SEARCH -->
+        <div class="search-box">
+            <form method="get">
+                <input
+                    type="hidden"
+                    name="from_date"
+                    value="{{ from_date }}"
+                >
+                <input
+                    type="hidden"
+                    name="to_date"
+                    value="{{ to_date }}"
+                >
+                <input
+                    type="hidden"
+                    name="min_amount"
+                    value="{{ min_amount }}"
+                >
+                <input
+                    type="hidden"
+                    name="max_amount"
+                    value="{{ max_amount }}"
+                >
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search }}"
+                    placeholder="Search by customer name or code (e.g. CUST-041 or Arnav)..."
+                >
+
+            </form>
+
+            {% if is_limited %}
+                <p style="font-size: 13px; color: #6b7280; margin: 10px 0 0 2px;">
+                    💡 Showing top {{ showing_count }} active customers. Use the search bar above to search across all customers.
+                </p>
+            {% elif search %}
+                <p style="font-size: 13px; color: #16665a; margin: 10px 0 0 2px;">
+                    🔍 Showing {{ showing_count }} result(s) for "<strong>{{ search }}</strong>". <a href="{% url 'core:customer_report' %}" style="color: #b91c1c; margin-left: 8px; font-weight: 600; text-decoration: underline;">Clear search</a>
+                </p>
+            {% endif %}
+
+        </div>
+
+
+        <!-- TABLE -->
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Customer
+                        </th>
+
+                        <th class="right">
+                            Opening Bal.
+                        </th>
+
+                        <th class="right">
+                            Trips
+                        </th>
+
+                        <th class="right">
+                            Revenue
+                        </th>
+
+                        <th class="right">
+                            Received
+                        </th>
+
+                        <th class="right">
+                            Outstanding
+                        </th>
+
+                        <th>
+    Action
+</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                    {% for customer in customer_rows %}
+
+                        <tr>
+
+                            <td class="customer-name" data-label="Customer">
+
+                                {{ customer.customer_name }}
+
+                            </td>
+
+
+                            <td class="right" data-label="Opening Bal.">
+
+                                ₹{{ customer.opening_balance|floatformat:2 }}
+
+                            </td>
+
+
+                            <td class="right" data-label="Trips">
+
+                                {{ customer.total_trips }}
+
+                            </td>
+
+
+                            <td class="right" data-label="Revenue">
+
+                                ₹{{ customer.total_revenue|floatformat:2 }}
+
+                            </td>
+
+
+                            <td class="right" data-label="Received">
+
+                                ₹{{ customer.total_received|floatformat:2 }}
+
+                            </td>
+
+
+                            <td class="right outstanding" data-label="Outstanding">
+
+                                ₹{{ customer.total_outstanding|floatformat:2 }}
+
+                            </td>
+                        <td data-label="Action" style="white-space: nowrap;">
+                            {% if customer.customer_id %}
+                                <a
+                                    href="{% url 'ledger:customer_statement' customer.customer_id %}"
+                                    class="btn btn-secondary"
+                                    style="text-decoration: none; padding: 6px 12px; font-size: 13px;"
+                                >
+                                    View Statement
+                                </a>
+                            {% else %}
+                                <span style="color: #888;">
+                                    Internal Stock
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        </tr>
+
+
+                    {% empty %}
+
+                        <tr>
+
+                            <td
+                                colspan="7"
+                                class="empty"
+                            >
+
+                                No customer data found.
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- BACK -->
+
+    <div class="back-link">
+
+        <a
+            href="{% url 'core:dashboard' %}"
+            class="btn btn-secondary"
+        >
+            ← Back to Dashboard
+        </a>
+
+    </div>
+
+
+</div>
+
+
+</body>
+
+</html>

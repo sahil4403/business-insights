@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Delete {{ trip.trip_code }}</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont,
+                "Segoe UI", sans-serif;
+            background: #f5f7f7;
+            color: #1f2933;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 560px;
+            background: white;
+            border-radius: 14px;
+            padding: 30px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+        }
+
+        .icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #fef2f2;
+            color: #b91c1c;
+            font-size: 24px;
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .warning {
+            margin: 12px 0 22px;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .details {
+            background: #f8fafb;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 9px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .row:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .value {
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .error-note {
+    padding: 12px 14px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    color: #b91c1c;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+
+        .danger-note {
+            padding: 12px 14px;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 8px;
+            color: #9a3412;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 11px 18px;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-danger {
+            background: #b91c1c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #991b1b;
+        }
+
+        @media (max-width: 600px) {
+
+            .card {
+                padding: 22px;
+            }
+
+            .actions {
+                flex-direction: column-reverse;
+            }
+
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="card">
+
+    <div class="icon">
+        !
+    </div>
+
+
+    <h1>
+        Delete Trip?
+    </h1>
+
+
+    <p class="warning">
+        Are you sure you want to permanently delete this trip?
+        This action cannot be undone.
+    </p>
+
+
+    <div class="details">
+
+        <div class="row">
+
+            <span class="label">
+                Trip Code
+            </span>
+
+            <span class="value">
+                {{ trip.trip_code }}
+            </span>
+
+        </div>
+
+
+        <div class="row">
+
+            <span class="label">
+                Customer
+            </span>
+
+            <span class="value">
+                {{ trip.customer.name }}
+            </span>
+
+        </div>
+
+
+        <div class="row">
+
+            <span class="label">
+                Trip Date
+            </span>
+
+            <span class="value">
+                {{ trip.trip_date|date:"d-M-Y" }}
+            </span>
+
+        </div>
+
+
+        <div class="row">
+
+            <span class="label">
+                Revenue
+            </span>
+
+            <span class="value">
+                ₹{{ trip.total_amount|floatformat:2 }}
+            </span>
+
+        </div>
+
+
+        <div class="row">
+
+            <span class="label">
+                Payment Status
+            </span>
+
+            <span class="value">
+                {{ trip.calculated_payment_status }}
+            </span>
+
+        </div>
+
+    </div>
+
+    {% if delete_error %}
+
+    <div class="error-note">
+
+        <strong>Cannot Delete Trip</strong><br>
+
+        {{ delete_error }}
+
+    </div>
+
+{% endif %}
+
+    <div class="danger-note">
+
+        <strong>Important:</strong>
+        A trip with recorded payments should not be deleted.
+        If payments are linked to this trip, the system will protect
+        the record.
+
+    </div>
+
+
+    <div class="actions">
+
+        <a
+            href="{% url 'trips:detail' trip.id %}"
+            class="btn btn-secondary"
+        >
+            Cancel
+        </a>
+
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <button
+                type="submit"
+                class="btn btn-danger"
+            >
+                Confirm Delete
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>

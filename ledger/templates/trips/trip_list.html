@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Trips</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont,
+                "Segoe UI", sans-serif;
+            background: #f5f7f7;
+            color: #1f2933;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .header p {
+            margin: 6px 0 0;
+            color: #6b7280;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns:
+                1.5fr 1.3fr 1.2fr 1fr 1fr 1fr 1fr auto auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .filters-toggle {
+            display: none;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #174f43;
+        }
+
+        button,
+        .btn {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #174f43;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        .table-scroll-container {
+            max-height: 65vh;
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            scroll-behavior: smooth;
+        }
+
+        .table-scroll-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-scroll-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        .table-scroll-container::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 4px;
+        }
+
+        .table-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .table-header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 1050px;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-align: left;
+            padding: 13px 12px;
+            background: #f8fafb;
+            color: #4b5563;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #eef0f2;
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background: #fafcfc;
+        }
+
+        .trip-code {
+            font-weight: 700;
+            color: #174f43;
+        }
+
+        .amount {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .status-planned {
+            background: #fff7ed;
+            color: #9a3412;
+        }
+
+        .status-progress {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .status-completed {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .status-cancelled {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .status-unpaid {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .status-partial {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .status-paid {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 50px 20px;
+            color: #6b7280;
+        }
+
+        /* MOBILE TRIPS CARDS (<= 640px) */
+        .mobile-trips-list {
+            display: none;
+        }
+
+        .mobile-trip-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        .mobile-trip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .mobile-trip-code {
+            font-weight: 700;
+            font-size: 16px;
+            color: #174f43;
+            text-decoration: none;
+        }
+
+        .mobile-trip-subheader {
+            font-size: 13px;
+            color: #475569;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .mobile-trip-body {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+            color: #374151;
+            padding: 10px 0;
+            border-top: 1px dashed #e2e8f0;
+            border-bottom: 1px dashed #e2e8f0;
+            margin-bottom: 10px;
+        }
+
+        .mobile-trip-body .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mobile-trip-body .row span:first-child {
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        .mobile-trip-body .row strong,
+        .mobile-trip-body .row .drivers {
+            text-align: right;
+        }
+
+        .mobile-trip-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mobile-trip-amounts {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .mobile-trip-amount {
+            font-size: 16px;
+            font-weight: 700;
+            color: #174f43;
+        }
+
+        .mobile-trip-amounts .sub {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .btn-mobile-view {
+            padding: 10px 14px;
+            background: #16665a;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .btn-mobile-pay {
+            padding: 10px 14px;
+            background: #e0f2fe;
+            color: #0369a1;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 900px) {
+
+            .container {
+                padding: 16px;
+            }
+
+            .header {
+                align-items: flex-start;
+                gap: 15px;
+                flex-direction: column;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .filters {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-divider {
+                display: none;
+            }
+
+            .summary-strip {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                padding: 14px;
+            }
+
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px 6px;
+            }
+
+            .container {
+                padding: 12px 8px;
+            }
+
+            .header-actions {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .header-actions .btn {
+                width: 100%;
+                justify-content: center;
+                min-height: 44px;
+            }
+
+            .summary-strip {
+                grid-template-columns: 1fr;
+            }
+
+            .filters input, .filters select {
+                font-size: 16px;
+                min-height: 44px;
+            }
+
+            .table-header-controls {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            /* Mobile: hide desktop table, show trip cards */
+            .table-scroll-container {
+                display: none !important;
+            }
+
+            .table-header-controls .btn-secondary {
+                display: none;
+            }
+
+            .mobile-trips-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            /* Mobile: collapsible filter panel */
+            .filters-toggle {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                background: #f1f5f9;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 12px 16px;
+                font-size: 15px;
+                font-weight: 600;
+                color: #334155;
+                cursor: pointer;
+                font-family: inherit;
+                min-height: 48px;
+            }
+
+            .filters-toggle .arrow {
+                transition: transform 0.2s ease;
+            }
+
+            .filters-toggle.open .arrow {
+                transform: rotate(180deg);
+            }
+
+            .filters-count-badge {
+                background: #174f43;
+                color: white;
+                border-radius: 999px;
+                padding: 3px 10px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+
+            .filters {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 10px !important;
+                margin-top: 12px;
+            }
+
+            .filters.collapsed {
+                display: none !important;
+            }
+
+            .filters .field {
+                min-width: 0;
+            }
+
+            .filters .btn {
+                grid-column: 1 / -1;
+                min-height: 44px;
+            }
+        }
+
+        /* COMPACT SUMMARY STRIP */
+        .summary-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 16px 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .summary-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .summary-val {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .summary-sub {
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .summary-divider {
+            width: 1px;
+            height: 32px;
+            background: #e2e8f0;
+        }
+
+        .text-success {
+            color: #047857;
+        }
+
+        .text-danger {
+            color: #b91c1c;
+        }
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+
+    <!-- HEADER -->
+
+    <div class="header">
+
+        <div>
+
+            <h1>
+                {% if category == 'hyva' %}
+                    Hyva Trips
+                {% elif category == 'tractor' %}
+                    Tractor Trips
+                {% elif category == 'halfton' %}
+                    Halfton Trips
+                {% else %}
+                    Trips
+                {% endif %}
+            </h1>
+
+            <p>
+                Manage {{ category|default:"all" }} trips, revenue and payment status
+            </p>
+
+        </div>
+       <div style="display: flex; gap: 10px; align-items: center;">
+
+    <a
+        href="{% url 'core:dashboard' %}"
+        class="btn"
+        style="
+            background: #e5e7eb;
+            color: #374151;
+            text-decoration: none;
+        "
+    >
+        ← Business Dashboard
+    </a>
+
+    <a
+        href="{% url 'trips:create' %}"
+        class="btn"
+        style="
+            background: #16665a;
+            color: white;
+            text-decoration: none;
+        "
+    >
+        + Add Trip
+    </a>
+
+</div>
+
+    </div>
+
+    {% if messages %}
+        <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+                <div style="padding: 14px 18px; border-radius: 10px; font-weight: 600; font-size: 14px; background: {% if message.tags == 'error' %}#fef2f2; color: #b91c1c; border: 1px solid #fecaca;{% else %}#ecfdf5; color: #047857; border: 1px solid #a7f3d0;{% endif %} margin-bottom: 10px;">
+                    {% if message.tags == 'error' %}❌{% else %}✅{% endif %} {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+
+    <!-- FILTERS -->
+
+    <div class="panel">
+
+        <form method="get" id="tripFiltersForm">
+            {% if category %}
+                <input type="hidden" name="category" value="{{ category }}">
+            {% endif %}
+
+            <button
+                type="button"
+                class="filters-toggle"
+                id="filtersToggleBtn"
+                onclick="toggleFilters()"
+            >
+                <span>🔍 Filters</span>
+                <span style="display: flex; align-items: center; gap: 8px;">
+                    <span id="filtersCountBadge" class="filters-count-badge">All</span>
+                    <span class="arrow">▾</span>
+                </span>
+            </button>
+
+            <div class="filters" id="filtersBody">
+
+                <div class="field">
+                    <label>
+                        Search
+                    </label>
+                    <input
+                        type="text"
+                        name="search"
+                        value="{{ search }}"
+                        placeholder="Trip code, customer or vehicle"
+                    >
+                </div>
+
+                <div class="field">
+                    <label>
+                        Type
+                    </label>
+                    <select name="transaction_type">
+                        <option value="CUSTOMER_DELIVERY" {% if selected_transaction_type == 'CUSTOMER_DELIVERY' %}selected{% endif %}>
+                            Customer Delivery
+                        </option>
+                        <option value="INTERNAL_STOCK" {% if selected_transaction_type == 'INTERNAL_STOCK' %}selected{% endif %}>
+                            Internal Stock Only
+                        </option>
+                        <option value="ALL" {% if selected_transaction_type == 'ALL' %}selected{% endif %}>
+                            All Types
+                        </option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>
+                        Material
+                    </label>
+                    <select name="material">
+                        <option value="">
+                            All Materials
+                        </option>
+                        {% for mat in materials_list %}
+                            <option
+                                value="{{ mat.id }}"
+                                {% if selected_material == mat.id|stringformat:"i" or selected_material == mat.id %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ mat.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>
+                        Year
+                    </label>
+                    <select name="year">
+                        <option value="">
+                            All Years
+                        </option>
+                        {% for y in available_years %}
+                            <option
+                                value="{{ y }}"
+                                {% if selected_year == y|stringformat:"i" or selected_year == y %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ y }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>
+                        Month
+                    </label>
+                    <select name="month">
+                        <option value="">
+                            All Months
+                        </option>
+                        {% for val, name in month_choices %}
+                            <option
+                                value="{{ val }}"
+                                {% if selected_month == val %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>
+                        Trip Status
+                    </label>
+                    <select name="trip_status">
+                        <option value="">
+                            All Trip Status
+                        </option>
+                        {% for value, label in trip_status_choices %}
+                            <option
+                                value="{{ value }}"
+                                {% if selected_trip_status == value %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>
+                        Payment Status
+                    </label>
+                    <select name="payment_status">
+                        <option value="">
+                            All Payment Status
+                        </option>
+                        {% for value, label in payment_status_choices %}
+                            <option
+                                value="{{ value }}"
+                                {% if selected_payment_status == value %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Apply
+                </button>
+
+                <a
+                    href="{% url 'trips:list' %}{% if category %}?category={{ category }}{% endif %}"
+                    class="btn btn-secondary"
+                >
+                    Clear
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    <!-- COMPACT SUMMARY STRIP -->
+    <div class="summary-strip">
+        <div class="summary-item">
+            <span class="summary-label">Total Trips</span>
+            <span class="summary-val">
+                {{ summary.total_count }}
+                <span class="summary-sub">({{ summary.paid_count }} Paid · {{ summary.pending_count }} Pending)</span>
+            </span>
+        </div>
+
+        <div class="summary-divider"></div>
+
+        <div class="summary-item">
+            <span class="summary-label">Total Amount</span>
+            <span class="summary-val">₹{{ summary.total_revenue|floatformat:2 }}</span>
+        </div>
+
+        <div class="summary-divider"></div>
+
+        <div class="summary-item">
+            <span class="summary-label">Total Received</span>
+            <span class="summary-val text-success">₹{{ summary.total_received|floatformat:2 }}</span>
+        </div>
+
+        <div class="summary-divider"></div>
+
+        <div class="summary-item">
+            <span class="summary-label">Total Pending</span>
+            <span class="summary-val {% if summary.total_pending > 0 %}text-danger{% endif %}">
+                ₹{{ summary.total_pending|floatformat:2 }}
+            </span>
+        </div>
+    </div>
+
+    <!-- TRIP TABLE -->
+    <div class="panel">
+
+        <div class="table-header-controls">
+            <div style="font-weight: 700; font-size: 16px; color: #1e293b;">
+                Trips Records <span style="font-size: 13px; font-weight: 500; color: #64748b;">({{ summary.total_count }} trips)</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" onclick="scrollToTop()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 4px; border: 1px solid #d1d5db;">
+                    ⬆ Start (Top)
+                </button>
+                <button type="button" onclick="scrollToBottom()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 4px; border: 1px solid #d1d5db;">
+                    ⬇ End (Bottom)
+                </button>
+            </div>
+        </div>
+
+        <div class="table-scroll-container" id="tripsTableContainer">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Trip
+                        </th>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Customer
+                        </th>
+
+                        <th>
+                            Destination
+                        </th>
+
+                        <th>
+                            Vehicle
+                        </th>
+
+                        <th>
+                            Drivers / Labour
+                        </th>
+
+                        <th>
+                            Material
+                        </th>
+
+                        <th>
+                            Quantity
+                        </th>
+
+                        <th>
+                            Revenue
+                        </th>
+
+                        <th>
+                            Received
+                        </th>
+
+                        <th>
+                            Outstanding
+                        </th>
+
+                        <th>
+                            Trip Status
+                        </th>
+
+                        <th>
+                            Payment
+                        </th>
+
+                        <th>
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for trip in trips %}
+
+                        <tr>
+
+                            <td>
+
+                                <a
+                                    href="{% url 'trips:detail' trip.id %}"
+                                    class="trip-code"
+                                >
+                                    {{ trip.trip_code }}
+                                </a>
+
+                            </td>
+
+
+                            <td>
+                                {{ trip.trip_date|date:"d-M-Y" }}
+                            </td>
+
+
+                            <td>
+                                {% if trip.transaction_type == 'INTERNAL_STOCK' %}
+                                    <span style="color: #475569; font-weight: 600; font-style: italic;">📦 Internal Stock</span>
+                                {% else %}
+                                    {{ trip.customer.name }}
+                                {% endif %}
+                            </td>
+
+
+                            <td>
+                                {{ trip.destination|default:"—" }}
+                            </td>
+
+
+                            <td>
+                                {{ trip.vehicle.registration_number }}
+                            </td>
+
+
+                            <td>
+                                {% if trip.drivers.all %}
+                                    {% for driver in trip.drivers.all %}
+                                        <span style="display: inline-block; padding: 2px 7px; background: #e0f2fe; color: #0369a1; border-radius: 4px; font-size: 12px; font-weight: 500; margin: 1px;">{{ driver.name }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span style="color: #9ca3af; font-style: italic;">—</span>
+                                {% endif %}
+                            </td>
+
+
+                            <td>
+                                {{ trip.material.name }}
+                            </td>
+
+
+                            <td>
+                                {{ trip.quantity }}
+                            </td>
+
+
+                            <td class="amount">
+                                ₹{{ trip.total_amount|floatformat:2 }}
+                            </td>
+
+
+                            <td class="amount">
+                                ₹{{ trip.total_received|floatformat:2 }}
+                            </td>
+
+
+                            <td class="amount">
+                                ₹{{ trip.outstanding_amount|floatformat:2 }}
+                            </td>
+
+
+                            <td>
+
+                                {% if trip.trip_status == 'PLANNED' %}
+
+                                    <span class="status status-planned">
+                                        Planned
+                                    </span>
+
+                                {% elif trip.trip_status == 'IN_PROGRESS' %}
+
+                                    <span class="status status-progress">
+                                        In Progress
+                                    </span>
+
+                                {% elif trip.trip_status == 'COMPLETED' %}
+
+                                    <span class="status status-completed">
+                                        Completed
+                                    </span>
+
+                                {% elif trip.trip_status == 'CANCELLED' %}
+
+                                    <span class="status status-cancelled">
+                                        Cancelled
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if trip.calculated_payment_status == 'UNPAID' %}
+
+                                    <span class="status status-unpaid">
+                                        Unpaid
+                                    </span>
+
+                                {% elif trip.calculated_payment_status == 'PARTIAL' %}
+
+                                    <span class="status status-partial">
+                                        Partial
+                                    </span>
+
+                                {% elif trip.calculated_payment_status == 'PAID' %}
+
+                                    <span class="status status-paid">
+                                        Paid
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td style="white-space: nowrap;">
+
+                                <a
+                                    href="{% url 'trips:detail' trip.id %}"
+                                    class="btn btn-secondary"
+                                    style="padding: 6px 12px; font-size: 13px;"
+                                >
+                                    View
+                                </a>
+
+                                {% if trip.outstanding_amount > 0 %}
+                                    <a
+                                        href="{% url 'trips:payment_create' trip.id %}"
+                                        class="btn btn-primary"
+                                        style="padding: 6px 12px; font-size: 13px; background: #16665a; color: white; text-decoration: none; margin-left: 4px;"
+                                    >
+                                        + Pay
+                                    </a>
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+
+                            <td
+                                colspan="12"
+                                class="empty"
+                            >
+                                No trips found.
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <!-- MOBILE TRIPS CARDS (Smartphones <= 640px) -->
+        <div class="mobile-trips-list">
+
+            {% for trip in trips %}
+
+                <div class="mobile-trip-card">
+
+                    <div class="mobile-trip-header">
+                        <a href="{% url 'trips:detail' trip.id %}" class="mobile-trip-code">
+                            {{ trip.trip_code }}
+                        </a>
+                        {% if trip.calculated_payment_status == 'PAID' %}
+                            <span class="status status-paid">Paid</span>
+                        {% elif trip.calculated_payment_status == 'PARTIAL' %}
+                            <span class="status status-partial">Partial</span>
+                        {% else %}
+                            <span class="status status-unpaid">Unpaid</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mobile-trip-subheader">
+                        {% if trip.trip_status == 'PLANNED' %}
+                            <span class="status status-planned">Planned</span>
+                        {% elif trip.trip_status == 'IN_PROGRESS' %}
+                            <span class="status status-progress">In Progress</span>
+                        {% elif trip.trip_status == 'COMPLETED' %}
+                            <span class="status status-completed">Completed</span>
+                        {% elif trip.trip_status == 'CANCELLED' %}
+                            <span class="status status-cancelled">Cancelled</span>
+                        {% endif %}
+                        &nbsp;📅 {{ trip.trip_date|date:"d-M-Y" }}
+                    </div>
+
+                    <div class="mobile-trip-body">
+                        <div class="row">
+                            <span>👤 Customer</span>
+                            <strong>
+                                {% if trip.transaction_type == 'INTERNAL_STOCK' %}
+                                    📦 Internal Stock
+                                {% else %}
+                                    {{ trip.customer.name }}
+                                {% endif %}
+                            </strong>
+                        </div>
+                        {% if trip.destination %}
+                            <div class="row">
+                                <span>📍 Destination</span>
+                                <strong>{{ trip.destination }}</strong>
+                            </div>
+                        {% endif %}
+                        <div class="row">
+                            <span>🚚 Vehicle</span>
+                            <strong>{{ trip.vehicle.registration_number|default:"—" }}</strong>
+                        </div>
+                        {% if trip.drivers.all %}
+                            <div class="row">
+                                <span>👷 Drivers</span>
+                                <span class="drivers">
+                                    {% for driver in trip.drivers.all %}
+                                        {{ driver.name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </span>
+                            </div>
+                        {% endif %}
+                        <div class="row">
+                            <span>📦 Material</span>
+                            <strong>{{ trip.material.name }}</strong>
+                        </div>
+                        <div class="row">
+                            <span>🔢 Quantity</span>
+                            <strong>{{ trip.quantity }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="mobile-trip-footer">
+                        <div class="mobile-trip-amounts">
+                            <div class="mobile-trip-amount">₹{{ trip.total_amount|floatformat:2 }}</div>
+                            <div class="sub">
+                                Recd: ₹{{ trip.total_received|floatformat:2 }} · Pending: ₹{{ trip.outstanding_amount|floatformat:2 }}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                            {% if trip.outstanding_amount > 0 %}
+                                <a
+                                    href="{% url 'trips:payment_create' trip.id %}"
+                                    class="btn-mobile-pay"
+                                >
+                                    + Pay
+                                </a>
+                            {% endif %}
+                            <a
+                                href="{% url 'trips:detail' trip.id %}"
+                                class="btn-mobile-view"
+                            >
+                                View →
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+
+            {% empty %}
+
+                <div style="text-align: center; padding: 30px 20px; color: #6b7280; font-size: 13px;">
+                    No trips found.
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    function scrollToTop() {
+        const container = document.getElementById('tripsTableContainer');
+        if (container) {
+            container.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    function scrollToBottom() {
+        const container = document.getElementById('tripsTableContainer');
+        if (container) {
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        }
+    }
+
+    function toggleFilters() {
+        const body = document.getElementById('filtersBody');
+        const btn = document.getElementById('filtersToggleBtn');
+        if (!body || !btn) return;
+        const isCollapsed = body.classList.toggle('collapsed');
+        btn.classList.toggle('open', !isCollapsed);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const body = document.getElementById('filtersBody');
+        const badge = document.getElementById('filtersCountBadge');
+        const btn = document.getElementById('filtersToggleBtn');
+        const form = document.getElementById('tripFiltersForm');
+        if (!body || !badge || !btn || !form) return;
+
+        let count = 0;
+        ['search', 'material', 'year', 'month', 'trip_status', 'payment_status'].forEach(function(name) {
+            const el = form.elements[name];
+            if (el && el.value && el.value.trim() !== '') count++;
+        });
+        const typeEl = form.elements['transaction_type'];
+        if (typeEl && typeEl.value && typeEl.value !== 'CUSTOMER_DELIVERY') count++;
+
+        badge.textContent = count > 0 ? (count + ' active') : 'All';
+
+        if (count === 0) {
+            body.classList.add('collapsed');
+        } else {
+            btn.classList.add('open');
+        }
+    });
+</script>
+
+</body>
+
+</html>

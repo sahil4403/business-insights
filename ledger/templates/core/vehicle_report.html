@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Vehicle Report</title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            background: #f5f7f7;
+
+            color: #1f2933;
+        }
+
+
+        .container {
+
+            max-width: 1250px;
+
+            margin: 0 auto;
+
+            padding: 30px;
+        }
+
+
+        .header {
+            margin-bottom: 25px;
+        }
+
+
+        .header h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+
+        .header p {
+            margin: 6px 0 0;
+            color: #6b7280;
+        }
+
+
+        .card {
+
+            background: white;
+
+            padding: 22px;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 2px 10px rgba(0, 0, 0, 0.05);
+
+            margin-bottom: 20px;
+        }
+
+
+        /* FILTER */
+
+        .filter-form {
+
+            display: flex;
+
+            gap: 14px;
+
+            align-items: end;
+
+            flex-wrap: wrap;
+        }
+
+
+        .filter-group {
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 6px;
+        }
+
+
+        .filter-group label {
+
+            font-size: 12px;
+
+            font-weight: 600;
+
+            color: #6b7280;
+        }
+
+
+        .filter-group input {
+
+            padding: 10px 12px;
+
+            border: 1px solid #d1d5db;
+
+            border-radius: 8px;
+
+            font-family: inherit;
+        }
+
+
+        .btn {
+
+            display: inline-block;
+
+            padding: 10px 16px;
+
+            border-radius: 8px;
+
+            border: none;
+
+            text-decoration: none;
+
+            font-size: 14px;
+
+            font-weight: 600;
+
+            cursor: pointer;
+        }
+
+
+        .btn-primary {
+
+            background: #16665a;
+
+            color: white;
+        }
+
+
+        .btn-secondary {
+
+            background: #e5e7eb;
+
+            color: #374151;
+        }
+
+
+        /* SEARCH */
+
+        .search-box {
+
+            margin-bottom: 20px;
+        }
+
+
+        .search-box input {
+
+            width: 100%;
+
+            padding: 12px 14px;
+
+            border: 1px solid #d1d5db;
+
+            border-radius: 8px;
+
+            font-size: 14px;
+        }
+
+
+        /* TABLE */
+
+        .table-wrapper {
+
+            overflow-x: auto;
+        }
+
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 800px;
+        }
+
+
+        th {
+
+            text-align: left;
+
+            padding: 14px 12px;
+
+            font-size: 12px;
+
+            color: #6b7280;
+
+            border-bottom:
+                1px solid #e5e7eb;
+        }
+
+
+        td {
+
+            padding: 14px 12px;
+
+            border-bottom:
+                1px solid #eef0f2;
+
+            font-size: 14px;
+        }
+
+
+        th.right,
+
+        td.right {
+
+            text-align: right;
+        }
+
+
+        .vehicle-number {
+
+            font-weight: 600;
+        }
+
+
+        .outstanding {
+
+            font-weight: 700;
+        }
+
+
+        .empty {
+
+            text-align: center;
+
+            padding: 40px;
+
+            color: #6b7280;
+        }
+
+
+        .back-link {
+
+            margin-top: 20px;
+        }
+
+
+        .filter-actions,
+        .export-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* MOBILE */
+
+        @media (max-width: 700px) {
+
+            .container {
+
+                padding: 14px 10px;
+            }
+
+            .card {
+                padding: 14px;
+            }
+
+            .filter-form {
+
+                flex-direction: column;
+
+                align-items: stretch;
+            }
+
+            .filter-group {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .filter-group input,
+            .filter-group select {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+            }
+
+            .filter-group input[type="date"],
+            .filter-group select {
+                -webkit-appearance: none;
+                appearance: none;
+                font-size: 15px;
+                padding: 6px 8px;
+                min-height: 40px;
+                background-color: #fff;
+            }
+
+            .filter-actions,
+            .export-actions {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                width: 100%;
+            }
+
+            .filter-actions .btn,
+            .export-actions .btn {
+                width: 100%;
+                min-height: 44px;
+                display: inline-flex;
+                justify-content: center;
+                align-items: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .search-box input {
+                font-size: 16px;
+                min-height: 44px;
+            }
+
+        }
+
+        /* ===== MOBILE CARDS ===== */
+        @media (max-width: 640px) {
+
+            .table-wrapper {
+                overflow: visible;
+            }
+
+            table,
+            tbody {
+                display: block;
+                width: 100%;
+                min-width: 0 !important;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tr {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 4px 10px;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 12px 14px;
+                margin-bottom: 14px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            }
+
+            td {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                width: auto;
+                min-width: 0;
+                padding: 5px 0;
+                border: 0;
+                text-align: left;
+                font-size: 13px;
+            }
+
+            td::before {
+                content: attr(data-label);
+                font-size: 10px;
+                font-weight: 700;
+                color: #6b7280;
+                text-transform: uppercase;
+                letter-spacing: 0.4px;
+                flex-shrink: 0;
+            }
+
+            td[data-label="Vehicle"] {
+                flex-basis: 100%;
+                font-size: 15px;
+                font-weight: 700;
+                color: #0f172a;
+                padding-bottom: 8px;
+            }
+
+            td[data-label="Vehicle"]::before {
+                display: none;
+            }
+
+            td[data-label="Trips"],
+            td[data-label="Revenue"],
+            td[data-label="Received"],
+            td[data-label="Outstanding"] {
+                flex: 1 1 40%;
+                justify-content: space-between;
+                font-size: 13px;
+            }
+
+            td[data-label="Outstanding"] {
+                font-weight: 700;
+                color: #b91c1c;
+            }
+
+            td.empty {
+                display: block;
+                padding: 30px 16px;
+                flex-basis: 100%;
+            }
+
+            td.empty::before {
+                display: none;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- HEADER -->
+
+    <div class="header">
+
+        <h1>
+            Vehicle Report
+        </h1>
+
+        <p>
+            Vehicle-wise trips, revenue, payments and outstanding overview
+        </p>
+
+        <p style="color: #9ca3af; font-size: 11px; margin: 4px 0 0;">
+            vehicle v2
+        </p>
+
+    </div>
+
+
+    {% if messages %}
+        <div style="margin-bottom: 16px;">
+            {% for message in messages %}
+                <div style="padding: 12px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+
+    <!-- FILTER -->
+
+    <div class="card">
+
+        <form
+            method="get"
+            class="filter-form"
+        >
+
+
+            <div class="filter-group">
+
+                <label for="from_date">
+                    From Date
+                </label>
+
+                <input
+                    type="date"
+                    id="from_date"
+                    name="from_date"
+                    value="{{ from_date }}"
+                >
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="to_date">
+                    To Date
+                </label>
+
+                <input
+                    type="date"
+                    id="to_date"
+                    name="to_date"
+                    value="{{ to_date }}"
+                >
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="vehicle_type">
+                    Vehicle Type
+                </label>
+
+                <select
+                    id="vehicle_type"
+                    name="vehicle_type"
+                >
+                    <option value="">
+                        -- All Vehicle Types --
+                    </option>
+
+                    {% for vt in vehicle_types %}
+                        <option
+                            value="{{ vt.id }}"
+                            {% if vehicle_type == vt.id|stringformat:'s' %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ vt.name }}
+                        </option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="vehicle_id">
+                    Vehicle No.
+                </label>
+
+                <select
+                    id="vehicle_id"
+                    name="vehicle_id"
+                >
+                    <option value="">
+                        -- All Vehicles --
+                    </option>
+
+                    {% for v in vehicles %}
+                        <option
+                            value="{{ v.id }}"
+                            data-type="{{ v.vehicle_type_id }}"
+                            {% if vehicle_id == v.id|stringformat:'s' %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ v.registration_number }} - {{ v.vehicle_type.name }}
+                        </option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="driver_id">
+                    Driver
+                </label>
+
+                <select
+                    id="driver_id"
+                    name="driver_id"
+                >
+                    <option value="">
+                        -- All Drivers --
+                    </option>
+
+                    {% for d in drivers %}
+                        <option
+                            value="{{ d.id }}"
+                            {% if driver_id == d.id|stringformat:'s' %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ d.name }}
+                        </option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-actions">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Apply Filter
+                </button>
+
+
+                <a
+                    href="{% url 'core:vehicle_report' %}"
+                    class="btn btn-secondary"
+                >
+                    Reset
+                </a>
+
+            </div>
+
+            <div class="export-actions">
+
+                <a
+    href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+    class="btn btn-primary"
+>
+    Export CSV
+</a>
+        <a
+    href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+    class="btn btn-primary"
+>
+    Export Excel
+</a>
+        <a
+    href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+    target="_blank"
+    class="btn btn-primary"
+>
+    👁️ Preview PDF
+</a>
+        <a
+    href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+    class="btn btn-primary"
+>
+    📥 Download PDF
+</a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <!-- REPORT -->
+
+    <div class="card">
+
+
+        <!-- SEARCH -->
+
+        <div class="search-box">
+
+            <form method="get">
+
+                <input
+                    type="hidden"
+                    name="from_date"
+                    value="{{ from_date }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="to_date"
+                    value="{{ to_date }}"
+                >
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search }}"
+                    placeholder="Search vehicle number..."
+                >
+
+            </form>
+
+        </div>
+
+
+        <!-- TABLE -->
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Vehicle
+                        </th>
+
+                        <th class="right">
+                            Trips
+                        </th>
+
+                        <th class="right">
+                            Revenue
+                        </th>
+
+                        <th class="right">
+                            Received
+                        </th>
+
+                        <th class="right">
+                            Outstanding
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                    {% for vehicle in vehicle_rows %}
+
+                        <tr>
+
+                            <td class="vehicle-number" data-label="Vehicle">
+
+                                {{ vehicle.vehicle_number }}
+
+                            </td>
+
+
+                            <td class="right" data-label="Trips">
+
+                                {{ vehicle.total_trips }}
+
+                            </td>
+
+
+                            <td class="right" data-label="Revenue">
+
+                                ₹{{ vehicle.total_revenue|floatformat:2 }}
+
+                            </td>
+
+
+                            <td class="right" data-label="Received">
+
+                                ₹{{ vehicle.total_received|floatformat:2 }}
+
+                            </td>
+
+
+                            <td class="right outstanding" data-label="Outstanding">
+
+                                ₹{{ vehicle.total_outstanding|floatformat:2 }}
+
+                            </td>
+
+                        </tr>
+
+
+                    {% empty %}
+
+                        <tr>
+
+                            <td
+                                colspan="5"
+                                class="empty"
+                            >
+
+                                No vehicle data found.
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- BACK -->
+
+    <div class="back-link">
+
+        <a
+            href="{% url 'core:dashboard' %}"
+            class="btn btn-secondary"
+        >
+            ← Back to Dashboard
+        </a>
+
+    </div>
+
+
+</div>
+
+
+<script>
+    (function () {
+
+        var typeSelect = document.getElementById('vehicle_type');
+        var vehicleSelect = document.getElementById('vehicle_id');
+        if (!typeSelect || !vehicleSelect) {
+            return;
+        }
+
+        var allOptions = Array.prototype.slice.call(vehicleSelect.options);
+
+        function filterVehicles() {
+
+            var selectedType = typeSelect.value;
+            var currentVehicle = vehicleSelect.value;
+            var keepCurrent = false;
+
+            for (var i = allOptions.length - 1; i >= 0; i--) {
+
+                var opt = allOptions[i];
+                var show = (
+                    opt.value === '' ||
+                    selectedType === '' ||
+                    opt.getAttribute('data-type') === selectedType
+                );
+
+                if (show) {
+
+                    vehicleSelect.appendChild(opt);
+
+                    if (opt.value === currentVehicle) {
+                        keepCurrent = true;
+                    }
+
+                } else {
+
+                    vehicleSelect.removeChild(opt);
+
+                }
+
+            }
+
+            if (!keepCurrent) {
+                vehicleSelect.value = '';
+            }
+
+        }
+
+        filterVehicles();
+
+        typeSelect.addEventListener('change', filterVehicles);
+
+    })();
+</script>
+
+
+</body>
+
+</html>

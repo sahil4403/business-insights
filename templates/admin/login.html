@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Django Administration Security Login</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            color: #1e293b;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            margin: 20px;
+        }
+        .card-header {
+            background: #417690;
+            color: #ffffff;
+            padding: 24px 28px;
+        }
+        .card-header h2 {
+            margin: 0;
+            font-size: 19px;
+            font-weight: 600;
+            color: #f5dd5d;
+        }
+        .card-body {
+            padding: 28px;
+        }
+        .back-link-wrapper {
+            margin-bottom: 22px;
+        }
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #0284c7;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            padding: 9px 15px;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .btn-back:hover {
+            background: #e0f2fe;
+            color: #0369a1;
+            border-color: #7dd3fc;
+        }
+        .error-banner {
+            padding: 12px 14px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            color: #dc2626;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            height: 44px;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #ffffff;
+            color: #0f172a;
+            transition: all 0.2s ease;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #417690;
+            box-shadow: 0 0 0 3px rgba(65, 118, 144, 0.15);
+        }
+        .btn-submit {
+            width: 100%;
+            height: 44px;
+            background: #417690;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .btn-submit:hover {
+            background: #2e5366;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="card-header">
+        <h2>Django Administration Security Login</h2>
+    </div>
+
+    <div class="card-body">
+        <!-- BACK TO MAIN BUSINESS LOGIN BUTTON -->
+        <div class="back-link-wrapper">
+            <a href="/login/" class="btn-back">
+                ← Back to Main Business Login
+            </a>
+        </div>
+
+        {% if error_message %}
+            <div class="error-banner">
+                ⚠️ {{ error_message }}
+            </div>
+        {% elif form.errors %}
+            <div class="error-banner">
+                ⚠️ Invalid username or password. Please try again.
+            </div>
+        {% endif %}
+
+        <form method="post" action="{{ request.get_full_path }}">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="id_username">Username:</label>
+                <input type="text" name="username" id="id_username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="id_password">Password:</label>
+                <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                    <input type="password" name="password" id="id_password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" style="padding-right: 44px; width: 100%; box-sizing: border-box;" required>
+                    <span onclick="toggleAdminPasswordVisibility('id_password', this)" style="position: absolute; right: 12px; cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 18px; line-height: 1; z-index: 10; padding: 4px;" title="Show/Hide Password">👁️</span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit">
+                Log in
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleAdminPasswordVisibility(inputId, span) {
+        const input = document.getElementById(inputId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            span.innerHTML = '🙈';
+        } else {
+            input.type = 'password';
+            span.innerHTML = '👁️';
+        }
+    }
+</script>
+
+</body>
+</html>
