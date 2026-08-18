@@ -2,7 +2,7 @@ import time
 
 from django.core.cache import cache
 
-MAX_ATTEMPTS = 10
+MAX_ATTEMPTS = 25
 WINDOW_SECONDS = 900
 
 
