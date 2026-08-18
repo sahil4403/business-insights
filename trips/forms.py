@@ -390,3 +390,53 @@ class TripPaymentForm(forms.ModelForm):
                 )
 
         return amount
+
+
+class PaymentReportForm(TripPaymentForm):
+
+    customer = forms.ModelChoiceField(
+        queryset=Customer.objects.none(),
+        required=True,
+        label='Customer',
+        empty_label='-- Select Customer --',
+        widget=forms.Select(
+            attrs={
+                'class': 'customer-select',
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        selected_id = (
+            self.data.get('customer')
+            if self.data
+            else self.initial.get('customer_id')
+        )
+
+        customer_qs = Customer.objects.filter(
+            is_active=True
+        )
+
+        if selected_id:
+            customer_qs = Customer.objects.filter(
+                Q(is_active=True) | Q(pk=selected_id)
+            )
+
+        self.fields['customer'].queryset = (
+            customer_qs.order_by('name')
+        )
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+
+        customer = cleaned_data.get('customer')
+
+        if customer:
+            self.instance.customer = customer
+            self.instance.trip = None
+
+        return cleaned_data

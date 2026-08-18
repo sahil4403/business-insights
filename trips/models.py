@@ -356,7 +356,7 @@ class TripPayment(models.Model):
     def clean(self):
         from django.core.exceptions import ValidationError
 
-        if self.amount <= 0:
+        if self.amount is None or self.amount <= 0:
             raise ValidationError(
                 "Payment amount must be greater than zero."
             )

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Payment | Business Insights</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            margin-bottom: 18px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #16665a;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            min-width: 0;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            background: #fff;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #16665a;
+            box-shadow: 0 0 0 2px rgba(22, 102, 90, 0.12);
+        }
+
+        .form-group input[type="date"] {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .customer-search-input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            margin-bottom: 8px;
+        }
+
+        .customer-search-input:focus {
+            outline: none;
+            border-color: #16665a;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .suggestions {
+            margin-top: 6px;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            overflow: hidden;
+            max-height: 260px;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .suggestion-item {
+            padding: 12px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            background: #ffffff;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover,
+        .suggestion-item.active {
+            background: #ecfdf5;
+            color: #16665a;
+        }
+
+        .suggestion-item small {
+            display: block;
+            font-weight: 400;
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .no-results {
+            padding: 12px 14px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .error {
+            color: #b91c1c;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .actions .btn {
+            flex: 1;
+            min-height: 46px;
+            white-space: nowrap;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 14px 10px;
+            }
+
+            .card {
+                padding: 16px 14px;
+            }
+
+            .actions {
+                flex-direction: column-reverse;
+            }
+
+            .actions .btn {
+                width: 100%;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+
+    <div class="header" style="margin-bottom: 16px;">
+
+        <h1>
+            ➕ Add Payment
+        </h1>
+
+        <p>
+            Payment entry - customer ke account me auto-adjust hota hai
+        </p>
+
+    </div>
+
+
+    {% if messages %}
+        <div style="margin-bottom: 16px;">
+            {% for message in messages %}
+                <div style="padding: 12px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+
+    <!-- FORM -->
+
+    <div class="card">
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div style="margin-bottom: 16px; padding: 12px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">
+                    {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="form-group">
+
+                <label for="customer_search">
+                    Customer *
+                </label>
+
+                <input
+                    type="text"
+                    id="customer_search"
+                    autocomplete="off"
+                    placeholder="Naam type karo - suggestions aayengi..."
+                    value="{{ selected_customer_name|default:'' }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="customer"
+                    id="id_customer"
+                    value="{{ form.customer.value|default:'' }}"
+                >
+
+                <div id="customer_suggestions" class="suggestions" style="display: none;"></div>
+
+                {% if form.customer.errors %}
+                    <div class="error">{{ form.customer.errors|join:"" }}</div>
+                {% endif %}
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="id_payment_date">
+                    Payment Date *
+                </label>
+
+                {{ form.payment_date }}
+
+                {% for error in form.payment_date.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="id_amount">
+                    Amount (₹) *
+                </label>
+
+                {{ form.amount }}
+
+                <div class="help-text">
+                    Jitna payment mila hai wo amount dalo - outstanding me auto-adjust ho jayega
+                </div>
+
+                {% for error in form.amount.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="id_payment_method">
+                    Payment Method *
+                </label>
+
+                {{ form.payment_method }}
+
+                {% for error in form.payment_method.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="id_reference_number">
+                    Reference Number
+                </label>
+
+                {{ form.reference_number }}
+
+                <div class="help-text">
+                    Optional - UPI ref / cheque no. / receipt no.
+                </div>
+
+                {% for error in form.reference_number.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="id_notes">
+                    Notes
+                </label>
+
+                {{ form.notes }}
+
+                {% for error in form.notes.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+
+            </div>
+
+
+            <!-- ACTIONS -->
+
+            <div class="actions">
+
+                <a
+                    href="{% url 'core:payment_report' %}"
+                    class="btn btn-secondary"
+                >
+                    ← Back to Payment Report
+                </a>
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    ✅ Save Payment
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <div class="back-link">
+        <p style="color: #9ca3af; font-size: 11px;">
+            payadd v2
+        </p>
+    </div>
+
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById("customer_search");
+    const hiddenInput = document.getElementById("id_customer");
+    const suggestionsBox = document.getElementById("customer_suggestions");
+    if (!searchInput) return;
+
+    let items = [];
+    let activeIndex = -1;
+    let timer = null;
+
+    function hideSuggestions() {
+        suggestionsBox.style.display = "none";
+        items = [];
+        activeIndex = -1;
+    }
+
+    function selectItem(item) {
+        hiddenInput.value = item.id;
+        searchInput.value = item.name;
+        hideSuggestions();
+    }
+
+    searchInput.addEventListener("input", function() {
+        clearTimeout(timer);
+        const q = searchInput.value.trim();
+        if (q.length < 2) {
+            hideSuggestions();
+            return;
+        }
+        timer = setTimeout(function() {
+            fetch("{% url 'core:customer_search_api' %}?q=" + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(data => {
+                    items = data.results || [];
+                    if (!items.length) {
+                        suggestionsBox.innerHTML = '<div class="no-results">Koi customer nahi mila - sahi spelling check karo</div>';
+                        suggestionsBox.style.display = "block";
+                        return;
+                    }
+                    activeIndex = -1;
+                    suggestionsBox.innerHTML = "";
+                    items.forEach(function(item, idx) {
+                        const div = document.createElement("div");
+                        div.className = "suggestion-item";
+                        div.innerHTML = item.name +
+                            (item.mobile ? " <small>📱 " + item.mobile + "</small>" : "") +
+                            (item.city ? " <small>📍 " + item.city + "</small>" : "");
+                        div.addEventListener("click", function() {
+                            selectItem(item);
+                        });
+                        div.addEventListener("mousemove", function() {
+                            activeIndex = idx;
+                            highlight();
+                        });
+                        suggestionsBox.appendChild(div);
+                    });
+                    suggestionsBox.style.display = "block";
+                });
+        }, 250);
+    });
+
+    function highlight() {
+        const els = suggestionsBox.querySelectorAll(".suggestion-item");
+        els.forEach(function(el, idx) {
+            el.classList.toggle("active", idx === activeIndex);
+        });
+    }
+
+    searchInput.addEventListener("keydown", function(e) {
+        if (suggestionsBox.style.display === "none") return;
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            activeIndex = Math.min(items.length - 1, activeIndex + 1);
+            highlight();
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            activeIndex = Math.max(-1, activeIndex - 1);
+            highlight();
+        } else if (e.key === "Enter") {
+            if (activeIndex >= 0 && items[activeIndex]) {
+                e.preventDefault();
+                selectItem(items[activeIndex]);
+            }
+        } else if (e.key === "Escape") {
+            hideSuggestions();
+        }
+    });
+
+    document.addEventListener("click", function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            hideSuggestions();
+        }
+    });
+
+    searchInput.addEventListener("blur", function() {
+        if (!hiddenInput.value) {
+            searchInput.value = "";
+        }
+    });
+});
+</script>
+
+</body>
+</html>

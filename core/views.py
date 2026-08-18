@@ -2206,3 +2206,107 @@ def quick_add_customer(request):
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required(login_url='/login/')
+def customer_search_api(request):
+
+    q = request.GET.get(
+        'q',
+        ''
+    ).strip()
+
+    if not q:
+        return JsonResponse({'results': []})
+
+    customers = (
+        Customer.objects
+        .filter(
+            is_active=True,
+            name__icontains=q
+        )
+        .order_by('name')[:8]
+    )
+
+    return JsonResponse({
+        'results': [
+            {
+                'id': c.id,
+                'name': c.name,
+                'mobile': c.mobile or '',
+                'city': c.city or '',
+            }
+            for c in customers
+        ]
+    })
+
+
+# -----------------------------------
+# PAYMENT REPORT - ADD PAYMENT (standalone)
+# -----------------------------------
+@login_required(login_url='/login/')
+def payment_report_add(request):
+
+    from trips.forms import PaymentReportForm
+
+    next_url = get_safe_next(
+        request,
+        reverse('core:payment_report')
+    )
+
+    if request.method == 'POST':
+
+        form = PaymentReportForm(
+            request.POST
+        )
+
+        if form.is_valid():
+
+            customer = form.cleaned_data['customer']
+
+            payment = TripPayment(
+                customer=customer,
+                trip=None,
+                payment_type='RECEIVED',
+                payment_date=form.cleaned_data['payment_date'],
+                amount=form.cleaned_data['amount'],
+                payment_method=form.cleaned_data.get('payment_method'),
+                reference_number=form.cleaned_data.get('reference_number') or '',
+                notes=form.cleaned_data.get('notes') or '',
+            )
+
+            payment.save()
+
+            messages.success(
+                request,
+                f'✅ ₹{payment.amount} payment added for {customer.name}!'
+            )
+
+            return redirect(next_url)
+
+    else:
+
+        form = PaymentReportForm()
+
+    selected_customer_name = None
+
+    if form['customer'].value():
+
+        selected_customer = Customer.objects.filter(
+            pk=form['customer'].value()
+        ).first()
+
+        if selected_customer:
+            selected_customer_name = selected_customer.name
+
+    context = {
+        'form': form,
+        'next_url': next_url,
+        'selected_customer_name': selected_customer_name,
+    }
+
+    return render(
+        request,
+        'core/payment_report_add.html',
+        context
+    )

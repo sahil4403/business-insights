@@ -5,6 +5,8 @@ from .views import (
     customer_report,
     vehicle_report,
     payment_report,
+    payment_report_add,
+    customer_search_api,
     quick_add_customer,
     admin_reauth,
 )
@@ -39,6 +41,18 @@ urlpatterns = [
         'reports/payments/',
         payment_report,
         name='payment_report',
+    ),
+
+    path(
+        'reports/payments/add/',
+        payment_report_add,
+        name='payment_report_add',
+    ),
+
+    path(
+        'api/customer-search/',
+        customer_search_api,
+        name='customer_search_api',
     ),
 
     path(

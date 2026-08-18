@@ -210,10 +210,21 @@
 
         .notes {
             color: #6b7280;
-
             font-size: 13px;
 
             max-width: 220px;
+        }
+
+        .statement-link {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 8px;
+            background: #ecfdf5;
+            color: #16665a;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
         }
 
         .filter-actions,
@@ -469,8 +480,20 @@
             Detailed payment and collection transaction report
         </p>
 
+        <div style="margin-top: 14px;">
+
+            <a
+                href="{% url 'core:payment_report_add' %}?next={% url 'core:payment_report' %}"
+                class="btn btn-primary"
+                style="display: inline-flex; align-items: center; gap: 6px;"
+            >
+                ➕ Add Payment
+            </a>
+
+        </div>
+
         <p style="color: #9ca3af; font-size: 11px; margin: 4px 0 0;">
-            pay v1
+            pay v3
         </p>
 
     </div>
@@ -697,6 +720,10 @@
                             Notes
                         </th>
 
+                        <th>
+                            Statement
+                        </th>
+
                     </tr>
 
                 </thead>
@@ -709,7 +736,7 @@
 
                         {% ifchanged payment.payment_date|date:"F Y" %}
                             <tr class="month-group-header">
-                                <td colspan="7">📅 {{ payment.payment_date|date:"F Y" }}</td>
+                                <td colspan="8">📅 {{ payment.payment_date|date:"F Y" }}</td>
                             </tr>
                         {% endifchanged %}
 
@@ -785,6 +812,35 @@
 
                             </td>
 
+
+                            <td data-label="Statement" class="statement">
+
+                                {% if payment.customer %}
+
+                                    <a
+                                        href="{% url 'ledger:customer_statement' payment.customer.id %}"
+                                        class="statement-link"
+                                    >
+                                        📄 View
+                                    </a>
+
+                                {% elif payment.trip %}
+
+                                    <a
+                                        href="{% url 'ledger:customer_statement' payment.trip.customer.id %}"
+                                        class="statement-link"
+                                    >
+                                        📄 View
+                                    </a>
+
+                                {% else %}
+
+                                    —
+
+                                {% endif %}
+
+                            </td>
+
                         </tr>
 
 
@@ -793,7 +849,7 @@
                         <tr>
 
                             <td
-                                colspan="7"
+                                colspan="8"
                                 class="empty"
                             >
 

@@ -795,10 +795,19 @@
         </div>
     </div>
 
+    {% if messages %}
+        <div style="margin-bottom: 16px;">
+            {% for message in messages %}
+                <div style="padding: 12px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; margin-bottom: 8px;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <!-- DATE FILTER -->
     <div class="filter-card">
-        <form method="get" class="filter-form">
-            <div class="filter-group">
+        <form method="get" class="filter-form">            <div class="filter-group">
                 <label for="from_date">From Date</label>
                 <input type="date" id="from_date" name="from_date" value="{% if from_date %}{{ from_date|date:'Y-m-d' }}{% endif %}">
             </div>
