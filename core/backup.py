@@ -6,9 +6,12 @@ from django.conf import settings
 
 
 def run_auto_backup():
-    import sys
-    print("BACKUP_DEBUG engine:", getattr(settings, 'DB_ENGINE', 'mysql'), flush=True)
-    if getattr(settings, 'DB_ENGINE', 'mysql') != 'sqlite':
+    engine = (
+        settings.DATABASES['default']
+        .get('ENGINE', '')
+    )
+
+    if 'sqlite' not in engine:
         return
 
     db_path = (
