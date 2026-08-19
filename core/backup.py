@@ -9,7 +9,10 @@ def run_auto_backup():
     if getattr(settings, 'DB_ENGINE', 'mysql') != 'sqlite':
         return
 
-    db_path = getattr(settings, 'DB_NAME', None)
+    db_path = (
+        settings.DATABASES['default']
+        .get('NAME')
+    )
 
     if not db_path or not os.path.exists(str(db_path)):
         return
