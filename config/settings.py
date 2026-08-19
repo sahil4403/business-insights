@@ -63,6 +63,7 @@ MIDDLEWARE = [
     "core.middleware.StrictAdminSecurityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.backup.AutoBackupMiddleware",
 ]
 
 AUTHENTICATION_BACKENDS = [
