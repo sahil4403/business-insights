@@ -319,7 +319,9 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-4 py-3">
-                                    {% if trip.calculated_payment_status == 'UNPAID' %}
+                                    {% if trip.transaction_type == 'INTERNAL_STOCK' %}
+                                        <span class="text-slate-400 italic">—</span>
+                                    {% elif trip.calculated_payment_status == 'UNPAID' %}
                                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Unpaid</span>
                                     {% elif trip.calculated_payment_status == 'PARTIAL' %}
                                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
@@ -332,7 +334,7 @@
                                        class="inline-flex h-9 px-3.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] items-center gap-1 transition active:scale-[0.98]">
                                         View
                                     </a>
-                                    {% if trip.outstanding_amount > 0 %}
+                                    {% if trip.transaction_type != 'INTERNAL_STOCK' and trip.outstanding_amount > 0 %}
                                         <a href="{% url 'trips:payment_create' trip.id %}"
                                            class="inline-flex h-9 px-3.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold text-[13px] items-center gap-1 transition active:scale-[0.98] ml-1.5">
                                             + Pay
@@ -375,7 +377,9 @@
                             {% elif trip.trip_status == 'CANCELLED' %}
                                 <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Cancelled</span>
                             {% endif %}
-                            {% if trip.calculated_payment_status == 'PAID' %}
+                            {% if trip.transaction_type == 'INTERNAL_STOCK' %}
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500">Internal Stock</span>
+                            {% elif trip.calculated_payment_status == 'PAID' %}
                                 <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
                             {% elif trip.calculated_payment_status == 'PARTIAL' %}
                                 <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
@@ -386,7 +390,9 @@
                     </a>
                     <div class="text-right shrink-0 pl-2">
                         <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</div>
-                        {% if trip.outstanding_amount > 0 %}
+                        {% if trip.transaction_type == 'INTERNAL_STOCK' %}
+                            <div class="text-[11px] font-bold text-slate-400 whitespace-nowrap">No Payment</div>
+                        {% elif trip.outstanding_amount > 0 %}
                             <div class="text-[11px] font-bold text-red-600 whitespace-nowrap">₹{{ trip.outstanding_amount|floatformat:2 }} due</div>
                             <a href="{% url 'trips:payment_create' trip.id %}"
                                class="mt-1.5 inline-flex h-8 px-3 rounded-full bg-sky-100 text-sky-700 font-bold text-[12px] items-center transition active:scale-[0.95]">

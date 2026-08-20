@@ -241,8 +241,8 @@ class TripForm(forms.ModelForm):
         if material and not vehicle:
             self.add_error('vehicle', 'Vehicle is required when Material is selected.')
 
-        if vehicle and not is_jcb and not drivers:
-            self.add_error('drivers', 'Driver is required when a Vehicle is selected. (Optional only for JCB)')
+        if vehicle and not is_jcb and not drivers and trans_type != 'INTERNAL_STOCK':
+            self.add_error('drivers', 'Driver is required when a Vehicle is selected. (Optional only for JCB and Internal Stock)')
 
         if drivers and vehicle_cat:
 

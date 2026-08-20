@@ -124,7 +124,9 @@
                             {% endif %}
                             <div class="text-[15px] font-bold text-brand-600 mt-1">₹{{ trip.total_amount|floatformat:2 }}</div>
                         </div>
-                        {% if trip.calculated_payment_status == 'PAID' %}
+                        {% if trip.transaction_type == 'INTERNAL_STOCK' %}
+                            <span class="app-chip !h-7 !px-2.5 text-[11px] bg-slate-100 text-slate-500">Internal Stock</span>
+                        {% elif trip.calculated_payment_status == 'PAID' %}
                             <span class="app-chip active-soft !h-7 !px-2.5 text-[11px]">Paid</span>
                         {% elif trip.calculated_payment_status == 'PARTIAL' %}
                             <span class="app-chip !h-7 !px-2.5 text-[11px] bg-orange-50 text-orange-700">Partial</span>
@@ -184,7 +186,9 @@
                                 <td class="px-4 py-3">{{ trip.quantity }}</td>
                                 <td class="px-4 py-3 text-right font-semibold">₹{{ trip.total_amount|floatformat:2 }}</td>
                                 <td class="px-4 py-3">
-                                    {% if trip.calculated_payment_status == 'PAID' %}
+                                    {% if trip.transaction_type == 'INTERNAL_STOCK' %}
+                                        <span class="text-slate-400 italic">—</span>
+                                    {% elif trip.calculated_payment_status == 'PAID' %}
                                         <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
                                     {% elif trip.calculated_payment_status == 'PARTIAL' %}
                                         <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>

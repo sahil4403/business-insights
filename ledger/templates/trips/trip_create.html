@@ -198,7 +198,7 @@
         <h2 class="form-section-title">Drivers / Labour & Trip Allocation</h2>
 
         <p class="text-[13px] text-slate-500 mb-4">
-            Check the drivers assigned to this trip and enter how many trips/loads each completed (e.g., Driver 1: 3 Trips, Driver 2: 2 Trips). Driver is required when a vehicle is selected — optional only for JCB.
+            Check the drivers assigned to this trip and enter how many trips/loads each completed (e.g., Driver 1: 3 Trips, Driver 2: 2 Trips). Driver is required when a vehicle is selected — optional for JCB and Internal Stock.
         </p>
 
         <!-- Hidden standard select field for Django form submit -->
@@ -494,7 +494,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 return false;
             }
 
-            if (!isJcbActive() && vehicleSelect && vehicleSelect.value) {
+            if (!isInternal && !isJcbActive() && vehicleSelect && vehicleSelect.value) {
                 const driverCheckboxes = document.querySelectorAll(".driver-checkbox");
                 let hasDriver = false;
                 driverCheckboxes.forEach(cb => { if (cb.checked) hasDriver = true; });
