@@ -97,7 +97,9 @@
             <div class="app-row justify-between">
                 <span class="text-[13px] text-slate-500">Payment Status</span>
                 <span class="text-right">
-                    {% if trip.calculated_payment_status == 'PAID' %}
+                    {% if trip.transaction_type == 'INTERNAL_STOCK' %}
+                        <span class="text-[13px] font-semibold text-slate-400">N/A</span>
+                    {% elif trip.calculated_payment_status == 'PAID' %}
                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
                     {% elif trip.calculated_payment_status == 'PARTIAL' %}
                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
