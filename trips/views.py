@@ -138,6 +138,25 @@ def trip_list(request):
 
     vehicles_list = Vehicle.objects.filter(is_active=True).order_by('registration_number')
 
+    if category == 'tractor':
+        vehicles_list = vehicles_list.filter(
+            Q(vehicle_type__code='TRACTOR') |
+            Q(vehicle_type__name__iexact='Tractor') |
+            Q(registration_number__icontains='Tractor')
+        )
+    elif category == 'halfton':
+        vehicles_list = vehicles_list.filter(
+            Q(vehicle_type__code='HALFTON') |
+            Q(vehicle_type__name__iexact='Halfton') |
+            Q(registration_number__icontains='Halfton')
+        )
+    elif category == 'hyva':
+        vehicles_list = vehicles_list.filter(
+            Q(vehicle_type__code='HYVA') |
+            Q(vehicle_type__name__iexact='Hyva') |
+            Q(registration_number__icontains='Hyva')
+        )
+
     available_years = list(
         Trip.objects.annotate(y=ExtractYear('trip_date'))
         .values_list('y', flat=True)
