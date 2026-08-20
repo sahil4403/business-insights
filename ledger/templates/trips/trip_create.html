@@ -314,6 +314,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const originalOptions = Array.from(customerSelect.options);
 
+        function syncSearchFromSelection() {
+            const sel = customerSelect.options[customerSelect.selectedIndex];
+            searchInput.value = (sel && sel.value) ? sel.text.trim() : "";
+        }
+
+        customerSelect.addEventListener("change", syncSearchFromSelection);
+        syncSearchFromSelection();
+
         searchInput.addEventListener("input", function() {
             const query = searchInput.value.trim().toLowerCase();
             const currentValue = customerSelect.value;
@@ -337,6 +345,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (matches.length === 1) {
                 customerSelect.value = matches[0].value;
+                searchInput.value = matches[0].text.trim();
             }
         });
 

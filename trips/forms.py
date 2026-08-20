@@ -148,6 +148,16 @@ class TripForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.fields['trip_status'].initial = 'COMPLETED'
+        current_status = self.instance.trip_status if self.instance and self.instance.pk else None
+        if current_status and current_status != 'COMPLETED':
+            self.fields['trip_status'].choices = [
+                ('COMPLETED', 'Completed'),
+                (current_status, dict(Trip.TRIP_STATUS_CHOICES).get(current_status, current_status)),
+            ]
+        else:
+            self.fields['trip_status'].choices = [('COMPLETED', 'Completed')]
+
         self.fields['transaction_type'].label = "Trip Category / Type"
         self.fields['customer'].required = False
 
