@@ -18,6 +18,7 @@ from .models import Trip, TripPayment
 from .forms import TripForm, TripPaymentForm
 
 from master_data.models import Material
+from vehicles.models import Vehicle
 from core.utils import get_safe_next
 
 @login_required(login_url='/login/')
@@ -103,6 +104,10 @@ def trip_list(request):
     if material_id:
         trips = trips.filter(material_id=material_id)
 
+    vehicle_id = request.GET.get('vehicle', '').strip()
+    if vehicle_id:
+        trips = trips.filter(vehicle_id=vehicle_id)
+
     transaction_type = request.GET.get('transaction_type', 'CUSTOMER_DELIVERY').strip()
 
     if transaction_type == 'CUSTOMER_DELIVERY':
@@ -130,6 +135,8 @@ def trip_list(request):
         trips = trips.filter(trip_date__lte=to_date)
 
     materials_list = Material.objects.filter(is_active=True).order_by('name')
+
+    vehicles_list = Vehicle.objects.filter(is_active=True).order_by('registration_number')
 
     available_years = list(
         Trip.objects.annotate(y=ExtractYear('trip_date'))
@@ -175,6 +182,8 @@ def trip_list(request):
         'selected_transaction_type': transaction_type,
         'selected_material': material_id,
         'materials_list': materials_list,
+        'selected_vehicle': vehicle_id,
+        'vehicles_list': vehicles_list,
         'selected_year': year,
         'selected_month': month,
         'from_date': from_date,

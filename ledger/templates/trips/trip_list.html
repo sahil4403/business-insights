@@ -22,6 +22,7 @@
         {% endif %}
         <input type="hidden" name="transaction_type" value="{{ selected_transaction_type }}">
         <input type="hidden" name="material" value="{{ selected_material }}">
+        <input type="hidden" name="vehicle" value="{{ selected_vehicle }}">
         <input type="hidden" name="year" value="{{ selected_year }}">
         <input type="hidden" name="month" value="{{ selected_month }}">
         <input type="hidden" name="trip_status" value="{{ selected_trip_status }}">
@@ -67,6 +68,7 @@
         {% endif %}
         <input type="hidden" name="transaction_type" value="{{ selected_transaction_type }}">
         <input type="hidden" name="material" value="{{ selected_material }}">
+        <input type="hidden" name="vehicle" value="{{ selected_vehicle }}">
         <input type="hidden" name="year" value="{{ selected_year }}">
         <input type="hidden" name="month" value="{{ selected_month }}">
         <input type="hidden" name="trip_status" value="{{ selected_trip_status }}">
@@ -115,6 +117,25 @@
                                         {% endif %}
                                     >
                                         {{ mat.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label" for="vehicle">Vehicle</label>
+                            <select id="vehicle" name="vehicle" class="input">
+                                <option value="">
+                                    All Vehicles
+                                </option>
+                                {% for veh in vehicles_list %}
+                                    <option
+                                        value="{{ veh.id }}"
+                                        {% if selected_vehicle == veh.id|stringformat:"i" or selected_vehicle == veh.id %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ veh.registration_number }}
                                     </option>
                                 {% endfor %}
                             </select>
@@ -451,7 +472,7 @@
             if (!form || !badge) return;
 
             let count = 0;
-            ['search', 'material', 'year', 'month', 'trip_status', 'payment_status'].forEach(function(name) {
+            ['search', 'material', 'vehicle', 'year', 'month', 'trip_status', 'payment_status'].forEach(function(name) {
                 const el = form.elements[name];
                 if (el && el.value && el.value.trim() !== '') count++;
             });
