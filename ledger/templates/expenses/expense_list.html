@@ -8,7 +8,7 @@
        class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
         ← Back
     </a>
-    <span class="flex-1 truncate font-bold text-sm text-slate-800">💸 Expenses</span>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">Expenses</span>
     <span class="shrink-0 text-xs font-bold text-brand-600">{{ expenses|length }}</span>
 </div>
 {% endblock %}
@@ -16,112 +16,84 @@
 {% block content %}
 
 <!-- HEADER -->
-<div class="flex items-start justify-between gap-3 mb-4 md:mb-6">
-    <div>
-        <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Expenses</h1>
-        <p class="text-sm text-slate-500 mt-1">View and manage recorded business expenses</p>
+<div class="mb-4 md:mb-6">
+    <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Expenses</h1>
+            <p class="text-sm text-slate-500 mt-1">View and manage recorded business expenses</p>
+        </div>
+        <div class="hidden md:flex items-center gap-2">
+            <a href="{% url 'expenses:dashboard' %}" class="btn btn-ghost">← Expense Dashboard</a>
+            <a href="{% url 'core:dashboard' %}" class="btn btn-secondary">Business Dashboard</a>
+        </div>
     </div>
-    <details class="export-menu relative md:hidden">
-                <summary class="h-12 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-sm flex items-center justify-center gap-1.5 px-4 cursor-pointer active:bg-slate-50">
-                    📤 <span class="text-slate-400">▾</span>
-                </summary>
-                <div class="export-sheet">
-                    <div class="export-sheet-title">Export Options</div>
-                    <a href="{% url 'expenses:dashboard' %}"
-                       class="export-opt">← Expense Dashboard</a>
-                    <a href="{% url 'core:dashboard' %}"
-                       class="export-opt">← Business Dashboard</a>
-                
-                    <a href="#" class="export-opt">✕ Cancel</a></div>
-            </details>
 </div>
 
-<!-- EXPENSE PANEL -->
-<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+<!-- MOBILE FAB -->
+<a href="{% url 'expenses:create' %}" class="app-fab md:hidden">
+    <span>＋</span> Add Expense
+</a>
 
-    <div class="px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 flex items-center justify-between gap-3">
-        <h2 class="font-bold text-slate-900">💸 All Expenses</h2>
-        <div class="hidden md:flex items-center gap-2.5">
-            <a href="{% url 'expenses:create' %}" class="btn btn-primary">+ Add Expense</a>
-            <a href="{% url 'expenses:dashboard' %}" class="btn btn-ghost">← Expense Dashboard</a>
+<!-- EXPENSES -->
+<div class="app-surface overflow-hidden">
+    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
+        <div class="font-bold text-slate-900 text-base">
+            All Expenses
+            <span class="text-[13px] font-medium text-slate-500">({{ expenses|length }})</span>
+        </div>
+        <details class="export-menu relative md:hidden">
+            <summary class="h-9 px-3.5 rounded-full border border-slate-300 bg-white text-slate-700 text-[13px] font-bold flex items-center gap-1.5 cursor-pointer active:bg-slate-50">
+                Actions <span class="text-slate-400">▾</span>
+            </summary>
+            <div class="export-sheet">
+                <div class="export-sheet-title">Actions</div>
+                <a href="{% url 'expenses:create' %}" class="export-opt">＋ Add Expense</a>
+                <a href="{% url 'expenses:dashboard' %}" class="export-opt">← Expense Dashboard</a>
+                <a href="{% url 'core:dashboard' %}" class="export-opt">← Business Dashboard</a>
+                <a href="#" class="export-opt export-cancel">✕ Cancel</a>
+            </div>
+        </details>
+        <div class="hidden md:flex items-center gap-2">
+            <a href="{% url 'expenses:create' %}" class="btn btn-primary">＋ Add Expense</a>
         </div>
     </div>
 
-    <!-- SCROLL + FREEZE PANEL -->
     <div class="max-h-[65vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth">
 
-        <!-- MOBILE CARDS -->
-        <div class="md:hidden p-3 space-y-3">
+        <!-- MOBILE ROWS -->
+        <div class="md:hidden px-4 py-2">
             {% for expense in expenses %}
-                <div class="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-                    <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
-                        <span class="font-bold text-sm text-slate-900">{{ expense.expense_date|date:"d-M-Y" }}</span>
-                        {% if expense.include_in_profit %}
-                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-brand-600">Profit</span>
-                        {% else %}
-                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-50 text-amber-700">No Profit</span>
-                        {% endif %}
-                    </div>
-
-                    <div class="px-4 py-2.5 space-y-2 text-sm">
-                        <div class="font-semibold text-slate-900 leading-snug">{{ expense.description }}</div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-500">Category</span>
-                            <span class="font-medium">{{ expense.category }}</span>
+                <div class="app-row">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-[15px] font-bold text-slate-900 truncate">{{ expense.description|default:expense.category }}</span>
+                            <span class="text-[11px] font-medium text-slate-400">{{ expense.expense_date|date:"d-M-Y" }}</span>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-500">Payment</span>
-                            <span class="font-medium">{{ expense.payment_method }}</span>
+                        <div class="mt-0.5 text-[12px] text-slate-500 truncate">
+                            {{ expense.category }}
+                            &nbsp;·&nbsp; {{ expense.payment_method }}
+                            {% if expense.vehicle %}&nbsp;·&nbsp; 🚚 {{ expense.vehicle }}{% endif %}
+                            {% if expense.labour %}&nbsp;·&nbsp; 👷 {{ expense.labour }}{% endif %}
+                            {% if expense.paid_to %}&nbsp;·&nbsp; → {{ expense.paid_to }}{% endif %}
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-500">Vehicle</span>
-                            <span class="font-medium">
-                                {% if expense.vehicle %}
-                                    {{ expense.vehicle }}
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-500">Labour</span>
-                            <span class="font-medium">
-                                {% if expense.labour %}
-                                    {{ expense.labour }}
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-500">Paid To</span>
-                            <span class="font-medium">
-                                {% if expense.paid_to %}
-                                    {{ expense.paid_to }}
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </span>
-                        </div>
-                        <div class="flex items-center justify-between border-t border-slate-100 pt-2">
-                            <span class="text-slate-500">Amount</span>
-                            <span class="font-bold text-brand-600 text-base">₹{{ expense.amount|floatformat:2 }}</span>
+                        <div class="mt-2 flex items-center gap-2">
+                            <a href="{% url 'expenses:edit' expense.id %}" class="app-chip h-8 px-3 text-[12px]">Edit</a>
+                            <a href="{% url 'expenses:delete' expense.id %}" class="app-chip h-8 px-3 text-[12px] bg-red-50 text-red-600">Delete</a>
                         </div>
                     </div>
-
-                    <div class="px-4 pb-3 grid grid-cols-2 gap-2">
-                        <a href="{% url 'expenses:edit' expense.id %}" class="inline-flex h-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 font-semibold text-[13px] transition active:scale-[0.98]">
-                            ✏️ Edit
-                        </a>
-                        <a href="{% url 'expenses:delete' expense.id %}" class="inline-flex h-11 items-center justify-center rounded-xl bg-red-50 text-red-700 border border-red-200 font-semibold text-[13px] transition active:scale-[0.98]">
-                            🗑️ Delete
-                        </a>
+                    <div class="text-right shrink-0 pl-2">
+                        <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">₹{{ expense.amount|floatformat:2 }}</div>
+                        <div class="flex justify-end mt-1">
+                            {% if expense.include_in_profit %}
+                                <span class="app-dot bg-emerald-500"></span>
+                            {% else %}
+                                <span class="app-dot bg-amber-400"></span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             {% empty %}
-                <div class="text-center py-12 text-slate-500 text-sm rounded-xl border border-dashed border-slate-300">
-                    No expenses found.
-                </div>
+                <div class="py-12 text-center text-slate-500 text-sm">No expenses found.</div>
             {% endfor %}
         </div>
 
@@ -129,7 +101,7 @@
         <div class="hidden md:block overflow-x-auto">
             <table class="w-full min-w-[1100px] text-sm">
                 <thead class="sticky top-0 z-10">
-                    <tr class="bg-white border-b border-slate-200 text-left">
+                    <tr class="bg-slate-50 border-b border-slate-100 text-left">
                         <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
                         <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Category</th>
                         <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Description</th>
@@ -144,7 +116,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     {% for expense in expenses %}
-                        <tr class="hover:bg-slate-50 transition">
+                        <tr class="hover:bg-slate-50/60 transition">
                             <td class="px-4 py-3 whitespace-nowrap font-semibold text-slate-900">{{ expense.expense_date|date:"d-M-Y" }}</td>
                             <td class="px-4 py-3 text-slate-700">{{ expense.category }}</td>
                             <td class="px-4 py-3 text-slate-700">{{ expense.description }}</td>
@@ -173,7 +145,7 @@
                             <td class="px-4 py-3 text-right font-bold text-slate-900 whitespace-nowrap">₹{{ expense.amount|floatformat:2 }}</td>
                             <td class="px-4 py-3 whitespace-nowrap">
                                 {% if expense.include_in_profit %}
-                                    <span class="font-semibold text-brand-600">Yes</span>
+                                    <span class="font-semibold text-emerald-600">Yes</span>
                                 {% else %}
                                     <span class="font-semibold text-amber-600">No</span>
                                 {% endif %}
@@ -199,7 +171,6 @@
         </div>
 
     </div>
-
 </div>
 
 <!-- BACK LINK (desktop) -->
@@ -207,24 +178,11 @@
     <a href="{% url 'core:dashboard' %}" class="btn btn-ghost">← Business Dashboard</a>
 </div>
 
-<!-- spacer for mobile bottom bars -->
-<div class="h-20 md:h-0"></div>
-
-<!-- MOBILE BOTTOM ACTION BAR -->
-<div class="md:hidden fixed left-0 right-0 z-40 bg-white border-t border-slate-200 px-3 py-2.5 bottom-[calc(4.1rem+env(safe-area-inset-bottom))]">
-    <div class="grid grid-cols-1 gap-2">
-        <a href="{% url 'expenses:create' %}" class="h-12 rounded-xl bg-brand-500 text-white font-bold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
-            + Add Expense
-        </a>
-        
-    </div>
-</div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Close export dropdown after tapping an option (mobile)
+    // Close action dropdown after tapping an option (mobile)
     document.querySelectorAll('.export-menu .export-opt').forEach(a => {
         a.addEventListener('click', () => {
             const d = a.closest('details');

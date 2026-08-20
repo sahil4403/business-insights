@@ -87,54 +87,81 @@
         @media (min-width: 768px) {
             #filter-details[open] summary { display: none; }
         }
+        /* MINIMAL APP DESIGN SYSTEM */
+        .app-surface { background:#fff; border-radius:1.25rem; box-shadow:0 1px 2px rgba(15,23,42,0.04); border:1px solid #eef1f6; }
+        .app-chip { display:inline-flex; align-items:center; justify-content:center; gap:0.375rem; height:2.25rem; padding:0 1rem; border-radius:999px; font-size:0.8125rem; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid transparent; white-space:nowrap; transition:all .15s ease; cursor:pointer; text-decoration:none; }
+        .app-chip.active { background:#16665a; color:#fff; }
+        .app-chip.active-soft { background:#d5ebe6; color:#115248; }
+        .app-stat { background:#f8fafc; border-radius:1rem; padding:0.9rem 1rem; }
+        .app-stat .lbl { display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; }
+        .app-stat .val { display:block; font-size:1.35rem; font-weight:800; color:#0f172a; margin-top:2px; line-height:1.1; }
+        .app-row { display:flex; align-items:center; gap:0.85rem; padding:0.9rem 0; border-bottom:1px solid #f1f5f9; }
+        .app-row:last-child { border-bottom:none; }
+        .app-dot { width:10px; height:10px; border-radius:999px; flex-shrink:0; }
+        .app-fab { position:fixed; right:1.25rem; bottom:calc(5.25rem + env(safe-area-inset-bottom)); z-index:60; display:inline-flex; align-items:center; gap:0.5rem; height:3.25rem; padding:0 1.25rem; border-radius:999px; background:#16665a; color:#fff; font-weight:700; font-size:0.9rem; box-shadow:0 8px 24px rgba(22,102,90,0.35); transition:transform .15s ease; }
+        .app-fab:active { transform:scale(0.95); }
+        @media (min-width:768px){ .app-fab{ position:static; height:2.75rem; box-shadow:none; } }
     </style>
 </head>
 
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+<body class="bg-[#f5f7fa] text-slate-800 font-sans min-h-screen antialiased">
 
 <!-- MOBILE SCROLL TOP BAR (appears on scroll-down with animation) -->
-<div id="scroll-topbar" class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm" style="transform: translateY(-110%); transition: transform 0.28s ease;">
+<div id="scroll-topbar" class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-[#eef1f6] shadow-sm" style="transform: translateY(-110%); transition: transform 0.28s ease;">
     <div class="flex items-center gap-2 px-3 py-2">
         <a href="{% url 'core:dashboard' %}"
-           class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
-            ← Back
+           class="shrink-0 h-9 px-3 rounded-full border border-[#eef1f6] bg-white text-slate-600 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            Back
         </a>
         <form method="get" class="flex-1 relative">
             <input type="hidden" name="from_date" value="{{ from_date }}">
             <input type="hidden" name="to_date" value="{{ to_date }}">
             <input type="hidden" name="min_amount" value="{{ min_amount }}">
             <input type="hidden" name="max_amount" value="{{ max_amount }}">
-            <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search customer..."
-                   class="w-full h-9 pl-3 pr-8 rounded-lg border border-slate-300 bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search customer..."
+                   class="w-full h-9 pl-3 pr-8 rounded-full border border-[#eef1f6] bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
         </form>
         <span class="shrink-0 text-xs font-bold text-brand-600">{{ showing_count }}</span>
     </div>
 </div>
 
-<div class="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-8 pb-24">
+<div class="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-5 md:py-8 pb-28">
 
     <!-- HEADER -->
-    <div class="flex items-start justify-between gap-3 mb-4 md:mb-6">
+    <div class="flex items-center justify-between gap-3 mb-5 md:mb-7">
         <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Customer Report</h1>
-            <p class="text-sm text-slate-500 mt-1">Customer-wise revenue, payments and outstanding overview</p>
-            <p class="text-[11px] text-slate-400 mt-1">report v2</p>
+            <h1 class="text-[22px] md:text-2xl font-extrabold tracking-tight text-slate-900">Customer Report</h1>
+            <p class="text-[13px] text-slate-500 mt-1">Customer-wise revenue, payments and outstanding overview</p>
         </div>
         <details class="export-menu relative md:hidden shrink-0">
-            <summary class="h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-sm flex items-center gap-2 cursor-pointer active:bg-slate-50">
-                📤 Export <span class="text-slate-400">▾</span>
+            <summary class="app-chip h-10 pr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4"/></svg>
+                Export
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
             </summary>
             <div class="export-sheet">
                 <div class="export-sheet-title">Export Options</div>
                 <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
-                   class="export-opt">📊 Export CSV</a>
+                   class="export-opt">
+                    <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">CSV</span>
+                    Export CSV</a>
                 <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
-                   class="export-opt">📗 Export Excel</a>
+                   class="export-opt">
+                    <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">XLS</span>
+                    Export Excel</a>
                 <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" target="_blank"
-                   class="export-opt">👁️ Preview PDF</a>
+                   class="export-opt">
+                    <span class="w-7 h-7 rounded-lg bg-red-50 text-red-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">PDF</span>
+                    Preview PDF</a>
                 <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
-                   class="export-opt">📥 Download PDF</a>
-                <a href="#" class="export-opt export-cancel">✕ Cancel</a>
+                   class="export-opt">
+                    <span class="w-7 h-7 rounded-lg bg-red-50 text-red-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">PDF</span>
+                    Download PDF</a>
+                <a href="#" class="export-opt export-cancel">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Cancel</a>
             </div>
         </details>
     </div>
@@ -150,43 +177,49 @@
     {% endif %}
 
     <!-- FILTER CARD -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 mb-4 md:mb-5 overflow-hidden">
+    <div class="app-surface overflow-hidden mb-4 md:mb-6">
         <details id="filter-details" class="filter-card">
-            <summary class="flex items-center justify-between px-4 py-3.5 cursor-pointer active:bg-slate-50 md:hidden">
-                <span class="font-semibold text-slate-700">⚙️ Filters</span>
-                <span class="text-brand-500 text-sm" id="filter-toggle">Show</span>
+            <summary class="md:hidden flex items-center justify-between px-4 py-3.5 cursor-pointer">
+                <span class="inline-flex items-center gap-2.5 text-sm font-bold text-slate-800">
+                    <span class="w-8 h-8 rounded-full bg-[#d5ebe6] text-[#115248] flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                    </span>
+                    Filters
+                </span>
+                <span class="text-xs font-bold text-brand-600" id="filter-toggle">Show</span>
             </summary>
             <div class="px-4 pb-4 md:p-5">
                 <form method="get" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     <div class="col-span-2 sm:col-span-1 md:col-span-1">
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="from_date">From Date</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5" for="from_date">From Date</label>
                         <input type="date" id="from_date" name="from_date" value="{{ from_date }}"
-                               class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                               class="w-full h-11 px-3 rounded-xl border border-[#eef1f6] bg-slate-50 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="to_date">To Date</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5" for="to_date">To Date</label>
                         <input type="date" id="to_date" name="to_date" value="{{ to_date }}"
-                               class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                               class="w-full h-11 px-3 rounded-xl border border-[#eef1f6] bg-slate-50 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="min_amount">Min Amount (₹)</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5" for="min_amount">Min Amount (₹)</label>
                         <input type="number" step="0.01" id="min_amount" name="min_amount" value="{{ min_amount }}" placeholder="Min ₹"
-                               class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                               class="w-full h-11 px-3 rounded-xl border border-[#eef1f6] bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="max_amount">Max Amount (₹)</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5" for="max_amount">Max Amount (₹)</label>
                         <input type="number" step="0.01" id="max_amount" name="max_amount" value="{{ max_amount }}" placeholder="Max ₹"
-                               class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                               class="w-full h-11 px-3 rounded-xl border border-[#eef1f6] bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
                     </div>
 
-                    <div class="col-span-2 md:col-span-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 pt-1 md:pt-4 md:mt-1 border-t border-slate-100">
+                    <div class="col-span-2 md:col-span-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 pt-1 md:pt-4 md:mt-1 border-t border-[#f1f5f9]">
                         <div class="grid grid-cols-2 gap-3 md:flex md:gap-2.5 w-full md:w-auto">
                             <button type="submit"
-                                    class="h-12 md:h-10 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
-                                🔍 Apply Filter
+                                    class="app-chip active h-12 md:h-10 w-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
+                                Apply Filter
                             </button>
                             <a href="{% url 'core:customer_report' %}"
-                               class="h-12 md:h-10 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm flex items-center justify-center transition active:scale-[0.98]">
+                               class="app-chip h-12 md:h-10 w-full">
                                 Reset
                             </a>
                         </div>
@@ -194,13 +227,13 @@
                         <!-- Desktop export buttons -->
                         <div class="hidden md:flex gap-2.5">
                             <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
-                               class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">📊 CSV</a>
+                               class="app-chip">CSV</a>
                             <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
-                               class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">📗 Excel</a>
+                               class="app-chip">Excel</a>
                             <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" target="_blank"
-                               class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">👁️ Preview PDF</a>
+                               class="app-chip">Preview PDF</a>
                             <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
-                               class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">📥 Download PDF</a>
+                               class="app-chip">Download PDF</a>
                         </div>
                     </div>
                 </form>
@@ -209,26 +242,27 @@
     </div>
 
     <!-- REPORT CARD -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="app-surface overflow-hidden">
 
         <!-- SEARCH (desktop only; mobile uses scroll top bar) -->
-        <div class="hidden md:block p-4 md:p-5 border-b border-slate-100">
+        <div class="hidden md:block p-4 md:p-5 border-b border-[#f1f5f9]">
             <form method="get" class="relative">
                 <input type="hidden" name="from_date" value="{{ from_date }}">
                 <input type="hidden" name="to_date" value="{{ to_date }}">
                 <input type="hidden" name="min_amount" value="{{ min_amount }}">
                 <input type="hidden" name="max_amount" value="{{ max_amount }}">
-                <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search customer name or code..."
-                       class="w-full h-12 md:h-11 pl-4 pr-12 rounded-xl border border-slate-300 bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
+                <input type="text" name="search" value="{{ search }}" placeholder="Search customer name or code..."
+                       class="w-full h-11 pl-4 pr-12 rounded-xl border border-[#eef1f6] bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
             </form>
 
             {% if is_limited %}
                 <p class="text-[13px] text-slate-500 mt-2.5 ml-1">
-                    💡 Showing top {{ showing_count }} active customers. Use the search bar above to search across all customers.
+                    Showing top {{ showing_count }} active customers. Use the search bar above to search across all customers.
                 </p>
             {% elif search %}
                 <p class="text-[13px] text-brand-600 mt-2.5 ml-1">
-                    🔍 Showing {{ showing_count }} result(s) for "<strong>{{ search }}</strong>".
+                    Showing {{ showing_count }} result(s) for "<strong>{{ search }}</strong>".
                     <a href="{% url 'core:customer_report' %}" class="text-red-600 font-semibold underline ml-1">Clear search</a>
                 </p>
             {% endif %}
@@ -238,55 +272,55 @@
         <div class="md:max-h-[560px] md:overflow-y-auto overscroll-contain scroll-smooth">
 
             <!-- FREEZE PANEL (desktop only) -->
-            <div class="hidden md:flex sticky top-0 z-10 flex-wrap items-center justify-between gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+            <div class="hidden md:flex sticky top-0 z-10 flex-wrap items-center justify-between gap-2 px-4 py-3 bg-[#f8fafc] border-b border-[#f1f5f9]">
                 <div class="font-bold text-sm text-slate-800">
-                    👥 Customers <span class="text-brand-500">{{ showing_count }}</span>
+                    Customers <span class="text-brand-600">{{ showing_count }}</span>
                 </div>
                 <a href="{% url 'core:dashboard' %}"
-                   class="h-10 px-4 rounded-xl bg-white border border-slate-300 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition active:scale-[0.98]">
-                    ← Back to Business Dashboard
+                   class="app-chip h-10 border border-[#eef1f6]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    Back to Business Dashboard
                 </a>
             </div>
 
-            <!-- MOBILE CARDS -->
+            <!-- MOBILE LIST -->
             <div class="md:hidden p-3 space-y-3">
                 {% for customer in customer_rows %}
-                    <div class="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-                        <div class="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                            <div class="font-bold text-slate-900">{{ customer.customer_name }}</div>
-                        </div>
-                        <div class="px-4 py-2.5 space-y-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Opening Bal.</span>
-                                <span class="font-medium">₹{{ customer.opening_balance|floatformat:2 }}</span>
+                    <div class="app-surface">
+                        <div class="app-row px-4 pt-3.5 pb-3">
+                            <span class="app-dot bg-brand-500"></span>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-bold text-slate-900 text-[15px] leading-tight truncate">{{ customer.customer_name }}</div>
+                                <div class="text-[11px] font-semibold text-slate-400 mt-1">{{ customer.total_trips }} trips</div>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Trips</span>
-                                <span class="font-medium">{{ customer.total_trips }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Revenue</span>
-                                <span class="font-medium">₹{{ customer.total_revenue|floatformat:2 }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Received</span>
-                                <span class="font-medium">₹{{ customer.total_received|floatformat:2 }}</span>
-                            </div>
-                            <div class="flex justify-between border-t border-slate-100 pt-2">
-                                <span class="text-slate-500">Outstanding</span>
-                                <span class="font-bold text-brand-600">₹{{ customer.total_outstanding|floatformat:2 }}</span>
+                            <div class="text-right shrink-0">
+                                <div class="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-400">Outstanding</div>
+                                <div class="text-[15px] font-extrabold text-brand-600 mt-0.5 leading-tight tabular-nums">₹{{ customer.total_outstanding|floatformat:2 }}</div>
                             </div>
                         </div>
-                        <div class="px-4 pb-3">
+                        <div class="app-row px-4 py-3">
+                            <div class="flex-1">
+                                <div class="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-400">Revenue</div>
+                                <div class="text-[13px] font-bold text-slate-800 mt-0.5 tabular-nums">₹{{ customer.total_revenue|floatformat:2 }}</div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-400">Received</div>
+                                <div class="text-[13px] font-bold text-slate-800 mt-0.5 tabular-nums">₹{{ customer.total_received|floatformat:2 }}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-400">Opening</div>
+                                <div class="text-[13px] font-semibold text-slate-500 mt-0.5 tabular-nums">₹{{ customer.opening_balance|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                        <div class="px-4 pb-4">
                             {% if customer.customer_id %}
                                 <a href="{% url 'ledger:customer_statement' customer.customer_id %}"
-                                   class="block w-full h-11 rounded-xl bg-brand-50 text-brand-600 font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98] active:bg-brand-100">
-                                    View Statement →
+                                   class="app-chip active-soft w-full mt-1">
+                                    View Statement
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg>
                                 </a>
                             {% else %}
-                                <div class="block w-full h-11 rounded-xl bg-slate-50 text-slate-400 font-semibold text-sm flex items-center justify-center">
-                                    Internal Stock
-                                </div>
+                                <div class="app-chip w-full cursor-default opacity-60 mt-1">Internal Stock</div>
                             {% endif %}
                         </div>
                     </div>
@@ -302,38 +336,38 @@
                 <table class="w-full min-w-[820px] text-sm">
                     <thead class="sticky top-0 z-10">
                         <tr class="bg-white border-b border-slate-200 text-left">
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Opening Bal.</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Trips</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Revenue</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Received</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Outstanding</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                            <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer</th>
+                            <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Opening</th>
+                            <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Trips</th>
+                            <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Revenue</th>
+                            <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Received</th>
+                            <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Outstanding</th>
+                            <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody class="divide-y divide-[#f1f5f9]">
                         {% for customer in customer_rows %}
                             <tr class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-3 font-semibold text-slate-900">{{ customer.customer_name }}</td>
-                                <td class="px-4 py-3 text-right">₹{{ customer.opening_balance|floatformat:2 }}</td>
-                                <td class="px-4 py-3 text-right">{{ customer.total_trips }}</td>
-                                <td class="px-4 py-3 text-right">₹{{ customer.total_revenue|floatformat:2 }}</td>
-                                <td class="px-4 py-3 text-right">₹{{ customer.total_received|floatformat:2 }}</td>
-                                <td class="px-4 py-3 text-right font-bold text-brand-600">₹{{ customer.total_outstanding|floatformat:2 }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">
+                                <td class="px-5 py-3.5 font-semibold text-slate-900">{{ customer.customer_name }}</td>
+                                <td class="px-5 py-3.5 text-right text-slate-600 tabular-nums">₹{{ customer.opening_balance|floatformat:2 }}</td>
+                                <td class="px-5 py-3.5 text-right text-slate-600 tabular-nums">{{ customer.total_trips }}</td>
+                                <td class="px-5 py-3.5 text-right text-slate-600 tabular-nums">₹{{ customer.total_revenue|floatformat:2 }}</td>
+                                <td class="px-5 py-3.5 text-right text-slate-600 tabular-nums">₹{{ customer.total_received|floatformat:2 }}</td>
+                                <td class="px-5 py-3.5 text-right font-bold text-brand-600 tabular-nums">₹{{ customer.total_outstanding|floatformat:2 }}</td>
+                                <td class="px-5 py-3.5 whitespace-nowrap">
                                     {% if customer.customer_id %}
                                         <a href="{% url 'ledger:customer_statement' customer.customer_id %}"
-                                           class="inline-flex h-9 px-3.5 rounded-lg bg-brand-50 text-brand-600 font-semibold text-[13px] items-center gap-1 transition hover:bg-brand-100">
+                                           class="app-chip active-soft h-9 px-3.5 text-[13px]">
                                             View Statement
                                         </a>
                                     {% else %}
-                                        <span class="text-slate-400">Internal Stock</span>
+                                        <span class="text-slate-400 text-xs">Internal Stock</span>
                                     {% endif %}
                                 </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="7" class="px-4 py-12 text-center text-slate-500">No customer data found.</td>
+                                <td colspan="7" class="px-5 py-12 text-center text-slate-500">No customer data found.</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -346,7 +380,6 @@
 
 </div>
 
-<!-- MOBILE BOTTOM ACTION BAR -->
 <script>
     // Filter toggle label
     const filterDetails = document.getElementById('filter-details');

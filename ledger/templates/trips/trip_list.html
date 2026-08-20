@@ -2,6 +2,14 @@
 
 {% block title %}Trips{% endblock %}
 
+{% block head %}
+<style>
+    @media (min-width: 768px) {
+        #filter-details[open] summary { display: inline-flex; }
+    }
+</style>
+{% endblock %}
+
 {% block scrolltopbar %}
 <div class="flex items-center gap-2 px-3 py-2">
     <a href="{% url 'core:dashboard' %}"
@@ -29,9 +37,9 @@
 
     <!-- HEADER -->
     <div class="mb-4 md:mb-6">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-            <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-slate-900">
+        <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">
                     {% if category == 'hyva' %}
                         Hyva Trips
                     {% elif category == 'tractor' %}
@@ -46,206 +54,192 @@
                     Manage {{ category|default:"all" }} trips, revenue and payment status
                 </p>
             </div>
-            <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
-                <a href="{% url 'core:dashboard' %}" class="btn btn-ghost w-full sm:w-auto">
-                    ← Business Dashboard
-                </a>
-                <a href="{% url 'trips:create' %}" class="btn btn-primary w-full sm:w-auto">
-                    + Add Trip
-                </a>
-            </div>
+            <a href="{% url 'trips:create' %}" class="app-fab">
+                <span>+</span> Add Trip
+            </a>
         </div>
     </div>
 
-    <!-- FILTERS -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 mb-4 md:mb-5 overflow-hidden">
-        <details id="filter-details" class="filter-card">
-            <summary class="flex items-center justify-between px-4 py-3.5 cursor-pointer active:bg-slate-50 md:hidden">
-                <span class="font-semibold text-slate-700">🔍 Filters</span>
-                <span class="flex items-center gap-2">
-                    <span id="filtersCountBadge" class="text-[11px] font-bold bg-brand-500 text-white rounded-full px-2.5 py-0.5">All</span>
-                    <span class="text-brand-500 text-sm" id="filter-toggle">Show</span>
-                </span>
-            </summary>
-            <div class="px-4 pb-4 md:p-5">
-                <form method="get" id="tripFiltersForm" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                    {% if category %}
-                        <input type="hidden" name="category" value="{{ category }}">
-                    {% endif %}
+    <!-- FILTERS: type chips + advanced filter toggle -->
+    <form method="get" id="tripFiltersForm" class="mb-4 md:mb-5">
+        {% if category %}
+            <input type="hidden" name="category" value="{{ category }}">
+        {% endif %}
+        <input type="hidden" name="transaction_type" value="{{ selected_transaction_type }}">
+        <input type="hidden" name="material" value="{{ selected_material }}">
+        <input type="hidden" name="year" value="{{ selected_year }}">
+        <input type="hidden" name="month" value="{{ selected_month }}">
+        <input type="hidden" name="trip_status" value="{{ selected_trip_status }}">
+        <input type="hidden" name="payment_status" value="{{ selected_payment_status }}">
 
-                    <div class="hidden md:block col-span-2 md:col-span-1">
-                        <label class="label" for="search">Search</label>
-                        <input type="text" id="search" name="search" value="{{ search }}" placeholder="Trip code, customer or vehicle"
-                               class="input">
-                    </div>
-
-                    <div class="md:col-span-1">
-                        <label class="label" for="transaction_type">Type</label>
-                        <select id="transaction_type" name="transaction_type" class="input">
-                            <option value="CUSTOMER_DELIVERY" {% if selected_transaction_type == 'CUSTOMER_DELIVERY' %}selected{% endif %}>
-                                Customer Delivery
-                            </option>
-                            <option value="INTERNAL_STOCK" {% if selected_transaction_type == 'INTERNAL_STOCK' %}selected{% endif %}>
-                                Internal Stock Only
-                            </option>
-                            <option value="ALL" {% if selected_transaction_type == 'ALL' %}selected{% endif %}>
-                                All Types
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="md:col-span-1">
-                        <label class="label" for="material">Material</label>
-                        <select id="material" name="material" class="input">
-                            <option value="">
-                                All Materials
-                            </option>
-                            {% for mat in materials_list %}
-                                <option
-                                    value="{{ mat.id }}"
-                                    {% if selected_material == mat.id|stringformat:"i" or selected_material == mat.id %}
-                                        selected
-                                    {% endif %}
-                                >
-                                    {{ mat.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="md:col-span-1">
-                        <label class="label" for="year">Year</label>
-                        <select id="year" name="year" class="input">
-                            <option value="">
-                                All Years
-                            </option>
-                            {% for y in available_years %}
-                                <option
-                                    value="{{ y }}"
-                                    {% if selected_year == y|stringformat:"i" or selected_year == y %}
-                                        selected
-                                    {% endif %}
-                                >
-                                    {{ y }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="md:col-span-1">
-                        <label class="label" for="month">Month</label>
-                        <select id="month" name="month" class="input">
-                            <option value="">
-                                All Months
-                            </option>
-                            {% for val, name in month_choices %}
-                                <option
-                                    value="{{ val }}"
-                                    {% if selected_month == val %}
-                                        selected
-                                    {% endif %}
-                                >
-                                    {{ name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="md:col-span-1">
-                        <label class="label" for="trip_status">Trip Status</label>
-                        <select id="trip_status" name="trip_status" class="input">
-                            <option value="">
-                                All Trip Status
-                            </option>
-                            {% for value, label in trip_status_choices %}
-                                <option
-                                    value="{{ value }}"
-                                    {% if selected_trip_status == value %}
-                                        selected
-                                    {% endif %}
-                                >
-                                    {{ label }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="md:col-span-1">
-                        <label class="label" for="payment_status">Payment Status</label>
-                        <select id="payment_status" name="payment_status" class="input">
-                            <option value="">
-                                All Payment Status
-                            </option>
-                            {% for value, label in payment_status_choices %}
-                                <option
-                                    value="{{ value }}"
-                                    {% if selected_payment_status == value %}
-                                        selected
-                                    {% endif %}
-                                >
-                                    {{ label }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="col-span-2 md:col-span-4 flex flex-col sm:flex-row gap-2.5 md:gap-2.5 pt-1 md:pt-4 md:mt-1 border-t border-slate-100">
-                        <button type="submit"
-                                class="h-12 md:h-10 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
-                            🔍 Apply
-                        </button>
-                        <a href="{% url 'trips:list' %}{% if category %}?category={{ category }}{% endif %}"
-                           class="h-12 md:h-10 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm flex items-center justify-center transition active:scale-[0.98]">
-                            Clear
-                        </a>
-                    </div>
-                </form>
+        <div class="flex items-center gap-2">
+            <div class="app-tabs flex-1 min-w-0">
+                <button type="button" data-value="ALL"
+                        class="app-chip chip-type {% if selected_transaction_type == 'ALL' %}active{% endif %}">
+                    All
+                </button>
+                <button type="button" data-value="CUSTOMER_DELIVERY"
+                        class="app-chip chip-type {% if selected_transaction_type == 'CUSTOMER_DELIVERY' %}active{% endif %}">
+                    Customer Delivery
+                </button>
+                <button type="button" data-value="INTERNAL_STOCK"
+                        class="app-chip chip-type {% if selected_transaction_type == 'INTERNAL_STOCK' %}active{% endif %}">
+                    Internal Stock
+                </button>
             </div>
-        </details>
-    </div>
 
-    <!-- COMPACT SUMMARY STRIP -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 px-4 py-4 md:px-6 md:py-4 mb-4 md:mb-5">
-        <div class="grid grid-cols-2 gap-x-4 gap-y-4 md:flex md:items-center md:justify-between md:gap-6">
-            <div>
-                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Trips</div>
-                <div class="text-lg font-bold text-slate-900 mt-1">
-                    {{ summary.total_count }}
-                    <span class="text-[13px] font-medium text-slate-500">({{ summary.paid_count }} Paid · {{ summary.pending_count }} Pending)</span>
+            <details id="filter-details" class="relative shrink-0">
+                <summary class="app-chip active-soft cursor-pointer">
+                    <span id="filter-toggle">⚙ Filters</span>
+                    <span id="filtersCountBadge" class="text-[11px] font-bold">All</span>
+                </summary>
+                <div class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[19rem] md:w-[42rem] max-w-[calc(100vw-3rem)] bg-white rounded-2xl border border-slate-200 shadow-xl p-3.5">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-3.5">
+                        <div class="hidden md:block">
+                            <label class="label" for="search">Search</label>
+                            <input type="text" id="search" name="search" value="{{ search }}" placeholder="Trip code, customer or vehicle"
+                                   class="input">
+                        </div>
+
+                        <div>
+                            <label class="label" for="material">Material</label>
+                            <select id="material" name="material" class="input">
+                                <option value="">
+                                    All Materials
+                                </option>
+                                {% for mat in materials_list %}
+                                    <option
+                                        value="{{ mat.id }}"
+                                        {% if selected_material == mat.id|stringformat:"i" or selected_material == mat.id %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ mat.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label" for="year">Year</label>
+                            <select id="year" name="year" class="input">
+                                <option value="">
+                                    All Years
+                                </option>
+                                {% for y in available_years %}
+                                    <option
+                                        value="{{ y }}"
+                                        {% if selected_year == y|stringformat:"i" or selected_year == y %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ y }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label" for="month">Month</label>
+                            <select id="month" name="month" class="input">
+                                <option value="">
+                                    All Months
+                                </option>
+                                {% for val, name in month_choices %}
+                                    <option
+                                        value="{{ val }}"
+                                        {% if selected_month == val %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label" for="trip_status">Trip Status</label>
+                            <select id="trip_status" name="trip_status" class="input">
+                                <option value="">
+                                    All Trip Status
+                                </option>
+                                {% for value, label in trip_status_choices %}
+                                    <option
+                                        value="{{ value }}"
+                                        {% if selected_trip_status == value %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label" for="payment_status">Payment Status</label>
+                            <select id="payment_status" name="payment_status" class="input">
+                                <option value="">
+                                    All Payment Status
+                                </option>
+                                {% for value, label in payment_status_choices %}
+                                    <option
+                                        value="{{ value }}"
+                                        {% if selected_payment_status == value %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-span-2 md:col-span-4 flex flex-col sm:flex-row gap-2.5 pt-2.5 mt-1 border-t border-slate-100">
+                            <button type="submit"
+                                    class="h-11 md:h-10 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+                                🔍 Apply
+                            </button>
+                            <a href="{% url 'trips:list' %}{% if category %}?category={{ category }}{% endif %}"
+                               class="h-11 md:h-10 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm flex items-center justify-center transition active:scale-[0.98]">
+                                Clear
+                            </a>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </details>
+        </div>
+    </form>
 
-            <div class="hidden md:block w-px h-8 bg-slate-200"></div>
-
-            <div>
-                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Amount</div>
-                <div class="text-lg font-bold text-slate-900 mt-1">₹{{ summary.total_revenue|floatformat:2 }}</div>
-            </div>
-
-            <div class="hidden md:block w-px h-8 bg-slate-200"></div>
-
-            <div>
-                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Received</div>
-                <div class="text-lg font-bold text-emerald-600 mt-1">₹{{ summary.total_received|floatformat:2 }}</div>
-            </div>
-
-            <div class="hidden md:block w-px h-8 bg-slate-200"></div>
-
-            <div>
-                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Pending</div>
-                <div class="text-lg font-bold {% if summary.total_pending > 0 %}text-red-600{% else %}text-slate-900{% endif %} mt-1">
-                    ₹{{ summary.total_pending|floatformat:2 }}
-                </div>
-            </div>
+    <!-- SUMMARY STRIP -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3 mb-4 md:mb-5">
+        <div class="app-stat">
+            <span class="lbl">Total Trips</span>
+            <span class="val">{{ summary.total_count }}</span>
+            <span class="block text-[11px] font-semibold text-slate-400 mt-1">
+                {{ summary.paid_count }} Paid · {{ summary.pending_count }} Pending
+            </span>
+        </div>
+        <div class="app-stat">
+            <span class="lbl">Total Amount</span>
+            <span class="val">₹{{ summary.total_revenue|floatformat:2 }}</span>
+        </div>
+        <div class="app-stat">
+            <span class="lbl">Total Received</span>
+            <span class="val text-emerald-600">₹{{ summary.total_received|floatformat:2 }}</span>
+        </div>
+        <div class="app-stat">
+            <span class="lbl">Total Pending</span>
+            <span class="val {% if summary.total_pending > 0 %}text-red-600{% endif %}">₹{{ summary.total_pending|floatformat:2 }}</span>
         </div>
     </div>
 
-    <!-- TRIP TABLE / MOBILE CARDS -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-
-        <div class="px-4 py-3 md:px-5 md:py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+    <!-- TRIPS -->
+    <div class="app-surface overflow-hidden">
+        <div class="px-4 py-3 md:px-5 md:py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
             <div class="font-bold text-slate-900 text-base">
-                Trips Records <span class="text-[13px] font-medium text-slate-500">({{ summary.total_count }} trips)</span>
+                Trips <span class="text-[13px] font-medium text-slate-500">({{ summary.total_count }} trips)</span>
             </div>
             <div class="hidden md:flex gap-2">
                 <button type="button" onclick="scrollToTop()"
@@ -264,7 +258,7 @@
             <div class="max-h-[65vh] overflow-y-auto overscroll-contain scroll-smooth" id="tripsTableContainer">
                 <table class="w-full min-w-[1050px] text-sm">
                     <thead class="sticky top-0 z-10">
-                        <tr class="bg-white border-b border-slate-200 text-left">
+                        <tr class="bg-slate-50 text-left">
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Trip</th>
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer</th>
@@ -283,7 +277,7 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         {% for trip in trips %}
-                            <tr class="hover:bg-slate-50 transition">
+                            <tr class="hover:bg-slate-50/60 transition">
                                 <td class="px-4 py-3">
                                     <a href="{% url 'trips:detail' trip.id %}" class="font-bold text-brand-600 hover:underline">
                                         {{ trip.trip_code }}
@@ -298,11 +292,11 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-4 py-3">{{ trip.destination|default:"—" }}</td>
-                                <td class="px-4 py-3">{{ trip.vehicle.registration_number }}</td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 whitespace-nowrap">{{ trip.vehicle.registration_number }}</td>
+                                <td class="px-4 py-3 text-[12px] text-slate-600">
                                     {% if trip.drivers.all %}
                                         {% for driver in trip.drivers.all %}
-                                            <span class="inline-block px-1.5 py-0.5 bg-sky-100 text-sky-700 rounded text-[12px] font-medium mr-0.5 mb-0.5">{{ driver.name }}</span>
+                                            {{ driver.name }}{% if not forloop.last %}, {% endif %}
                                         {% endfor %}
                                     {% else %}
                                         <span class="text-slate-400 italic">—</span>
@@ -311,8 +305,8 @@
                                 <td class="px-4 py-3">{{ trip.material.name }}</td>
                                 <td class="px-4 py-3">{{ trip.quantity }}</td>
                                 <td class="px-4 py-3 text-right font-semibold whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</td>
-                                <td class="px-4 py-3 text-right font-semibold whitespace-nowrap">₹{{ trip.total_received|floatformat:2 }}</td>
-                                <td class="px-4 py-3 text-right font-semibold whitespace-nowrap">₹{{ trip.outstanding_amount|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right font-semibold whitespace-nowrap text-emerald-700">₹{{ trip.total_received|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right font-semibold whitespace-nowrap {% if trip.outstanding_amount > 0 %}text-red-600{% endif %}">₹{{ trip.outstanding_amount|floatformat:2 }}</td>
                                 <td class="px-4 py-3">
                                     {% if trip.trip_status == 'PLANNED' %}
                                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-800">Planned</span>
@@ -348,7 +342,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="12" class="px-4 py-12 text-center text-slate-500">No trips found.</td>
+                                <td colspan="14" class="px-4 py-12 text-center text-slate-500">No trips found.</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -356,97 +350,57 @@
             </div>
         </div>
 
-        <!-- MOBILE TRIP CARDS -->
-        <div class="md:hidden p-3 space-y-3">
+        <!-- MOBILE TRIP LIST -->
+        <div class="md:hidden px-3">
             {% for trip in trips %}
-                <div class="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-                    <div class="px-4 py-3 flex items-center justify-between gap-2 border-b border-slate-100">
-                        <a href="{% url 'trips:detail' trip.id %}" class="font-bold text-brand-600">{{ trip.trip_code }}</a>
-                        {% if trip.calculated_payment_status == 'PAID' %}
-                            <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
-                        {% elif trip.calculated_payment_status == 'PARTIAL' %}
-                            <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
-                        {% else %}
-                            <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Unpaid</span>
-                        {% endif %}
-                    </div>
-
-                    <div class="px-4 pt-2.5 text-[13px] text-slate-500 font-medium flex items-center gap-1.5">
-                        {% if trip.trip_status == 'PLANNED' %}
-                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-800">Planned</span>
-                        {% elif trip.trip_status == 'IN_PROGRESS' %}
-                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700">In Progress</span>
-                        {% elif trip.trip_status == 'COMPLETED' %}
-                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Completed</span>
-                        {% elif trip.trip_status == 'CANCELLED' %}
-                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Cancelled</span>
-                        {% endif %}
-                        &nbsp;📅 {{ trip.trip_date|date:"d-M-Y" }}
-                    </div>
-
-                    <div class="px-4 py-2.5 my-2.5 space-y-2 text-sm border-t border-dashed border-slate-200 border-b">
-                        <div class="flex justify-between gap-3">
-                            <span class="text-slate-500">👤 Customer</span>
-                            <strong class="text-right">{% if trip.transaction_type == 'INTERNAL_STOCK' %}📦 Internal Stock{% else %}{{ trip.customer.name }}{% endif %}</strong>
+                <div class="app-row">
+                    <a href="{% url 'trips:detail' trip.id %}" class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-[15px] text-brand-600">{{ trip.trip_code }}</span>
+                            <span class="text-[11px] font-medium text-slate-400">{{ trip.trip_date|date:"d-M-Y" }}</span>
                         </div>
-                        {% if trip.destination %}
-                            <div class="flex justify-between gap-3">
-                                <span class="text-slate-500">📍 Destination</span>
-                                <strong class="text-right">{{ trip.destination }}</strong>
-                            </div>
-                        {% endif %}
-                        <div class="flex justify-between gap-3">
-                            <span class="text-slate-500">🚚 Vehicle</span>
-                            <strong class="text-right">{{ trip.vehicle.registration_number|default:"—" }}</strong>
+                        <div class="mt-0.5 text-sm font-semibold text-slate-900 truncate">
+                            {% if trip.transaction_type == 'INTERNAL_STOCK' %}📦 Internal Stock{% else %}{{ trip.customer.name }}{% endif %}
                         </div>
-                        {% if trip.drivers.all %}
-                            <div class="flex justify-between gap-3">
-                                <span class="text-slate-500">👷 Drivers</span>
-                                <strong class="text-right">
-                                    {% for driver in trip.drivers.all %}
-                                        {{ driver.name }}{% if not forloop.last %}, {% endif %}
-                                    {% endfor %}
-                                </strong>
-                            </div>
-                        {% endif %}
-                        <div class="flex justify-between gap-3">
-                            <span class="text-slate-500">📦 Material</span>
-                            <strong class="text-right">{{ trip.material.name }}</strong>
+                        <div class="mt-0.5 text-[12px] text-slate-500 truncate">
+                            🚚 {{ trip.vehicle.registration_number|default:"—" }} · 📦 {{ trip.material.name }}{% if trip.destination %} · 📍 {{ trip.destination }}{% endif %}
                         </div>
-                        <div class="flex justify-between gap-3">
-                            <span class="text-slate-500">🔢 Quantity</span>
-                            <strong class="text-right">{{ trip.quantity }}</strong>
-                        </div>
-                    </div>
-
-                    <div class="px-4 pb-3 flex items-center justify-between gap-2">
-                        <div class="min-w-0">
-                            <div class="text-base font-bold text-brand-600">₹{{ trip.total_amount|floatformat:2 }}</div>
-                            <div class="text-[12px] text-slate-500">
-                                Recd: ₹{{ trip.total_received|floatformat:2 }} · Pending: ₹{{ trip.outstanding_amount|floatformat:2 }}
-                            </div>
-                        </div>
-                        <div class="flex gap-2 flex-shrink-0">
-                            {% if trip.outstanding_amount > 0 %}
-                                <a href="{% url 'trips:payment_create' trip.id %}"
-                                   class="h-11 px-4 rounded-xl bg-sky-100 text-sky-700 font-semibold text-[13px] flex items-center justify-center whitespace-nowrap transition active:scale-[0.98]">
-                                    + Pay
-                                </a>
+                        <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                            {% if trip.trip_status == 'PLANNED' %}
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-800">Planned</span>
+                            {% elif trip.trip_status == 'IN_PROGRESS' %}
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700">In Progress</span>
+                            {% elif trip.trip_status == 'COMPLETED' %}
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Completed</span>
+                            {% elif trip.trip_status == 'CANCELLED' %}
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Cancelled</span>
                             {% endif %}
-                            <a href="{% url 'trips:detail' trip.id %}"
-                               class="h-11 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-[13px] flex items-center justify-center whitespace-nowrap transition active:scale-[0.98]">
-                                View →
-                            </a>
+                            {% if trip.calculated_payment_status == 'PAID' %}
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
+                            {% elif trip.calculated_payment_status == 'PARTIAL' %}
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
+                            {% else %}
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Unpaid</span>
+                            {% endif %}
                         </div>
+                    </a>
+                    <div class="text-right shrink-0 pl-2">
+                        <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</div>
+                        {% if trip.outstanding_amount > 0 %}
+                            <div class="text-[11px] font-bold text-red-600 whitespace-nowrap">₹{{ trip.outstanding_amount|floatformat:2 }} due</div>
+                            <a href="{% url 'trips:payment_create' trip.id %}"
+                               class="mt-1.5 inline-flex h-8 px-3 rounded-full bg-sky-100 text-sky-700 font-bold text-[12px] items-center transition active:scale-[0.95]">
+                                + Pay
+                            </a>
+                        {% else %}
+                            <div class="text-[11px] font-bold text-emerald-600 whitespace-nowrap">Settled</div>
+                        {% endif %}
                     </div>
                 </div>
             {% empty %}
-                <div class="text-center py-12 text-slate-500 text-sm rounded-xl border border-dashed border-slate-300">
-                    No trips found.
-                </div>
+                <div class="py-12 text-center text-sm text-slate-500">No trips found.</div>
             {% endfor %}
         </div>
-
     </div>
 
 {% endblock %}
@@ -466,12 +420,22 @@
             }
         }
 
+        // Transaction type chips
+        document.querySelectorAll('.chip-type').forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                const form = document.getElementById('tripFiltersForm');
+                const hidden = form.querySelector('input[name="transaction_type"]');
+                if (hidden) hidden.value = chip.dataset.value;
+                form.submit();
+            });
+        });
+
         // Filter toggle label
         const filterDetails = document.getElementById('filter-details');
         const filterToggle = document.getElementById('filter-toggle');
         if (filterDetails && filterToggle) {
             filterDetails.addEventListener('toggle', () => {
-                filterToggle.textContent = filterDetails.open ? 'Hide' : 'Show';
+                filterToggle.textContent = filterDetails.open ? 'Hide' : 'Filters';
             });
         }
 

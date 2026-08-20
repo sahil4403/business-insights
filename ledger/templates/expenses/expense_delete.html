@@ -4,46 +4,64 @@
 
 {% block content %}
 
-<div class="max-w-md mx-auto mt-2 md:mt-10">
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-8">
+<div class="max-w-md mx-auto">
+    <div class="app-surface p-5 md:p-7">
 
-        <h1 class="text-2xl font-bold text-slate-900">Delete Expense</h1>
-        <p class="text-sm text-slate-500 mt-1 mb-5">Confirm that you want to permanently delete this expense.</p>
-
-        <div class="rounded-xl px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm font-medium mb-5">
-            ⚠️ This action cannot be undone. Please verify the expense details before continuing.
+        <div class="w-14 h-14 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
         </div>
 
-        <div class="rounded-xl border border-slate-200 divide-y divide-slate-100 mb-6 overflow-hidden">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-4 px-4 py-3">
-                <span class="text-[13px] font-semibold text-slate-500">Date</span>
-                <span class="text-sm font-semibold text-slate-900">{{ expense.expense_date|date:"d-M-Y" }}</span>
+        <h1 class="text-xl md:text-2xl font-bold text-slate-900">
+            Delete Expense?
+        </h1>
+
+        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">
+            Are you sure you want to permanently delete this expense?
+            This action cannot be undone.
+        </p>
+
+        <div class="mt-5">
+            <div class="app-row justify-between">
+                <span class="text-sm text-slate-500">Date</span>
+                <span class="text-sm font-semibold text-slate-900 text-right">{{ expense.expense_date|date:"d-M-Y" }}</span>
             </div>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-4 px-4 py-3">
-                <span class="text-[13px] font-semibold text-slate-500">Category</span>
-                <span class="text-sm font-semibold text-slate-900">{{ expense.category }}</span>
+            <div class="app-row justify-between">
+                <span class="text-sm text-slate-500">Category</span>
+                <span class="text-sm font-semibold text-slate-900 text-right">{{ expense.category }}</span>
             </div>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-4 px-4 py-3">
-                <span class="text-[13px] font-semibold text-slate-500">Description</span>
-                <span class="text-sm font-semibold text-slate-900">{{ expense.description }}</span>
+            <div class="app-row justify-between">
+                <span class="text-sm text-slate-500">Description</span>
+                <span class="text-sm font-semibold text-slate-900 text-right">{{ expense.description }}</span>
             </div>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-4 px-4 py-3">
-                <span class="text-[13px] font-semibold text-slate-500">Payment Method</span>
-                <span class="text-sm font-semibold text-slate-900">{{ expense.payment_method }}</span>
+            <div class="app-row justify-between">
+                <span class="text-sm text-slate-500">Payment Method</span>
+                <span class="text-sm font-semibold text-slate-900 text-right">{{ expense.payment_method }}</span>
             </div>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-4 px-4 py-3 bg-slate-50">
-                <span class="text-[13px] font-semibold text-slate-500">Amount</span>
-                <span class="text-base font-bold text-red-700">₹{{ expense.amount|floatformat:2 }}</span>
+            <div class="app-row justify-between">
+                <span class="text-sm text-slate-500">Amount</span>
+                <span class="text-sm font-bold text-red-600 text-right">₹{{ expense.amount|floatformat:2 }}</span>
             </div>
         </div>
 
-        <form method="post">
-            {% csrf_token %}
-            <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-                <a href="{% url 'expenses:list' %}" class="btn btn-ghost w-full sm:w-auto">Cancel</a>
-                <button type="submit" class="btn bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto">Delete Expense</button>
-            </div>
-        </form>
+        <div class="mt-4 rounded-xl px-4 py-3 bg-orange-50 border border-orange-200 text-orange-800 text-[13px] leading-relaxed">
+            <strong>Important:</strong>
+            Deleting an expense permanently removes its record and any impact it had on
+            business profit calculations.
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 mt-5 pt-4 border-t border-slate-100">
+            <a href="{% url 'expenses:list' %}" class="btn btn-secondary w-full sm:w-auto">
+                Cancel
+            </a>
+            <form method="post" class="w-full sm:w-auto">
+                {% csrf_token %}
+                <button type="submit" class="btn w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white">
+                    Delete Expense
+                </button>
+            </form>
+        </div>
 
     </div>
 </div>
