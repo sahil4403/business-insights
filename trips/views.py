@@ -71,6 +71,12 @@ def trip_list(request):
             Q(vehicle__vehicle_type__name__iexact='Hyva') |
             Q(vehicle__registration_number__icontains='Hyva')
         )
+    elif category == 'jcb':
+        trips = trips.filter(
+            Q(vehicle__vehicle_type__code='JCB') |
+            Q(vehicle__vehicle_type__name__iexact='Jcb') |
+            Q(vehicle__registration_number__icontains='Jcb')
+        )
 
     search = request.GET.get('search', '').strip()
 
@@ -155,6 +161,12 @@ def trip_list(request):
             Q(vehicle_type__code='HYVA') |
             Q(vehicle_type__name__iexact='Hyva') |
             Q(registration_number__icontains='Hyva')
+        )
+    elif category == 'jcb':
+        vehicles_list = vehicles_list.filter(
+            Q(vehicle_type__code='JCB') |
+            Q(vehicle_type__name__iexact='Jcb') |
+            Q(registration_number__icontains='Jcb')
         )
 
     available_years = list(

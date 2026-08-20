@@ -40,6 +40,10 @@
     <div class="mb-4 md:mb-6">
         <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
+                <a href="{% url 'core:dashboard' %}"
+                   class="hidden md:inline-flex items-center gap-1.5 h-9 px-3 mb-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold active:bg-slate-50 hover:border-slate-400 no-underline">
+                    ← Back
+                </a>
                 <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">
                     {% if category == 'hyva' %}
                         Hyva Trips
@@ -47,6 +51,8 @@
                         Tractor Trips
                     {% elif category == 'halfton' %}
                         Halfton Trips
+                    {% elif category == 'jcb' %}
+                        JCB Trips
                     {% else %}
                         Trips
                     {% endif %}
