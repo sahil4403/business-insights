@@ -129,19 +129,17 @@
                         </div>
 
                         <div>
-                            <label class="label" for="vehicle">Vehicle</label>
+                            <label class="label" for="vehicle">Vehicle Type</label>
                             <select id="vehicle" name="vehicle" class="input">
                                 <option value="">
-                                    All Vehicles
+                                    All Vehicle Types
                                 </option>
-                                {% for veh in vehicles_list %}
+                                {% for vt in vehicles_list %}
                                     <option
-                                        value="{{ veh.id }}"
-                                        {% if selected_vehicle == veh.id|stringformat:"i" or selected_vehicle == veh.id %}
-                                            selected
-                                        {% endif %}
+                                        value="{{ vt.code }}"
+                                        {% if selected_vehicle == vt.code %}selected{% endif %}
                                     >
-                                        {{ veh.registration_number }}
+                                        {{ vt.name }}
                                     </option>
                                 {% endfor %}
                             </select>

@@ -17,7 +17,7 @@ from decimal import Decimal
 from .models import Trip, TripPayment
 from .forms import TripForm, TripPaymentForm
 
-from master_data.models import Material
+from master_data.models import Material, VehicleType
 from vehicles.models import Vehicle
 from core.utils import get_safe_next
 
@@ -110,9 +110,13 @@ def trip_list(request):
     if material_id:
         trips = trips.filter(material_id=material_id)
 
-    vehicle_id = request.GET.get('vehicle', '').strip()
-    if vehicle_id:
-        trips = trips.filter(vehicle_id=vehicle_id)
+    vehicle_type_code = request.GET.get('vehicle', '').strip().upper()
+    if vehicle_type_code:
+        trips = trips.filter(
+            Q(vehicle__vehicle_type__code=vehicle_type_code) |
+            Q(vehicle__vehicle_type__name__iexact=vehicle_type_code) |
+            Q(vehicle__registration_number__icontains=vehicle_type_code)
+        )
 
     transaction_type = request.GET.get('transaction_type', 'CUSTOMER_DELIVERY').strip()
 
@@ -142,32 +146,7 @@ def trip_list(request):
 
     materials_list = Material.objects.filter(is_active=True).order_by('name')
 
-    vehicles_list = Vehicle.objects.filter(is_active=True).order_by('registration_number')
-
-    if category == 'tractor':
-        vehicles_list = vehicles_list.filter(
-            Q(vehicle_type__code='TRACTOR') |
-            Q(vehicle_type__name__iexact='Tractor') |
-            Q(registration_number__icontains='Tractor')
-        )
-    elif category == 'halfton':
-        vehicles_list = vehicles_list.filter(
-            Q(vehicle_type__code='HALFTON') |
-            Q(vehicle_type__name__iexact='Halfton') |
-            Q(registration_number__icontains='Halfton')
-        )
-    elif category == 'hyva':
-        vehicles_list = vehicles_list.filter(
-            Q(vehicle_type__code='HYVA') |
-            Q(vehicle_type__name__iexact='Hyva') |
-            Q(registration_number__icontains='Hyva')
-        )
-    elif category == 'jcb':
-        vehicles_list = vehicles_list.filter(
-            Q(vehicle_type__code='JCB') |
-            Q(vehicle_type__name__iexact='Jcb') |
-            Q(registration_number__icontains='Jcb')
-        )
+    vehicles_list = VehicleType.objects.filter(is_active=True).order_by('name')
 
     available_years = list(
         Trip.objects.annotate(y=ExtractYear('trip_date'))
@@ -213,7 +192,7 @@ def trip_list(request):
         'selected_transaction_type': transaction_type,
         'selected_material': material_id,
         'materials_list': materials_list,
-        'selected_vehicle': vehicle_id,
+        'selected_vehicle': vehicle_type_code,
         'vehicles_list': vehicles_list,
         'selected_year': year,
         'selected_month': month,
