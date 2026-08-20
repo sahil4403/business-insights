@@ -459,11 +459,6 @@
             if (typeEl && typeEl.value && typeEl.value !== 'CUSTOMER_DELIVERY') count++;
 
             badge.textContent = count > 0 ? (count + ' active') : 'All';
-
-            if (filterDetails && (window.innerWidth >= 768 || count > 0)) {
-                filterDetails.open = true;
-                if (filterToggle) filterToggle.textContent = 'Hide';
-            }
         });
     </script>
 {% endblock %}

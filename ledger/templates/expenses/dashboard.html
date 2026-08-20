@@ -532,10 +532,5 @@
             filterToggle.textContent = filterDetails.open ? 'Hide' : 'Show';
         });
     }
-    // Auto-open filters on desktop
-    if (filterDetails && window.innerWidth >= 768) {
-        filterDetails.open = true;
-        if (filterToggle) filterToggle.textContent = 'Hide';
-    }
 </script>
 {% endblock %}

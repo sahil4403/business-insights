@@ -243,10 +243,6 @@
             });
             badge.textContent = count > 0 ? (count + ' active') : 'All';
         }
-        if (filterDetails && (window.innerWidth >= 768 || (badge && badge.textContent !== 'All'))) {
-            filterDetails.open = true;
-            if (filterToggle) filterToggle.textContent = 'Hide';
-        }
     });
 
     // Vehicle type -> vehicle cascading filter

@@ -238,11 +238,6 @@
             filterToggle.textContent = filterDetails.open ? 'Hide' : 'Show';
         });
     }
-    // Auto-open filters on desktop
-    if (filterDetails && window.innerWidth >= 768) {
-        filterDetails.open = true;
-        if (filterToggle) filterToggle.textContent = 'Hide';
-    }
     // Close export dropdown after tapping an option (mobile)
     document.querySelectorAll('.export-menu .export-opt').forEach(a => {
         a.addEventListener('click', () => {
