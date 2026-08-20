@@ -94,12 +94,11 @@
                     {% endif %}
                 </span>
             </div>
+            {% if trip.transaction_type != 'INTERNAL_STOCK' %}
             <div class="app-row justify-between">
                 <span class="text-[13px] text-slate-500">Payment Status</span>
                 <span class="text-right">
-                    {% if trip.transaction_type == 'INTERNAL_STOCK' %}
-                        <span class="text-[13px] font-semibold text-slate-400">N/A</span>
-                    {% elif trip.calculated_payment_status == 'PAID' %}
+                    {% if trip.calculated_payment_status == 'PAID' %}
                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
                     {% elif trip.calculated_payment_status == 'PARTIAL' %}
                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
@@ -108,6 +107,7 @@
                     {% endif %}
                 </span>
             </div>
+        {% endif %}
         </div>
     </div>
 
@@ -206,11 +206,6 @@
                 <div class="app-stat min-w-0">
                     <span class="lbl">Outstanding</span>
                     <span class="val !text-[15px] sm:!text-[1.35rem] !text-brand-600">₹{{ trip.outstanding_amount|floatformat:2 }}</span>
-                </div>
-            {% else %}
-                <div class="app-stat min-w-0 col-span-2">
-                    <span class="lbl">Payment</span>
-                    <span class="val !text-[15px] sm:!text-[1.35rem] !text-slate-400">Not Applicable</span>
                 </div>
             {% endif %}
         </div>
