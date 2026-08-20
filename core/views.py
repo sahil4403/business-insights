@@ -1047,17 +1047,18 @@ def customer_report(request):
 
     is_limited = False
     if not (search or min_amount_str or max_amount_str or from_date or to_date):
-        # Prioritize active customers (non-zero opening balance, revenue, or outstanding)
+        # Show ALL customers having an outstanding balance (no limit)
+        customer_rows = [
+            row for row in customer_rows
+            if row['total_outstanding'] > 0
+        ]
         customer_rows.sort(
             key=lambda x: (
-                x['total_outstanding'] > 0 or x['opening_balance'] > 0 or x['total_revenue'] > 0,
                 x['total_outstanding'],
                 x['opening_balance'],
             ),
             reverse=True
         )
-        customer_rows = customer_rows[:5]
-        is_limited = True
 
     context = {
         'customer_rows': customer_rows,

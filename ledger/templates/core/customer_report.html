@@ -1,828 +1,422 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Customer Report</title>
-
-
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef7f5',
+                            100: '#d5ebe6',
+                            500: '#16665a',
+                            600: '#115248',
+                            700: '#0d423a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-
-        * {
-            box-sizing: border-box;
+        input[type="date"] { -webkit-appearance: none; appearance: none; }
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+        /* EXPORT BOTTOM SHEET */
+        .export-sheet { display: none; }
+        .export-menu[open] .export-sheet {
+            display: block;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #fff;
+            border-radius: 1.25rem 1.25rem 0 0;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.22);
+            z-index: 70;
+            max-height: 75vh;
+            overflow-y: auto;
+            padding-bottom: env(safe-area-inset-bottom);
+            animation: sheetUp 0.25s ease;
         }
-
-        body {
-            margin: 0;
-
-            font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                sans-serif;
-
-            background: #f5f7f7;
-
-            color: #1f2933;
+        @keyframes sheetUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
-
-
-        .container {
-
-            max-width: 1250px;
-
-            margin: 0 auto;
-
-            padding: 30px;
-        }
-
-
-        /* HEADER */
-
-        .header {
-
-            margin-bottom: 25px;
-        }
-
-
-        .header h1 {
-
-            margin: 0;
-
-            font-size: 30px;
-        }
-
-
-        .header p {
-
-            margin: 6px 0 0;
-
-            color: #6b7280;
-        }
-
-
-        /* CARD */
-
-        .card {
-
-            background: white;
-
-            padding: 22px;
-
-            border-radius: 12px;
-
-            box-shadow:
-                0 2px 10px rgba(0, 0, 0, 0.05);
-
-            margin-bottom: 20px;
-        }
-
-
-        /* FILTER */
-
-        /* FILTER CARD STYLES */
-        .filter-form {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .filter-inputs-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            width: 100%;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .filter-group label {
-            font-size: 12px;
+        .export-sheet-title {
+            padding: 1rem 1.25rem 0.5rem;
+            font-size: 11px;
             font-weight: 700;
-            color: #475569;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .filter-group input {
-            width: 100%;
-            height: 42px;
-            padding: 8px 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 14px;
-            color: #0f172a;
-            background: #ffffff;
-            font-family: inherit;
-            box-sizing: border-box;
-            transition: all 0.2s ease;
-        }
-
-        .filter-group input:focus {
-            outline: none;
-            border-color: #16665a;
-            box-shadow: 0 0 0 3px rgba(22, 102, 90, 0.15);
-        }
-
-        .filter-actions-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            padding-top: 14px;
-            border-top: 1px solid #f1f5f9;
-        }
-
-        .filter-btn-group,
-        .export-btn-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 10px 18px;
-            border-radius: 8px;
-            border: none;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            height: 40px;
-            box-sizing: border-box;
-        }
-
-        .btn-primary {
-            background: #16665a;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #115248;
-        }
-
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #334155;
-        }
-
-        .btn-secondary:hover {
-            background: #cbd5e1;
-        }
-
-        .btn-export {
-            background: #f8fafc;
-            color: #334155;
-            border: 1px solid #cbd5e1;
-            font-size: 13px;
-        }
-
-        .btn-export:hover {
-            background: #e2e8f0;
-            color: #0f172a;
-            border-color: #94a3b8;
-        }
-
-        /* RESPONSIVE BREAKPOINTS FOR MOBILE & LAPTOP */
-        @media (max-width: 992px) {
-            .filter-inputs-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 640px) {
-            .filter-inputs-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .filter-actions-row {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .filter-btn-group,
-            .export-btn-group {
-                width: 100%;
-            }
-
-            .filter-btn-group .btn,
-            .export-btn-group .btn {
-                flex: 1;
-                text-align: center;
-            }
-        }
-
-
-        /* SEARCH */
-
-        .search-box {
-
-            margin-bottom: 20px;
-        }
-
-
-        .search-box input {
-
-            width: 100%;
-
-            padding: 12px 14px;
-
-            border: 1px solid #d1d5db;
-
-            border-radius: 8px;
-
-            font-size: 14px;
-        }
-
-
-        /* TABLE */
-
-        .table-wrapper {
-
-            overflow-x: auto;
-        }
-
-
-        table {
-
-            width: 100%;
-
-            border-collapse: collapse;
-
-            min-width: 800px;
-        }
-
-
-        th {
-
-            text-align: left;
-
-            padding: 14px 12px;
-
-            font-size: 12px;
-
-            color: #6b7280;
-
-            border-bottom:
-                1px solid #e5e7eb;
-        }
-
-
-        td {
-
-            padding: 14px 12px;
-
-            border-bottom:
-                1px solid #eef0f2;
-
-            font-size: 14px;
-        }
-
-
-        th.right,
-
-        td.right {
-
-            text-align: right;
-        }
-
-
-        .customer-name {
-
-            font-weight: 600;
-        }
-
-
-        .outstanding {
-
-            font-weight: 700;
-        }
-
-
-        .empty {
-
+            letter-spacing: 0.05em;
+            color: #94a3b8;
             text-align: center;
-
-            padding: 40px;
-
-            color: #6b7280;
         }
-
-
-        /* FOOTER */
-
-        .back-link {
-
-            margin-top: 20px;
+        .export-sheet .export-opt {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.05rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #334155;
+            border-bottom: 1px solid #f1f5f9;
+            text-decoration: none;
+            background: #fff;
         }
-
-
-        /* MOBILE */
-
-        @media (max-width: 700px) {
-
-            .container {
-                padding: 14px 10px;
-            }
-
-            .card {
-                padding: 14px;
-            }
-
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .filter-form {
-                flex-direction: column;
-                align-items: stretch;
-                overflow: hidden;
-            }
-
-            .filter-group {
-                width: 100%;
-                min-width: 0;
-                max-width: 100%;
-            }
-
-            .filter-group input,
-            .search-box input {
-                font-size: 16px;
-                min-height: 44px;
-                width: 100%;
-                max-width: 100%;
-                min-width: 0;
-            }
-
-            .filter-group input[type="date"] {
-                -webkit-appearance: none;
-                appearance: none;
-                font-size: 15px;
-                padding: 6px 8px;
-                min-height: 40px;
-            }
-
-            .filter-group input[type="number"] {
-                font-size: 15px;
-                padding: 6px 8px;
-                min-height: 40px;
-            }
-
-            .filter-btn-group,
-            .export-btn-group {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-                width: 100%;
-            }
-
-            .filter-btn-group .btn,
-            .export-btn-group .btn {
-                flex: none;
-                width: 100%;
-                min-height: 44px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-
-            .btn {
-                width: 100%;
-                min-height: 44px;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-
+        .export-sheet .export-opt:active { background: #f8fafc; }
+        .export-sheet .export-cancel {
+            justify-content: center;
+            color: #b91c1c;
+            border-bottom: none;
+            font-weight: 700;
+            padding-top: 1.1rem;
+            padding-bottom: 1.1rem;
         }
-
-        /* MOBILE CUSTOMER CARDS (instead of wide table) */
-        @media (max-width: 640px) {
-
-            .table-wrapper {
-                overflow: visible;
-            }
-
-            table,
-            thead,
-            tbody,
-            tr,
-            td {
-                display: block;
-                width: 100%;
-                min-width: 0 !important;
-            }
-
-            thead {
-                display: none;
-            }
-
-            table {
-                min-width: 0;
-            }
-
-            tr {
-                background: white;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                padding: 10px 14px;
-                margin-bottom: 14px;
-                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-            }
-
-            tr:last-child {
-                margin-bottom: 0;
-            }
-
-            td {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 12px;
-                padding: 9px 2px;
-                border-bottom: 1px solid #f1f5f9;
-                font-size: 14px;
-                text-align: left;
-            }
-
-            td:last-child {
-                border-bottom: none;
-            }
-
-            td::before {
-                content: attr(data-label);
-                font-size: 11px;
-                font-weight: 700;
-                color: #64748b;
-                text-transform: uppercase;
-                letter-spacing: 0.4px;
-                flex-shrink: 0;
-            }
-
-            td.right::after {
-                content: "";
-                flex: 1;
-            }
-
-            td.right {
-                text-align: right;
-                white-space: nowrap;
-            }
-
-            td.customer-name {
-                font-size: 16px;
-                font-weight: 700;
-                color: #0f172a;
-                border-bottom: 1px solid #e2e8f0;
-                margin-bottom: 4px;
-            }
-
-            td.customer-name::before {
-                display: none;
-            }
-
-            td[data-label="Action"] {
-                display: block;
-                text-align: center;
-                padding-top: 10px;
-            }
-
-            td[data-label="Action"]::before {
-                display: none;
-            }
-
-            td[data-label="Action"] .btn {
-                width: 100%;
-            }
-
-            td.empty {
-                display: block;
-                text-align: center;
-            }
-
-            td.empty::before {
-                display: none;
-            }
-
+        .export-sheet::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            z-index: -1;
         }
-
+        @media (min-width: 768px) {
+            #filter-details[open] summary { display: none; }
+        }
     </style>
-
 </head>
 
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
 
-<body>
+<!-- MOBILE SCROLL TOP BAR (appears on scroll-down with animation) -->
+<div id="scroll-topbar" class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm" style="transform: translateY(-110%); transition: transform 0.28s ease;">
+    <div class="flex items-center gap-2 px-3 py-2">
+        <a href="{% url 'core:dashboard' %}"
+           class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
+            ← Back
+        </a>
+        <form method="get" class="flex-1 relative">
+            <input type="hidden" name="from_date" value="{{ from_date }}">
+            <input type="hidden" name="to_date" value="{{ to_date }}">
+            <input type="hidden" name="min_amount" value="{{ min_amount }}">
+            <input type="hidden" name="max_amount" value="{{ max_amount }}">
+            <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search customer..."
+                   class="w-full h-9 pl-3 pr-8 rounded-lg border border-slate-300 bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
+        </form>
+        <span class="shrink-0 text-xs font-bold text-brand-600">{{ showing_count }}</span>
+    </div>
+</div>
 
-
-<div class="container">
-
+<div class="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-8 pb-24">
 
     <!-- HEADER -->
-
-    <div class="header">
-
-        <h1>
-            Customer Report
-        </h1>
-
-        <p>
-            Customer-wise revenue, payments and outstanding overview
-        </p>
-
-        <p style="color: #9ca3af; font-size: 11px; margin: 4px 0 0;">
-            report v2
-        </p>
-
+    <div class="flex items-start justify-between gap-3 mb-4 md:mb-6">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Customer Report</h1>
+            <p class="text-sm text-slate-500 mt-1">Customer-wise revenue, payments and outstanding overview</p>
+            <p class="text-[11px] text-slate-400 mt-1">report v2</p>
+        </div>
+        <details class="export-menu relative md:hidden shrink-0">
+            <summary class="h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-sm flex items-center gap-2 cursor-pointer active:bg-slate-50">
+                📤 Export <span class="text-slate-400">▾</span>
+            </summary>
+            <div class="export-sheet">
+                <div class="export-sheet-title">Export Options</div>
+                <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
+                   class="export-opt">📊 Export CSV</a>
+                <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
+                   class="export-opt">📗 Export Excel</a>
+                <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" target="_blank"
+                   class="export-opt">👁️ Preview PDF</a>
+                <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
+                   class="export-opt">📥 Download PDF</a>
+                <a href="#" class="export-opt export-cancel">✕ Cancel</a>
+            </div>
+        </details>
     </div>
 
-
     {% if messages %}
-        <div style="margin-bottom: 16px;">
+        <div class="mb-4 space-y-2">
             {% for message in messages %}
-                <div style="padding: 12px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">
+                <div class="rounded-xl px-4 py-3 text-sm font-semibold bg-red-50 text-red-700 border border-red-200">
                     {{ message }}
                 </div>
             {% endfor %}
         </div>
     {% endif %}
 
-
     <!-- FILTER CARD -->
-    <div class="card" style="padding: 24px;">
-        <form method="get" class="filter-form">
-            <!-- INPUTS GRID -->
-            <div class="filter-inputs-grid">
-                <div class="filter-group">
-                    <label for="from_date">From Date</label>
-                    <input type="date" id="from_date" name="from_date" value="{{ from_date }}">
-                </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 mb-4 md:mb-5 overflow-hidden">
+        <details id="filter-details" class="filter-card">
+            <summary class="flex items-center justify-between px-4 py-3.5 cursor-pointer active:bg-slate-50 md:hidden">
+                <span class="font-semibold text-slate-700">⚙️ Filters</span>
+                <span class="text-brand-500 text-sm" id="filter-toggle">Show</span>
+            </summary>
+            <div class="px-4 pb-4 md:p-5">
+                <form method="get" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                    <div class="col-span-2 sm:col-span-1 md:col-span-1">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="from_date">From Date</label>
+                        <input type="date" id="from_date" name="from_date" value="{{ from_date }}"
+                               class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="to_date">To Date</label>
+                        <input type="date" id="to_date" name="to_date" value="{{ to_date }}"
+                               class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="min_amount">Min Amount (₹)</label>
+                        <input type="number" step="0.01" id="min_amount" name="min_amount" value="{{ min_amount }}" placeholder="Min ₹"
+                               class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="max_amount">Max Amount (₹)</label>
+                        <input type="number" step="0.01" id="max_amount" name="max_amount" value="{{ max_amount }}" placeholder="Max ₹"
+                               class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                    </div>
 
-                <div class="filter-group">
-                    <label for="to_date">To Date</label>
-                    <input type="date" id="to_date" name="to_date" value="{{ to_date }}">
-                </div>
+                    <div class="col-span-2 md:col-span-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 pt-1 md:pt-4 md:mt-1 border-t border-slate-100">
+                        <div class="grid grid-cols-2 gap-3 md:flex md:gap-2.5 w-full md:w-auto">
+                            <button type="submit"
+                                    class="h-12 md:h-10 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+                                🔍 Apply Filter
+                            </button>
+                            <a href="{% url 'core:customer_report' %}"
+                               class="h-12 md:h-10 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm flex items-center justify-center transition active:scale-[0.98]">
+                                Reset
+                            </a>
+                        </div>
 
-                <div class="filter-group">
-                    <label for="min_amount">Min Amount (₹)</label>
-                    <input type="number" step="0.01" id="min_amount" name="min_amount" value="{{ min_amount }}" placeholder="Min Outstanding ₹">
-                </div>
-
-                <div class="filter-group">
-                    <label for="max_amount">Max Amount (₹)</label>
-                    <input type="number" step="0.01" id="max_amount" name="max_amount" value="{{ max_amount }}" placeholder="Max Outstanding ₹">
-                </div>
+                        <!-- Desktop export buttons -->
+                        <div class="hidden md:flex gap-2.5">
+                            <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
+                               class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">📊 CSV</a>
+                            <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
+                               class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">📗 Excel</a>
+                            <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" target="_blank"
+                               class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">👁️ Preview PDF</a>
+                            <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
+                               class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">📥 Download PDF</a>
+                        </div>
+                    </div>
+                </form>
             </div>
-
-            <!-- ACTIONS ROW -->
-            <div class="filter-actions-row">
-                <div class="filter-btn-group">
-                    <button type="submit" class="btn btn-primary">
-                        🔍 Apply Filter
-                    </button>
-                    <a href="{% url 'core:customer_report' %}" class="btn btn-secondary">
-                        Reset
-                    </a>
-                </div>
-
-                <div class="export-btn-group">
-                    <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" class="btn btn-export">
-                        📊 Export CSV
-                    </a>
-                    <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" class="btn btn-export">
-                        📗 Export Excel
-                    </a>
-                    <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" target="_blank" class="btn btn-export">
-                        👁️ Preview PDF
-                    </a>
-                    <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" class="btn btn-export">
-                        📥 Download PDF
-                    </a>
-                </div>
-            </div>
-        </form>
+        </details>
     </div>
 
-    <!-- REPORT -->
-    <div class="card">
+    <!-- REPORT CARD -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 
-        <!-- SEARCH -->
-        <div class="search-box">
-            <form method="get">
-                <input
-                    type="hidden"
-                    name="from_date"
-                    value="{{ from_date }}"
-                >
-                <input
-                    type="hidden"
-                    name="to_date"
-                    value="{{ to_date }}"
-                >
-                <input
-                    type="hidden"
-                    name="min_amount"
-                    value="{{ min_amount }}"
-                >
-                <input
-                    type="hidden"
-                    name="max_amount"
-                    value="{{ max_amount }}"
-                >
-
-                <input
-                    type="text"
-                    name="search"
-                    value="{{ search }}"
-                    placeholder="Search by customer name or code (e.g. CUST-041 or Arnav)..."
-                >
-
+        <!-- SEARCH (desktop only; mobile uses scroll top bar) -->
+        <div class="hidden md:block p-4 md:p-5 border-b border-slate-100">
+            <form method="get" class="relative">
+                <input type="hidden" name="from_date" value="{{ from_date }}">
+                <input type="hidden" name="to_date" value="{{ to_date }}">
+                <input type="hidden" name="min_amount" value="{{ min_amount }}">
+                <input type="hidden" name="max_amount" value="{{ max_amount }}">
+                <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search customer name or code..."
+                       class="w-full h-12 md:h-11 pl-4 pr-12 rounded-xl border border-slate-300 bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
             </form>
 
             {% if is_limited %}
-                <p style="font-size: 13px; color: #6b7280; margin: 10px 0 0 2px;">
+                <p class="text-[13px] text-slate-500 mt-2.5 ml-1">
                     💡 Showing top {{ showing_count }} active customers. Use the search bar above to search across all customers.
                 </p>
             {% elif search %}
-                <p style="font-size: 13px; color: #16665a; margin: 10px 0 0 2px;">
-                    🔍 Showing {{ showing_count }} result(s) for "<strong>{{ search }}</strong>". <a href="{% url 'core:customer_report' %}" style="color: #b91c1c; margin-left: 8px; font-weight: 600; text-decoration: underline;">Clear search</a>
+                <p class="text-[13px] text-brand-600 mt-2.5 ml-1">
+                    🔍 Showing {{ showing_count }} result(s) for "<strong>{{ search }}</strong>".
+                    <a href="{% url 'core:customer_report' %}" class="text-red-600 font-semibold underline ml-1">Clear search</a>
                 </p>
             {% endif %}
-
         </div>
 
+        <!-- SCROLL + FREEZE PANEL -->
+        <div class="md:max-h-[560px] md:overflow-y-auto overscroll-contain scroll-smooth">
 
-        <!-- TABLE -->
+            <!-- FREEZE PANEL (desktop only) -->
+            <div class="hidden md:flex sticky top-0 z-10 flex-wrap items-center justify-between gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+                <div class="font-bold text-sm text-slate-800">
+                    👥 Customers <span class="text-brand-500">{{ showing_count }}</span>
+                </div>
+                <a href="{% url 'core:dashboard' %}"
+                   class="h-10 px-4 rounded-xl bg-white border border-slate-300 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition active:scale-[0.98]">
+                    ← Back to Business Dashboard
+                </a>
+            </div>
 
-        <div class="table-wrapper">
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            Customer
-                        </th>
-
-                        <th class="right">
-                            Opening Bal.
-                        </th>
-
-                        <th class="right">
-                            Trips
-                        </th>
-
-                        <th class="right">
-                            Revenue
-                        </th>
-
-                        <th class="right">
-                            Received
-                        </th>
-
-                        <th class="right">
-                            Outstanding
-                        </th>
-
-                        <th>
-    Action
-</th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody>
-
-
-                    {% for customer in customer_rows %}
-
-                        <tr>
-
-                            <td class="customer-name" data-label="Customer">
-
-                                {{ customer.customer_name }}
-
-                            </td>
-
-
-                            <td class="right" data-label="Opening Bal.">
-
-                                ₹{{ customer.opening_balance|floatformat:2 }}
-
-                            </td>
-
-
-                            <td class="right" data-label="Trips">
-
-                                {{ customer.total_trips }}
-
-                            </td>
-
-
-                            <td class="right" data-label="Revenue">
-
-                                ₹{{ customer.total_revenue|floatformat:2 }}
-
-                            </td>
-
-
-                            <td class="right" data-label="Received">
-
-                                ₹{{ customer.total_received|floatformat:2 }}
-
-                            </td>
-
-
-                            <td class="right outstanding" data-label="Outstanding">
-
-                                ₹{{ customer.total_outstanding|floatformat:2 }}
-
-                            </td>
-                        <td data-label="Action" style="white-space: nowrap;">
+            <!-- MOBILE CARDS -->
+            <div class="md:hidden p-3 space-y-3">
+                {% for customer in customer_rows %}
+                    <div class="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+                        <div class="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                            <div class="font-bold text-slate-900">{{ customer.customer_name }}</div>
+                        </div>
+                        <div class="px-4 py-2.5 space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Opening Bal.</span>
+                                <span class="font-medium">₹{{ customer.opening_balance|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Trips</span>
+                                <span class="font-medium">{{ customer.total_trips }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Revenue</span>
+                                <span class="font-medium">₹{{ customer.total_revenue|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Received</span>
+                                <span class="font-medium">₹{{ customer.total_received|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between border-t border-slate-100 pt-2">
+                                <span class="text-slate-500">Outstanding</span>
+                                <span class="font-bold text-brand-600">₹{{ customer.total_outstanding|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                        <div class="px-4 pb-3">
                             {% if customer.customer_id %}
-                                <a
-                                    href="{% url 'ledger:customer_statement' customer.customer_id %}"
-                                    class="btn btn-secondary"
-                                    style="text-decoration: none; padding: 6px 12px; font-size: 13px;"
-                                >
-                                    View Statement
+                                <a href="{% url 'ledger:customer_statement' customer.customer_id %}"
+                                   class="block w-full h-11 rounded-xl bg-brand-50 text-brand-600 font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98] active:bg-brand-100">
+                                    View Statement →
                                 </a>
                             {% else %}
-                                <span style="color: #888;">
+                                <div class="block w-full h-11 rounded-xl bg-slate-50 text-slate-400 font-semibold text-sm flex items-center justify-center">
                                     Internal Stock
-                                </span>
+                                </div>
                             {% endif %}
-                        </td>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-12 text-slate-500 text-sm rounded-xl border border-dashed border-slate-300">
+                        No customer data found.
+                    </div>
+                {% endfor %}
+            </div>
 
+            <!-- DESKTOP TABLE -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full min-w-[820px] text-sm">
+                    <thead class="sticky top-0 z-10">
+                        <tr class="bg-white border-b border-slate-200 text-left">
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Opening Bal.</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Trips</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Revenue</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Received</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Outstanding</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Action</th>
                         </tr>
-
-
-                    {% empty %}
-
-                        <tr>
-
-                            <td
-                                colspan="7"
-                                class="empty"
-                            >
-
-                                No customer data found.
-
-                            </td>
-
-                        </tr>
-
-                    {% endfor %}
-
-
-                </tbody>
-
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for customer in customer_rows %}
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="px-4 py-3 font-semibold text-slate-900">{{ customer.customer_name }}</td>
+                                <td class="px-4 py-3 text-right">₹{{ customer.opening_balance|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right">{{ customer.total_trips }}</td>
+                                <td class="px-4 py-3 text-right">₹{{ customer.total_revenue|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right">₹{{ customer.total_received|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right font-bold text-brand-600">₹{{ customer.total_outstanding|floatformat:2 }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    {% if customer.customer_id %}
+                                        <a href="{% url 'ledger:customer_statement' customer.customer_id %}"
+                                           class="inline-flex h-9 px-3.5 rounded-lg bg-brand-50 text-brand-600 font-semibold text-[13px] items-center gap-1 transition hover:bg-brand-100">
+                                            View Statement
+                                        </a>
+                                    {% else %}
+                                        <span class="text-slate-400">Internal Stock</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="px-4 py-12 text-center text-slate-500">No customer data found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
         </div>
 
-
     </div>
-
-
-    <!-- BACK -->
-
-    <div class="back-link">
-
-        <a
-            href="{% url 'core:dashboard' %}"
-            class="btn btn-secondary"
-        >
-            ← Back to Dashboard
-        </a>
-
-    </div>
-
 
 </div>
 
+<!-- MOBILE BOTTOM ACTION BAR -->
+<script>
+    // Filter toggle label
+    const filterDetails = document.getElementById('filter-details');
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterDetails && filterToggle) {
+        filterDetails.addEventListener('toggle', () => {
+            filterToggle.textContent = filterDetails.open ? 'Hide' : 'Show';
+        });
+    }
+    // Auto-open filters on desktop
+    if (filterDetails && window.innerWidth >= 768) {
+        filterDetails.open = true;
+        if (filterToggle) filterToggle.textContent = 'Hide';
+    }
+    // Close export dropdown after tapping an option (mobile)
+    document.querySelectorAll('.export-menu .export-opt').forEach(a => {
+        a.addEventListener('click', () => {
+            const d = a.closest('details');
+            if (d) d.open = false;
+        });
+    });
+    // Prevent double-submission of forms (slow network / double tap)
+    document.addEventListener('submit', function (e) {
+        const form = e.target;
+        if (form.dataset.submitting === '1') {
+            e.preventDefault();
+            return;
+        }
+        form.dataset.submitting = '1';
+        const btn = form.querySelector('button[type="submit"], input[type="submit"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-60');
+            if (btn.tagName === 'BUTTON') btn.textContent = '⏳ Saving...';
+            else btn.value = 'Saving...';
+        }
+    });
+    // Close export bottom sheet when tapping outside or pressing Cancel
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.export-cancel') || !e.target.closest('.export-menu')) {
+            document.querySelectorAll('.export-menu[open]').forEach(function (d) { d.open = false; });
+        }
+    });
+    // Scroll-reveal top bar (mobile)
+    const scrollTopbar = document.getElementById('scroll-topbar');
+    if (scrollTopbar) {
+        let lastY = window.scrollY;
+        let hideTimer = null;
+        window.addEventListener('scroll', function () {
+            const y = window.scrollY;
+            if (y > 90 && y > lastY) {
+                scrollTopbar.style.transform = 'translateY(0)';
+                clearTimeout(hideTimer);
+                hideTimer = setTimeout(function () {
+                    scrollTopbar.style.transform = 'translateY(-110%)';
+                }, 2500);
+            } else if (y < lastY && y > 90) {
+                scrollTopbar.style.transform = 'translateY(0)';
+                clearTimeout(hideTimer);
+                hideTimer = setTimeout(function () {
+                    scrollTopbar.style.transform = 'translateY(-110%)';
+                }, 1500);
+            } else if (y <= 90) {
+                scrollTopbar.style.transform = 'translateY(-110%)';
+                clearTimeout(hideTimer);
+            }
+            lastY = y;
+        });
+    }
+</script>
 
 </body>
-
 </html>

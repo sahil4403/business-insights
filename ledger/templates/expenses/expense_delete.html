@@ -1,286 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'base.html' %}
 
-<head>
+{% block title %}Delete Expense{% endblock %}
 
-    <meta charset="UTF-8">
+{% block content %}
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+<div class="max-w-md mx-auto mt-2 md:mt-10">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-8">
 
-    <title>Delete Expense</title>
+        <h1 class="text-2xl font-bold text-slate-900">Delete Expense</h1>
+        <p class="text-sm text-slate-500 mt-1 mb-5">Confirm that you want to permanently delete this expense.</p>
 
-    <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            padding: 32px;
-            font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Arial,
-                sans-serif;
-            background: #f5f7f8;
-            color: #1f2933;
-        }
-
-        .container {
-            max-width: 650px;
-            margin: 70px auto;
-        }
-
-        .card {
-            background: white;
-            border: 1px solid #e1e5e8;
-            border-radius: 10px;
-            padding: 30px;
-        }
-
-        h1 {
-            margin: 0 0 8px;
-            font-size: 26px;
-        }
-
-        .subtitle {
-            margin: 0 0 24px;
-            color: #6b7280;
-        }
-
-        .warning {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 22px;
-            color: #991b1b;
-            font-size: 14px;
-        }
-
-        .details {
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            overflow: hidden;
-        }
-
-        .row {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            padding: 13px 15px;
-            border-bottom: 1px solid #eef0f2;
-            font-size: 14px;
-        }
-
-        .row:last-child {
-            border-bottom: none;
-        }
-
-        .label {
-            color: #6b7280;
-            font-weight: 600;
-        }
-
-        .value {
-            text-align: right;
-            font-weight: 600;
-        }
-
-        .amount {
-            font-size: 18px;
-        }
-
-        .actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
-        .btn {
-            display: inline-block;
-            text-decoration: none;
-            padding: 10px 17px;
-            border-radius: 7px;
-            font-size: 14px;
-            font-weight: 600;
-            border: 1px solid #d1d5db;
-            background: white;
-            color: #1f2933;
-            cursor: pointer;
-        }
-
-        .btn.danger {
-            background: #b91c1c;
-            color: white;
-            border-color: #b91c1c;
-        }
-
-        @media (max-width: 600px) {
-
-            body {
-                padding: 20px;
-            }
-
-            .container {
-                margin: 30px auto;
-            }
-
-            .row {
-                flex-direction: column;
-                gap: 5px;
-            }
-
-            .value {
-                text-align: left;
-            }
-
-            .actions {
-                flex-direction: column-reverse;
-            }
-
-            .btn {
-                width: 100%;
-                text-align: center;
-            }
-
-        }
-
-    </style>
-
-</head>
-
-
-<body>
-
-<div class="container">
-
-    <div class="card">
-
-        <h1>
-            Delete Expense
-        </h1>
-
-        <p class="subtitle">
-            Confirm that you want to permanently delete this expense.
-        </p>
-
-
-        <div class="warning">
-
-            This action cannot be undone.
-            Please verify the expense details before continuing.
-
+        <div class="rounded-xl px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm font-medium mb-5">
+            ⚠️ This action cannot be undone. Please verify the expense details before continuing.
         </div>
 
-
-        <div class="details">
-
-
-            <div class="row">
-
-                <span class="label">
-                    Date
-                </span>
-
-                <span class="value">
-                    {{ expense.expense_date|date:"d-M-Y" }}
-                </span>
-
+        <div class="rounded-xl border border-slate-200 divide-y divide-slate-100 mb-6 overflow-hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-4 px-4 py-3">
+                <span class="text-[13px] font-semibold text-slate-500">Date</span>
+                <span class="text-sm font-semibold text-slate-900">{{ expense.expense_date|date:"d-M-Y" }}</span>
             </div>
-
-
-            <div class="row">
-
-                <span class="label">
-                    Category
-                </span>
-
-                <span class="value">
-                    {{ expense.category }}
-                </span>
-
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-4 px-4 py-3">
+                <span class="text-[13px] font-semibold text-slate-500">Category</span>
+                <span class="text-sm font-semibold text-slate-900">{{ expense.category }}</span>
             </div>
-
-
-            <div class="row">
-
-                <span class="label">
-                    Description
-                </span>
-
-                <span class="value">
-                    {{ expense.description }}
-                </span>
-
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-4 px-4 py-3">
+                <span class="text-[13px] font-semibold text-slate-500">Description</span>
+                <span class="text-sm font-semibold text-slate-900">{{ expense.description }}</span>
             </div>
-
-
-            <div class="row">
-
-                <span class="label">
-                    Payment Method
-                </span>
-
-                <span class="value">
-                    {{ expense.payment_method }}
-                </span>
-
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-4 px-4 py-3">
+                <span class="text-[13px] font-semibold text-slate-500">Payment Method</span>
+                <span class="text-sm font-semibold text-slate-900">{{ expense.payment_method }}</span>
             </div>
-
-
-            <div class="row">
-
-                <span class="label">
-                    Amount
-                </span>
-
-                <span class="value amount">
-                    ₹{{ expense.amount|floatformat:2 }}
-                </span>
-
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-4 px-4 py-3 bg-slate-50">
+                <span class="text-[13px] font-semibold text-slate-500">Amount</span>
+                <span class="text-base font-bold text-red-700">₹{{ expense.amount|floatformat:2 }}</span>
             </div>
-
-
         </div>
-
 
         <form method="post">
-
             {% csrf_token %}
-
-            <div class="actions">
-
-                <a
-                    href="{% url 'expenses:list' %}"
-                    class="btn"
-                >
-                    Cancel
-                </a>
-
-
-                <button
-                    type="submit"
-                    class="btn danger"
-                >
-                    Delete Expense
-                </button>
-
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <a href="{% url 'expenses:list' %}" class="btn btn-ghost w-full sm:w-auto">Cancel</a>
+                <button type="submit" class="btn bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto">Delete Expense</button>
             </div>
-
         </form>
 
-
     </div>
-
 </div>
 
-</body>
-
-</html>
+{% endblock %}

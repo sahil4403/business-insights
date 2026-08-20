@@ -1,264 +1,58 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Login | Business Insights</title>
-
-
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef7f5',
+                            100: '#d5ebe6',
+                            500: '#16665a',
+                            600: '#115248',
+                            700: '#0d423a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
-
-        body {
-
-            margin: 0;
-
-            min-height: 100vh;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                sans-serif;
-
-            background: #f4f6f5;
-
-            color: #1f2937;
-
-        }
-
-
-        .login-container {
-
-            width: 100%;
-
-            max-width: 420px;
-
-            padding: 24px;
-
-        }
-
-
-        .login-card {
-
-            background: white;
-
-            border: 1px solid #e5e7eb;
-
-            border-radius: 16px;
-
-            padding: 34px;
-
-            box-shadow:
-                0 10px 30px
-                rgba(0, 0, 0, 0.06);
-
-        }
-
-
-        .brand {
-
-            text-align: center;
-
-            margin-bottom: 28px;
-
-        }
-
-
-        .brand h1 {
-
-            margin: 0;
-
-            font-size: 26px;
-
-            font-weight: 700;
-
-            color: #16665a;
-
-        }
-
-
-        .brand p {
-
-            margin: 8px 0 0;
-
-            font-size: 14px;
-
-            color: #6b7280;
-
-        }
-
-
-        .form-group {
-
-            margin-bottom: 18px;
-
-        }
-
-
-        label {
-
-            display: block;
-
-            margin-bottom: 7px;
-
-            font-size: 13px;
-
-            font-weight: 600;
-
-            color: #374151;
-
-        }
-
-
-        input {
-
-            width: 100%;
-
-            padding: 12px 13px;
-
-            border: 1px solid #d1d5db;
-
-            border-radius: 9px;
-
-            font-size: 14px;
-
-            outline: none;
-
-            transition: border-color 0.2s;
-
-        }
-
-
-        input:focus {
-
-            border-color: #16665a;
-
-        }
-
-
-        .error {
-
-            margin-bottom: 18px;
-
-            padding: 11px 13px;
-
-            border-radius: 8px;
-
-            background: #fef2f2;
-
-            color: #b91c1c;
-
-            font-size: 13px;
-
-        }
-
-
-        button {
-
-            width: 100%;
-
-            border: none;
-
-            border-radius: 9px;
-
-            padding: 12px;
-
-            background: #16665a;
-
-            color: white;
-
-            font-size: 14px;
-
-            font-weight: 600;
-
-            cursor: pointer;
-
-        }
-
-
-        button:hover {
-
-            background: #125449;
-
-        }
-
-
-        .footer {
-
-            text-align: center;
-
-            margin-top: 20px;
-
-            font-size: 12px;
-
-            color: #9ca3af;
-
-        }
-
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
     </style>
-
 </head>
 
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex items-center justify-center">
 
-<body>
+<div class="w-full max-w-md px-4 sm:px-6 py-8">
 
+    <!-- BRAND HEADER -->
+    <div class="text-center mb-6 md:mb-8">
+        <div class="text-4xl mb-2">📊</div>
+        <h1 class="text-2xl md:text-3xl font-bold text-brand-600 tracking-tight">Business Insights</h1>
+        <p class="text-sm text-slate-500 mt-1.5">Sign in to continue</p>
+    </div>
 
-<div class="login-container">
-
-
-    <div class="login-card">
-
-
-        <div class="brand">
-
-            <h1>
-                Business Insights
-            </h1>
-
-            <p>
-                Sign in to continue
-            </p>
-
-        </div>
-
+    <!-- LOGIN CARD -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
 
         {% if form.errors %}
-
-            <div class="error">
-
+            <div class="mb-5 rounded-xl px-4 py-3 text-sm font-semibold bg-red-50 text-red-700 border border-red-200">
                 Invalid username or password.
-
             </div>
-
         {% endif %}
 
-
         <form method="post">
-
             {% csrf_token %}
 
-
-            <div class="form-group">
-                <label for="id_username">
+            <div class="mb-4 md:mb-5">
+                <label for="id_username" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                     Username
                 </label>
                 <input
@@ -270,14 +64,15 @@
                     autocorrect="off"
                     spellcheck="false"
                     required
+                    class="w-full h-14 px-4 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
                 >
             </div>
 
-            <div class="form-group">
-                <label for="id_password">
+            <div class="mb-6">
+                <label for="id_password" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                     Password
                 </label>
-                <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                <div class="relative flex items-center w-full">
                     <input
                         type="password"
                         name="password"
@@ -286,17 +81,18 @@
                         autocapitalize="none"
                         autocorrect="off"
                         spellcheck="false"
-                        style="padding-right: 44px; width: 100%; box-sizing: border-box;"
                         required
+                        class="w-full h-14 pl-4 pr-12 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
                     >
-                    <span onclick="togglePasswordVisibility('id_password', this)" style="position: absolute; right: 12px; cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 18px; line-height: 1; z-index: 10; padding: 4px;" title="Show/Hide Password">👁️</span>
+                    <span onclick="togglePasswordVisibility('id_password', this)" title="Show/Hide Password" class="absolute right-3.5 cursor-pointer select-none text-xl leading-none z-10 p-1.5">
+                        👁️
+                    </span>
                 </div>
             </div>
 
-            <button type="submit">
+            <button type="submit" class="w-full h-14 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-base flex items-center justify-center gap-2 transition active:scale-[0.98] shadow-sm">
                 Sign In
             </button>
-
         </form>
 
         <script>
@@ -312,25 +108,19 @@
             }
         </script>
 
-        <div style="margin-top: 20px; text-align: center; border-top: 1px dashed #e2e8f0; padding-top: 16px;">
-            <a href="/management-portal-x99/login/?next=/management-portal-x99/" style="color: #475569; font-size: 13px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+        <div class="mt-6 text-center border-t border-dashed border-slate-200 pt-5">
+            <a href="/management-portal-x99/login/?next=/management-portal-x99/" class="text-slate-600 text-[13px] font-semibold no-underline inline-flex items-center gap-1.5 active:text-brand-600">
                 ⚙️ Login as Django Administration
             </a>
         </div>
 
     </div>
 
-
-    <div class="footer">
-
+    <div class="text-center mt-6 text-xs text-slate-400">
         Business Insights Production System
-
     </div>
-
 
 </div>
 
-
 </body>
-
 </html>

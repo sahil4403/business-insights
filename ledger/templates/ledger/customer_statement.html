@@ -1,955 +1,320 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ customer.name }} - Customer Statement</title>
-
-    <style>
-        :root {
-            --primary: #16665a;
-            --primary-hover: #124e45;
-            --primary-light: #e6f4f1;
-            --success: #059669;
-            --danger: #dc2626;
-            --danger-hover: #b91c1c;
-            --warning: #d97706;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --border: #e2e8f0;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text-main);
-            padding: 30px 20px;
-            line-height: 1.5;
-        }
-
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-        }
-
-        /* HEADER SECTION */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .customer-title h1 {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text-main);
-            letter-spacing: -0.5px;
-            margin-bottom: 4px;
-        }
-
-        .customer-meta {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--text-muted);
-            font-size: 14px;
-        }
-
-        .code-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            background: #e2e8f0;
-            color: #334155;
-            border-radius: 4px;
-            font-weight: 600;
-            font-size: 12px;
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        /* BUTTONS */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 10px 16px;
-            font-size: 14px;
-            font-weight: 600;
-            border-radius: 8px;
-            text-decoration: none;
-            cursor: pointer;
-            border: 1px solid transparent;
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #ffffff;
-        }
-        .btn-primary:hover {
-            background: var(--primary-hover);
-        }
-
-        .btn-success {
-            background: var(--success);
-            color: #ffffff;
-        }
-        .btn-success:hover {
-            background: #047857;
-        }
-
-        .btn-secondary {
-            background: #ffffff;
-            color: var(--text-main);
-            border-color: var(--border);
-        }
-        .btn-secondary:hover {
-            background: #f1f5f9;
-            border-color: #cbd5e1;
-        }
-
-        .btn-danger {
-            background: #fef2f2;
-            color: var(--danger);
-            border-color: #fecaca;
-        }
-        .btn-danger:hover {
-            background: var(--danger);
-            color: #ffffff;
-        }
-
-        .btn-sm {
-            padding: 5px 10px;
-            font-size: 12px;
-            border-radius: 6px;
-        }
-
-        /* FILTER CARD */
-        .filter-card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 18px 24px;
-            border: 1px solid var(--border);
-            margin-bottom: 25px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .filter-form {
-            display: flex;
-            align-items: flex-end;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .filter-group label {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-        }
-
-        .filter-group input {
-            padding: 9px 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            background: #f8fafc;
-            color: var(--text-main);
-            outline: none;
-        }
-        .filter-group input:focus {
-            border-color: var(--primary);
-            background: #fff;
-        }
-
-        /* SUMMARY CARDS */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin-bottom: 30px;
-        }
-
-        .summary-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .summary-card .label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
-
-        .summary-card .value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--text-main);
-            letter-spacing: -0.5px;
-        }
-
-        .summary-card.outstanding .value {
-            color: var(--danger);
-        }
-
-        .summary-card.received .value {
-            color: var(--success);
-        }
-
-        /* MAIN PANEL */
-        .panel {
-            background: var(--card-bg);
-            border-radius: 14px;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
-            overflow: hidden;
-        }
-
-        .panel-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .panel-header h2 {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        /* TABLE */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-        }
-
-        th {
-            background: #f8fafc;
-            padding: 12px 18px;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border);
-        }
-
-        td {
-            padding: 14px 18px;
-            font-size: 14px;
-            border-bottom: 1px solid #f1f5f9;
-            color: var(--text-main);
-            vertical-align: middle;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover td {
-            background: #fbfcfd;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .badge-sale {
-            background: #eff6ff;
-            color: #1d4ed8;
-        }
-
-        .badge-payment {
-            background: #ecfdf5;
-            color: #047857;
-        }
-
-        .amount {
-            font-weight: 600;
-            text-align: right;
-            white-space: nowrap;
-        }
-
-        .amount.debit {
-            color: #b91c1c;
-        }
-
-        .amount.credit {
-            color: #047857;
-        }
-
-        .amount.balance {
-            color: #0f172a;
-            font-weight: 700;
-        }
-
-        .actions-cell {
-            text-align: right;
-            white-space: nowrap;
-        }
-
-        .actions-group {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-muted);
-        }
-
-        .month-group-header td {
-            background: #f8fafc;
-            font-weight: 700;
-            font-size: 13px;
-            color: #334155;
-            padding: 10px 18px;
-            letter-spacing: 0.3px;
-        }
-
-        /* MODAL STYLES */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.6);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .modal-container {
-            background: #ffffff;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 520px;
-            padding: 30px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transform: scale(0.95);
-            transition: all 0.2s ease;
-        }
-
-        .modal-overlay.active .modal-container {
-            transform: scale(1);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .modal-header h3 {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 22px;
-            cursor: pointer;
-            color: var(--text-muted);
-        }
-
-        .modal-form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 16px;
-        }
-
-        .modal-form-group label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #334155;
-        }
-
-        .modal-form-group select,
-        .modal-form-group input,
-        .modal-form-group textarea {
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-            font-family: inherit;
-        }
-
-        .modal-form-group select:focus,
-        .modal-form-group input:focus,
-        .modal-form-group textarea:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(22, 102, 90, 0.1);
-        }
-
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            margin-top: 24px;
-        }
-
-        @media (max-width: 900px) {
-            .summary-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 600px) {
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
-            .page-header {
-                flex-direction: column;
-            }
-        }
-
-        /* ===== MOBILE (cards layout) ===== */
-        @media (max-width: 640px) {
-
-            body {
-                padding: 10px;
-            }
-
-            .customer-title h1 {
-                font-size: 22px;
-            }
-
-            .customer-meta {
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-
-            .header-actions {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-                width: 100%;
-            }
-
-            .header-actions .btn {
-                width: 100%;
-                min-height: 44px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-
-            .filter-card {
-                padding: 14px;
-            }
-
-            .filter-form {
-                flex-direction: column;
-                align-items: stretch;
-                overflow: hidden;
-            }
-
-            .filter-group {
-                width: 100%;
-                min-width: 0;
-            }
-
-            .filter-group input {
-                width: 100%;
-                max-width: 100%;
-                min-width: 0;
-            }
-
-            .filter-group input[type="date"] {
-                -webkit-appearance: none;
-                appearance: none;
-                font-size: 15px;
-                padding: 6px 8px;
-                min-height: 40px;
-            }
-
-            .filter-form .btn {
-                width: 100%;
-                min-height: 44px;
-            }
-
-            .summary-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-                margin-bottom: 18px;
-            }
-
-            .summary-card {
-                padding: 10px 12px;
-                border-radius: 10px;
-            }
-
-            .summary-card .label {
-                font-size: 11px;
-                margin-bottom: 4px;
-                gap: 4px;
-                flex-wrap: wrap;
-            }
-
-            .summary-card .label button {
-                font-size: 10px !important;
-                text-align: left;
-            }
-
-            .summary-card .value {
-                font-size: 17px;
-                letter-spacing: -0.3px;
-            }
-
-            .panel-header {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 14px 16px;
-            }
-
-            .table-responsive {
-                overflow: visible;
-            }
-
-            table,
-            tbody {
-                display: block;
-                width: 100%;
-                min-width: 0 !important;
-            }
-
-            thead {
-                display: none;
-            }
-
-            tr {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 4px 10px;
-                background: #ffffff;
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                padding: 12px 14px;
-                margin-bottom: 14px;
-                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-            }
-
-            td {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                width: auto;
-                min-width: 0;
-                padding: 5px 0;
-                border: 0;
-                text-align: left;
-                font-size: 13px;
-            }
-
-            td::before {
-                content: attr(data-label);
-                font-size: 10px;
-                font-weight: 700;
-                color: var(--text-muted);
-                text-transform: uppercase;
-                letter-spacing: 0.4px;
-                flex-shrink: 0;
-            }
-
-            /* Date + Type badge: first line */
-            td[data-label="Date"] {
-                font-weight: 700;
-                font-size: 14px;
-            }
-
-            td[data-label="Date"]::before,
-            td[data-label="Type"]::before {
-                display: none;
-            }
-
-            /* Description: full width, prominent */
-            td[data-label="Description"] {
-                flex-basis: 100%;
-                order: 1;
-                font-size: 14px;
-                font-weight: 600;
-                color: #0f172a;
-                padding-top: 8px;
-            }
-
-            td[data-label="Description"]::before {
-                display: none;
-            }
-
-            /* Reference: full width, muted */
-            td[data-label="Reference"] {
-                flex-basis: 100%;
-                order: 2;
-                font-size: 12px;
-                color: var(--text-muted);
-                padding-bottom: 8px;
-            }
-
-            td[data-label="Reference"]::before {
-                display: none;
-            }
-
-            td[data-label="Reference"] a {
-                color: var(--primary);
-                font-weight: 600;
-            }
-
-            /* Amounts: 3 equal mini-columns */
-            td.amount {
-                flex: 1 1 28%;
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 2px;
-                white-space: nowrap;
-                font-size: 13px;
-                padding: 6px 0;
-            }
-
-            td.amount::before {
-                font-size: 10px;
-                letter-spacing: 0.3px;
-            }
-
-            td.amount.balance {
-                background: #f8fafc;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-
-            /* Actions: full row, separated */
-            td.actions-cell,
-            td[data-label="Actions"] {
-                flex-basis: 100%;
-                order: 4;
-                display: block;
-                padding-top: 8px;
-                border-top: 1px solid #f1f5f9;
-                margin-top: 6px;
-            }
-
-            td.actions-cell::before,
-            td[data-label="Actions"]::before {
-                display: none;
-            }
-
-            .actions-group {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-                width: 100%;
-            }
-
-            .actions-group .btn {
-                width: 100%;
-                min-height: 40px;
-            }
-
-            .empty-state {
-                display: block;
-                padding: 30px 16px;
-                flex-basis: 100%;
-            }
-
-            tr.month-group-header {
-                display: block;
-                background: #f1f5f9;
-                border: none;
-                box-shadow: none;
-                padding: 8px 14px;
-                margin: 18px 0 8px;
-                border-radius: 8px;
-            }
-
-            tr.month-group-header td {
-                display: block;
-                font-size: 12px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                color: #334155;
-                padding: 0;
-                background: none;
-            }
-
-            .modal-container {
-                padding: 18px;
-                width: 94%;
-                max-width: 94%;
-            }
-
-            .modal-footer {
-                flex-direction: column-reverse;
-            }
-
-            .modal-footer .btn {
-                width: 100%;
-                min-height: 44px;
-            }
-
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-
-    <!-- PAGE HEADER -->
-    <div class="page-header">
-        <div class="customer-title">
-            <h1>{{ customer.name }}</h1>
-            <div class="customer-meta">
-                <span class="code-badge">{{ customer.customer_code }}</span>
-                {% if customer.mobile %}
-                    <span>📞 {{ customer.mobile }}</span>
-                {% endif %}
-                <span>Customer Ledger Statement</span>
-                <span style="color: #9ca3af; font-weight: 500;">statement v3</span>
-                {% if customer.is_vendor %}
-                    <span style="padding: 2px 8px; background: #fef3c7; color: #92400e; border-radius: 4px; font-weight: 700; font-size: 12px;">🤝 Dual Role (Customer & Vendor Supplier)</span>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="header-actions">
-            <button type="button" class="btn btn-success" onclick="openPaymentModal()">
-                + Record Payment
-            </button>
-
-            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?preview=true{% if from_date %}&from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="btn btn-secondary">
-                👁️ Preview PDF
-            </a>
-
-            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}{% if from_date %}?from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}" class="btn btn-secondary">
-                📥 Download PDF
-            </a>
-
-            <a href="{% url 'core:customer_report' %}" class="btn btn-secondary">
-                ← Customer Reports
-            </a>
-
-            <a href="{% url 'core:dashboard' %}" class="btn btn-secondary">
-                Dashboard
-            </a>
-        </div>
+{% extends 'base.html' %}
+
+{% block title %}{{ customer.name }} - Customer Statement{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'core:customer_report' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
+        ← Back
+    </a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ customer.name }}</span>
+    <span class="shrink-0 text-xs font-bold text-brand-600">{{ transactions|length }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="mb-4 md:mb-6">
+    <div class="flex flex-wrap items-center gap-2 mb-1.5">
+        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Customer Ledger Statement</span>
+        <span class="text-[11px] text-slate-400 font-medium">statement v3</span>
+    </div>
+    <h1 class="text-2xl md:text-3xl font-bold text-slate-900">{{ customer.name }}</h1>
+    <div class="flex flex-wrap items-center gap-2 mt-2">
+        <span class="inline-block px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs">{{ customer.customer_code }}</span>
+        {% if customer.mobile %}
+            <span class="text-sm text-slate-500">📞 {{ customer.mobile }}</span>
+        {% endif %}
+        {% if customer.is_vendor %}
+            <span class="inline-block px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg font-bold text-xs">🤝 Dual Role (Customer & Vendor Supplier)</span>
+        {% endif %}
     </div>
 
-    {% if messages %}
-        <div style="margin-bottom: 16px;">
-            {% for message in messages %}
-                <div style="padding: 12px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; margin-bottom: 8px;">
-                    {{ message }}
+    <!-- DESKTOP HEADER ACTIONS -->
+    <div class="hidden md:flex flex-wrap items-center gap-2.5 mt-4">
+        <button type="button" class="btn btn-primary" onclick="openPaymentModal()">
+            + Record Payment
+        </button>
+        <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?preview=true{% if from_date %}&from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="btn btn-ghost">
+            👁️ Preview PDF
+        </a>
+        <a href="{% url 'ledger:customer_statement_pdf' customer.id %}{% if from_date %}?from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}" class="btn btn-ghost">
+            📥 Download PDF
+        </a>
+        <a href="{% url 'core:customer_report' %}" class="btn btn-ghost">
+            ← Customer Reports
+        </a>
+        <a href="{% url 'core:dashboard' %}" class="btn btn-ghost">
+            Dashboard
+        </a>
+        <details class="export-menu relative md:hidden">
+                <summary class="h-12 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-sm flex items-center justify-center gap-1.5 px-4 cursor-pointer active:bg-slate-50">
+                    📤 <span class="text-slate-400">▾</span>
+                </summary>
+                <div class="export-sheet">
+                    <div class="export-sheet-title">Export Options</div>
+                    <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?preview=true{% if from_date %}&from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}" target="_blank"
+                       class="export-opt">👁️ Preview PDF</a>
+                    <a href="{% url 'ledger:customer_statement_pdf' customer.id %}{% if from_date %}?from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}"
+                       class="export-opt">📥 Download PDF</a>
+                    <a href="{% url 'core:customer_report' %}"
+                       class="export-opt">← Customer Reports</a>
+                    <a href="{% url 'core:dashboard' %}"
+                       class="export-opt">Dashboard</a>
+                
+                    <a href="#" class="export-opt">✕ Cancel</a></div>
+            </details>
+</div>
+</div>
+
+<!-- FILTER CARD -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 mb-4 md:mb-5 overflow-hidden">
+    <details id="filter-details" class="filter-card">
+        <summary class="flex items-center justify-between px-4 py-3.5 cursor-pointer active:bg-slate-50 md:hidden">
+            <span class="font-semibold text-slate-700">⚙️ Filters</span>
+            <span class="text-brand-500 text-sm" id="filter-toggle">Show</span>
+        </summary>
+        <div class="px-4 pb-4 md:p-5">
+            <form method="get" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="from_date">From Date</label>
+                    <input type="date" id="from_date" name="from_date" value="{% if from_date %}{{ from_date|date:'Y-m-d' }}{% endif %}"
+                           class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="to_date">To Date</label>
+                    <input type="date" id="to_date" name="to_date" value="{% if to_date %}{{ to_date|date:'Y-m-d' }}{% endif %}"
+                           class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                </div>
+
+                <div class="col-span-2 md:col-span-2 flex flex-col md:flex-row md:items-end md:justify-end gap-3 md:gap-2.5 pt-1 md:pt-0 border-t border-slate-100 md:border-t-0 md:mt-auto">
+                    <button type="submit"
+                            class="h-12 md:h-11 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+                        🔍 Apply Filter
+                    </button>
+                    {% if from_date or to_date %}
+                        <a href="{% url 'ledger:customer_statement' customer.id %}"
+                           class="h-12 md:h-11 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm flex items-center justify-center transition active:scale-[0.98]">
+                            Clear Filter
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </details>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 md:p-5">
+        <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="text-[11px] md:text-[13px] font-semibold text-slate-500">Opening Balance</span>
+            {% if is_admin_user %}
+            <button type="button" onclick="openOpeningBalanceModal()" class="text-brand-600 text-[11px] font-semibold underline whitespace-nowrap active:text-brand-700">
+                ✏️ Edit (Admin Only)
+            </button>
+            {% endif %}
+        </div>
+        <div class="text-lg md:text-2xl font-bold text-slate-900 tracking-tight">₹{{ opening_balance|floatformat:2 }}</div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 md:p-5">
+        <div class="mb-1">
+            <span class="text-[11px] md:text-[13px] font-semibold text-slate-500">Period Sales (Debit)</span>
+        </div>
+        <div class="text-lg md:text-2xl font-bold text-slate-900 tracking-tight">₹{{ total_sales|floatformat:2 }}</div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 md:p-5">
+        <div class="mb-1">
+            <span class="text-[11px] md:text-[13px] font-semibold text-slate-500">Period Received (Credit)</span>
+        </div>
+        <div class="text-lg md:text-2xl font-bold text-emerald-600 tracking-tight">₹{{ total_received|floatformat:2 }}</div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 md:p-5 {% if closing_balance > 0 %}bg-red-50 border-red-200{% endif %}">
+        <div class="mb-1">
+            <span class="text-[11px] md:text-[13px] font-semibold {% if closing_balance > 0 %}text-red-700{% else %}text-slate-500{% endif %}">Closing Outstanding Balance</span>
+        </div>
+        <div class="text-lg md:text-2xl font-bold {% if closing_balance > 0 %}text-red-600{% else %}text-slate-900{% endif %} tracking-tight">₹{{ closing_balance|floatformat:2 }}</div>
+    </div>
+</div>
+
+<!-- TRANSACTIONS PANEL -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+
+    <div class="px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+        <h2 class="font-bold text-slate-900">📋 Transaction History</h2>
+        <span class="text-[13px] text-slate-500">
+            Showing {{ transactions|length }} transaction{{ transactions|length|pluralize }}
+        </span>
+    </div>
+
+    <!-- SCROLL + FREEZE PANEL -->
+    <div class="max-h-[65vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth">
+
+        <!-- MOBILE CARDS -->
+        <div class="md:hidden p-3 space-y-3">
+            {% for transaction in transactions %}
+                {% ifchanged transaction.date|date:"F Y" %}
+                    <div class="flex items-center gap-2 pt-3 pb-1">
+                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-500">📅 {{ transaction.date|date:"F Y" }}</span>
+                        <div class="flex-1 h-px bg-slate-200"></div>
+                    </div>
+                {% endifchanged %}
+
+                <div class="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+                    <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+                        <span class="font-bold text-sm text-slate-900">{{ transaction.date|date:"d-M-Y" }}</span>
+                        {% if transaction.type == 'SALE' %}
+                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-blue-700">Outward Sale</span>
+                        {% elif transaction.type == 'VENDOR_SUPPLY' %}
+                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-50 text-amber-700">Inward Supply</span>
+                        {% elif transaction.type == 'PAYMENT_PAID' %}
+                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-indigo-50 text-indigo-700">Payment Paid</span>
+                        {% elif transaction.type == 'CONTRA' %}
+                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-purple-50 text-purple-700">Contra Settlement</span>
+                        {% else %}
+                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700">Payment Recvd</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="px-4 py-2.5 space-y-2 text-sm">
+                        <div class="font-semibold text-slate-900 leading-snug">{{ transaction.description }}</div>
+                        <div class="text-xs text-slate-500">
+                            {% if transaction.trip_id %}
+                                <a href="{% url 'trips:detail' transaction.trip_id %}" class="text-brand-600 font-semibold no-underline">
+                                    {{ transaction.reference }} ↗
+                                </a>
+                            {% else %}
+                                {{ transaction.reference }}
+                            {% endif %}
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 pt-1">
+                            <div class="rounded-lg bg-slate-50 px-2.5 py-1.5">
+                                <div class="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-0.5">Debit</div>
+                                <div class="text-[13px] font-semibold text-red-700">
+                                    {% if transaction.debit %}₹{{ transaction.debit|floatformat:2 }}{% else %}—{% endif %}
+                                </div>
+                            </div>
+                            <div class="rounded-lg bg-slate-50 px-2.5 py-1.5">
+                                <div class="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-0.5">Credit</div>
+                                <div class="text-[13px] font-semibold text-emerald-700">
+                                    {% if transaction.credit %}₹{{ transaction.credit|floatformat:2 }}{% else %}—{% endif %}
+                                </div>
+                            </div>
+                            <div class="rounded-lg bg-slate-100 px-2.5 py-1.5">
+                                <div class="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-0.5">Balance</div>
+                                <div class="text-[13px] font-bold text-slate-900">₹{{ transaction.balance|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-4 pb-3 border-t border-slate-100 pt-3">
+                        <div class="grid grid-cols-2 gap-2">
+                            {% if transaction.type == 'SALE' %}
+                                <a href="{% url 'trips:detail' transaction.trip_id %}" class="inline-flex h-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 font-semibold text-[13px] transition active:scale-[0.98]" title="View Trip Details">
+                                    View
+                                </a>
+                                {% if transaction.outstanding > 0 %}
+                                    <a href="{% url 'trips:payment_create' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 text-white font-semibold text-[13px] transition active:scale-[0.98]" title="Record Payment for this Trip">
+                                        + Pay (₹{{ transaction.outstanding|floatformat:0 }})
+                                    </a>
+                                {% endif %}
+                            {% elif transaction.type == 'PAYMENT' %}
+                                {% if transaction.payment_id %}
+                                    <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="inline-flex h-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 font-semibold text-[13px] transition active:scale-[0.98]" title="Edit Payment">
+                                        ✏️ Edit
+                                    </a>
+                                    <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="inline-flex h-11 items-center justify-center rounded-xl bg-red-50 text-red-700 border border-red-200 font-semibold text-[13px] transition active:scale-[0.98]" title="Delete Payment">
+                                        🗑️
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="text-center py-12 text-slate-500 text-sm rounded-xl border border-dashed border-slate-300">
+                    No transactions found for this customer in the selected date range.
                 </div>
             {% endfor %}
         </div>
-    {% endif %}
 
-    <!-- DATE FILTER -->
-    <div class="filter-card">
-        <form method="get" class="filter-form">            <div class="filter-group">
-                <label for="from_date">From Date</label>
-                <input type="date" id="from_date" name="from_date" value="{% if from_date %}{{ from_date|date:'Y-m-d' }}{% endif %}">
-            </div>
-
-            <div class="filter-group">
-                <label for="to_date">To Date</label>
-                <input type="date" id="to_date" name="to_date" value="{% if to_date %}{{ to_date|date:'Y-m-d' }}{% endif %}">
-            </div>
-
-            <button type="submit" class="btn btn-primary">Apply Filter</button>
-            {% if from_date or to_date %}
-                <a href="{% url 'ledger:customer_statement' customer.id %}" class="btn btn-secondary">Clear Filter</a>
-            {% endif %}
-        </form>
-    </div>
-
-    <!-- SUMMARY CARDS -->
-    <div class="summary-grid">
-        <div class="summary-card">
-            <div class="label" style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Opening Balance</span>
-                {% if is_admin_user %}
-                <button type="button" onclick="openOpeningBalanceModal()" style="background: none; border: none; color: var(--primary); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">
-                    ✏️ Edit (Admin Only)
-                </button>
-                {% endif %}
-            </div>
-            <div class="value">₹{{ opening_balance|floatformat:2 }}</div>
-        </div>
-
-        <div class="summary-card">
-            <div class="label">Period Sales (Debit)</div>
-            <div class="value">₹{{ total_sales|floatformat:2 }}</div>
-        </div>
-
-        <div class="summary-card received">
-            <div class="label">Period Received (Credit)</div>
-            <div class="value">₹{{ total_received|floatformat:2 }}</div>
-        </div>
-
-        <div class="summary-card {% if closing_balance > 0 %}outstanding{% endif %}">
-            <div class="label">Closing Outstanding Balance</div>
-            <div class="value">₹{{ closing_balance|floatformat:2 }}</div>
-        </div>
-    </div>
-
-    <!-- TRANSACTIONS PANEL -->
-    <div class="panel">
-        <div class="panel-header">
-            <h2>Transaction History</h2>
-            <span style="font-size: 13px; color: var(--text-muted);">
-                Showing {{ transactions|length }} transaction{{ transactions|length|pluralize }}
-            </span>
-        </div>
-
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Description</th>
-                        <th>Reference</th>
-                        <th class="amount">Debit (₹)</th>
-                        <th class="amount">Credit (₹)</th>
-                        <th class="amount">Balance (₹)</th>
-                        <th class="actions-cell">Actions</th>
+        <!-- DESKTOP TABLE -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full min-w-[900px] text-sm">
+                <thead class="sticky top-0 z-10">
+                    <tr class="bg-white border-b border-slate-200 text-left">
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Type</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Description</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Reference</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Debit (₹)</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Credit (₹)</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Balance (₹)</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-slate-100">
                     {% for transaction in transactions %}
                         {% ifchanged transaction.date|date:"F Y" %}
-                            <tr class="month-group-header">
-                                <td colspan="8">📅 {{ transaction.date|date:"F Y" }}</td>
+                            <tr>
+                                <td colspan="8" class="px-4 py-2.5 bg-slate-50 text-[13px] font-bold text-slate-600">📅 {{ transaction.date|date:"F Y" }}</td>
                             </tr>
                         {% endifchanged %}
-                        <tr>
-                            <td data-label="Date">{{ transaction.date|date:"d-M-Y" }}</td>
-
-                            <td data-label="Type">
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-4 py-3 whitespace-nowrap font-semibold text-slate-900">{{ transaction.date|date:"d-M-Y" }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
                                 {% if transaction.type == 'SALE' %}
-                                    <span class="badge badge-sale">Outward Sale</span>
+                                    <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-blue-700">Outward Sale</span>
                                 {% elif transaction.type == 'VENDOR_SUPPLY' %}
-                                    <span class="badge" style="background: #fef3c7; color: #92400e;">Inward Supply</span>
+                                    <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-50 text-amber-700">Inward Supply</span>
                                 {% elif transaction.type == 'PAYMENT_PAID' %}
-                                    <span class="badge" style="background: #e0e7ff; color: #3730a3;">Payment Paid</span>
+                                    <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-indigo-50 text-indigo-700">Payment Paid</span>
                                 {% elif transaction.type == 'CONTRA' %}
-                                    <span class="badge" style="background: #f3e8ff; color: #6b21a8;">Contra Settlement</span>
+                                    <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-purple-50 text-purple-700">Contra Settlement</span>
                                 {% else %}
-                                    <span class="badge badge-payment">Payment Recvd</span>
+                                    <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700">Payment Recvd</span>
                                 {% endif %}
                             </td>
-
-                            <td data-label="Description">{{ transaction.description }}</td>
-
-                            <td data-label="Reference">
+                            <td class="px-4 py-3 text-slate-700">{{ transaction.description }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-slate-500">
                                 {% if transaction.trip_id %}
-                                    <a href="{% url 'trips:detail' transaction.trip_id %}" style="color: var(--primary); font-weight: 600; text-decoration: none;">
+                                    <a href="{% url 'trips:detail' transaction.trip_id %}" class="text-brand-600 font-semibold no-underline hover:underline">
                                         {{ transaction.reference }} ↗
                                     </a>
                                 {% else %}
                                     {{ transaction.reference }}
                                 {% endif %}
                             </td>
-
-                            <td data-label="Debit" class="amount debit">
-                                {% if transaction.debit %}
-                                    ₹{{ transaction.debit|floatformat:2 }}
-                                {% else %}
-                                    —
-                                {% endif %}
+                            <td class="px-4 py-3 text-right font-semibold text-red-700 whitespace-nowrap">
+                                {% if transaction.debit %}₹{{ transaction.debit|floatformat:2 }}{% else %}—{% endif %}
                             </td>
-
-                            <td data-label="Credit" class="amount credit">
-                                {% if transaction.credit %}
-                                    ₹{{ transaction.credit|floatformat:2 }}
-                                {% else %}
-                                    —
-                                {% endif %}
+                            <td class="px-4 py-3 text-right font-semibold text-emerald-700 whitespace-nowrap">
+                                {% if transaction.credit %}₹{{ transaction.credit|floatformat:2 }}{% else %}—{% endif %}
                             </td>
-
-                            <td data-label="Balance" class="amount balance">
-                                ₹{{ transaction.balance|floatformat:2 }}
-                            </td>
-
-                            <td data-label="Actions" class="actions-cell">
-                                <div class="actions-group">
+                            <td class="px-4 py-3 text-right font-bold text-slate-900 whitespace-nowrap">₹{{ transaction.balance|floatformat:2 }}</td>
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
+                                <div class="inline-flex items-center gap-1.5">
                                     {% if transaction.type == 'SALE' %}
-                                        <a href="{% url 'trips:detail' transaction.trip_id %}" class="btn btn-secondary btn-sm" title="View Trip Details">
+                                        <a href="{% url 'trips:detail' transaction.trip_id %}" class="inline-flex h-9 px-3.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-[13px] items-center gap-1 transition hover:bg-slate-200" title="View Trip Details">
                                             View
                                         </a>
                                         {% if transaction.outstanding > 0 %}
-                                            <a href="{% url 'trips:payment_create' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-success btn-sm" title="Record Payment for this Trip">
+                                            <a href="{% url 'trips:payment_create' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="inline-flex h-9 px-3.5 rounded-lg bg-emerald-600 text-white font-semibold text-[13px] items-center gap-1 transition hover:bg-emerald-700" title="Record Payment for this Trip">
                                                 + Pay (₹{{ transaction.outstanding|floatformat:0 }})
                                             </a>
                                         {% endif %}
                                     {% elif transaction.type == 'PAYMENT' %}
                                         {% if transaction.payment_id %}
-                                            <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm" title="Edit Payment">
+                                            <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="inline-flex h-9 px-3.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-[13px] items-center gap-1 transition hover:bg-slate-200" title="Edit Payment">
                                                 ✏️ Edit
                                             </a>
-                                            <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-danger btn-sm" title="Delete Payment">
+                                            <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="inline-flex h-9 px-3.5 rounded-lg bg-red-50 text-red-700 border border-red-200 font-semibold text-[13px] items-center gap-1 transition hover:bg-red-100" title="Delete Payment">
                                                 🗑️
                                             </a>
                                         {% endif %}
@@ -959,33 +324,34 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="8" class="empty-state">
-                                No transactions found for this customer in the selected date range.
-                            </td>
+                            <td colspan="8" class="px-4 py-12 text-center text-slate-500">No transactions found for this customer in the selected date range.</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
     </div>
 
 </div>
 
 <!-- RECORD PAYMENT MODAL -->
-<div class="modal-overlay" id="paymentModal">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h3>Record Payment for {{ customer.name }}</h3>
-            <button type="button" class="modal-close" onclick="closePaymentModal()">&times;</button>
+<div class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" id="paymentModal">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <h3 class="text-lg font-bold text-brand-600">Record Payment for {{ customer.name }}</h3>
+            <button type="button" class="w-10 h-10 flex items-center justify-center rounded-xl text-2xl text-slate-400 hover:bg-slate-100 active:bg-slate-200 transition" onclick="closePaymentModal()">&times;</button>
         </div>
 
-        <form method="post" action="{% url 'ledger:customer_record_payment' customer.id %}" id="quickPaymentForm">
+        <form method="post" action="{% url 'ledger:customer_record_payment' customer.id %}" id="quickPaymentForm" class="px-5 py-4 space-y-4">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
-            <div class="modal-form-group">
-                <label for="modal_trip">Select Pending Trip <span style="font-weight: normal; color: var(--text-muted);">(Optional)</span></label>
-                <select name="trip_id" id="modal_trip" onchange="updateTripAmount()">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="modal_trip">
+                    Select Pending Trip <span class="font-medium normal-case text-slate-400">(Optional)</span>
+                </label>
+                <select name="trip_id" id="modal_trip" onchange="updateTripAmount()" class="w-full h-12 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
                     <option value="" data-outstanding="{% if closing_balance > 0 %}{{ closing_balance }}{% endif %}">
                         ⭐ Auto-Allocate across pending trips (Oldest First / Lumpsum Payment)
                     </option>
@@ -995,24 +361,26 @@
                         </option>
                     {% endfor %}
                 </select>
-                <div id="trip_help_text" style="font-size: 12px; color: var(--primary); margin-top: 4px;">
+                <div id="trip_help_text" class="text-xs text-brand-600 mt-1.5">
                     💡 <b>Lumpsum Mode:</b> Amount will automatically clear the customer's oldest pending trips first.
                 </div>
             </div>
 
-            <div class="modal-form-group">
-                <label for="modal_amount">Payment Amount (₹) *</label>
-                <input type="number" step="0.01" min="0.01" name="amount" id="modal_amount" value="{% if closing_balance > 0 %}{{ closing_balance }}{% endif %}" placeholder="Enter amount" required>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="modal_amount">Payment Amount (₹) *</label>
+                <input type="number" step="0.01" min="0.01" name="amount" id="modal_amount" value="{% if closing_balance > 0 %}{{ closing_balance }}{% endif %}" placeholder="Enter amount" required
+                       class="w-full h-12 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
             </div>
 
-            <div class="modal-form-group">
-                <label for="modal_payment_date">Payment Date *</label>
-                <input type="date" name="payment_date" id="modal_payment_date" required>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="modal_payment_date">Payment Date *</label>
+                <input type="date" name="payment_date" id="modal_payment_date" required
+                       class="w-full h-12 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
             </div>
 
-            <div class="modal-form-group">
-                <label for="modal_payment_method">Payment Method</label>
-                <select name="payment_method" id="modal_payment_method">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="modal_payment_method">Payment Method</label>
+                <select name="payment_method" id="modal_payment_method" class="w-full h-12 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
                     <option value="">-- Select Method --</option>
                     {% for pm in payment_methods %}
                         <option value="{{ pm.id }}">{{ pm.name }}</option>
@@ -1020,19 +388,20 @@
                 </select>
             </div>
 
-            <div class="modal-form-group">
-                <label for="modal_reference">Reference Number (UTR / Cheque / Txn ID)</label>
-                <input type="text" name="reference_number" id="modal_reference" placeholder="Optional">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="modal_reference">Reference Number (UTR / Cheque / Txn ID)</label>
+                <input type="text" name="reference_number" id="modal_reference" placeholder="Optional"
+                       class="w-full h-12 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
             </div>
 
-            <div class="modal-form-group">
-                <label for="modal_notes">Notes</label>
-                <textarea name="notes" id="modal_notes" rows="2" placeholder="Optional notes (e.g. Customer lumpsum payment)"></textarea>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="modal_notes">Notes</label>
+                <textarea name="notes" id="modal_notes" rows="2" placeholder="Optional notes (e.g. Customer lumpsum payment)" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"></textarea>
             </div>
 
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">Cancel</button>
-                <button type="submit" class="btn btn-success">Save Payment</button>
+            <div class="flex flex-col-reverse md:flex-row md:justify-end gap-3 pt-1">
+                <button type="button" class="btn btn-ghost w-full md:w-auto" onclick="closePaymentModal()">Cancel</button>
+                <button type="submit" class="btn bg-emerald-600 hover:bg-emerald-700 text-white w-full md:w-auto">Save Payment</button>
             </div>
         </form>
     </div>
@@ -1040,43 +409,81 @@
 
 {% if is_admin_user %}
 <!-- EDIT OPENING BALANCE MODAL -->
-<div class="modal-overlay" id="openingBalanceModal">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h3>Update Opening Balance for {{ customer.name }}</h3>
-            <button type="button" class="modal-close" onclick="closeOpeningBalanceModal()">&times;</button>
+<div class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" id="openingBalanceModal">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <h3 class="text-lg font-bold text-brand-600">Update Opening Balance for {{ customer.name }}</h3>
+            <button type="button" class="w-10 h-10 flex items-center justify-center rounded-xl text-2xl text-slate-400 hover:bg-slate-100 active:bg-slate-200 transition" onclick="closeOpeningBalanceModal()">&times;</button>
         </div>
 
-        <form method="post" action="{% url 'ledger:update_customer_opening_balance' customer.id %}">
+        <form method="post" action="{% url 'ledger:update_customer_opening_balance' customer.id %}" class="px-5 py-4 space-y-4">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
-            <div class="modal-form-group">
-                <label for="modal_opening_balance">Last Outstanding Amount / Opening Balance (₹) *</label>
-                <input type="number" step="0.01" min="0" name="opening_balance" id="modal_opening_balance" value="{{ customer.opening_balance }}" placeholder="Enter opening balance" required>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="modal_opening_balance">Last Outstanding Amount / Opening Balance (₹) *</label>
+                <input type="number" step="0.01" min="0" name="opening_balance" id="modal_opening_balance" value="{{ customer.opening_balance }}" placeholder="Enter opening balance" required
+                       class="w-full h-12 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                <div class="text-xs text-slate-500 mt-1.5">
                     💡 This is the customer's starting balance. All future trips and payments will adjust from this amount. Admin only.
                 </div>
             </div>
 
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeOpeningBalanceModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save Balance</button>
+            <div class="flex flex-col-reverse md:flex-row md:justify-end gap-3 pt-1">
+                <button type="button" class="btn btn-ghost w-full md:w-auto" onclick="closeOpeningBalanceModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary w-full md:w-auto">Save Balance</button>
             </div>
         </form>
     </div>
 </div>
 {% endif %}
 
+<!-- spacer for mobile bottom bars -->
+<div class="h-20 md:h-0"></div>
+
+<!-- MOBILE BOTTOM ACTION BAR -->
+<div class="md:hidden fixed left-0 right-0 z-40 bg-white border-t border-slate-200 px-3 py-2.5 bottom-[calc(4.1rem+env(safe-area-inset-bottom))]">
+    <div class="grid grid-cols-1 gap-2">
+        <button type="button" onclick="openPaymentModal()" class="h-12 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+            + Record Payment
+        </button>
+        
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
 <script>
+    // Filter toggle label
+    const filterDetails = document.getElementById('filter-details');
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterDetails && filterToggle) {
+        filterDetails.addEventListener('toggle', () => {
+            filterToggle.textContent = filterDetails.open ? 'Hide' : 'Show';
+        });
+    }
+    // Auto-open filters on desktop
+    if (filterDetails && window.innerWidth >= 768) {
+        filterDetails.open = true;
+        if (filterToggle) filterToggle.textContent = 'Hide';
+    }
+    // Close export dropdown after tapping an option (mobile)
+    document.querySelectorAll('.export-menu .export-opt').forEach(a => {
+        a.addEventListener('click', () => {
+            const d = a.closest('details');
+            if (d) d.open = false;
+        });
+    });
+
     function openOpeningBalanceModal() {
         const modal = document.getElementById('openingBalanceModal');
-        if (modal) modal.classList.add('active');
+        if (modal) modal.classList.remove('hidden');
     }
 
     function closeOpeningBalanceModal() {
         const modal = document.getElementById('openingBalanceModal');
-        if (modal) modal.classList.remove('active');
+        if (modal) modal.classList.add('hidden');
     }
 
     const openingBalModal = document.getElementById('openingBalanceModal');
@@ -1093,13 +500,13 @@
         const dateInput = document.getElementById('modal_payment_date');
         if (dateInput) dateInput.value = today;
         const modal = document.getElementById('paymentModal');
-        if (modal) modal.classList.add('active');
+        if (modal) modal.classList.remove('hidden');
         updateTripAmount();
     }
 
     function closePaymentModal() {
         const modal = document.getElementById('paymentModal');
-        if (modal) modal.classList.remove('active');
+        if (modal) modal.classList.add('hidden');
     }
 
     function updateTripAmount() {
@@ -1112,7 +519,7 @@
         if (!tripSelect.value) {
             if (helpText) {
                 helpText.innerHTML = "💡 <b>Lumpsum Mode:</b> Amount will automatically clear the customer's oldest pending trips first.";
-                helpText.style.color = "var(--primary)";
+                helpText.style.color = "#115248";
             }
             if (amountInput) amountInput.removeAttribute('max');
         } else {
@@ -1138,6 +545,4 @@
         });
     }
 </script>
-
-</body>
-</html>
+{% endblock %}

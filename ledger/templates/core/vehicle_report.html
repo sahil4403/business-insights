@@ -1,875 +1,288 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Vehicle Report</title>
-
-
-    <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-
-            font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                sans-serif;
-
-            background: #f5f7f7;
-
-            color: #1f2933;
-        }
-
-
-        .container {
-
-            max-width: 1250px;
-
-            margin: 0 auto;
-
-            padding: 30px;
-        }
-
-
-        .header {
-            margin-bottom: 25px;
-        }
-
-
-        .header h1 {
-            margin: 0;
-            font-size: 30px;
-        }
-
-
-        .header p {
-            margin: 6px 0 0;
-            color: #6b7280;
-        }
-
-
-        .card {
-
-            background: white;
-
-            padding: 22px;
-
-            border-radius: 12px;
-
-            box-shadow:
-                0 2px 10px rgba(0, 0, 0, 0.05);
-
-            margin-bottom: 20px;
-        }
-
-
-        /* FILTER */
-
-        .filter-form {
-
-            display: flex;
-
-            gap: 14px;
-
-            align-items: end;
-
-            flex-wrap: wrap;
-        }
-
-
-        .filter-group {
-
-            display: flex;
-
-            flex-direction: column;
-
-            gap: 6px;
-        }
-
-
-        .filter-group label {
-
-            font-size: 12px;
-
-            font-weight: 600;
-
-            color: #6b7280;
-        }
-
-
-        .filter-group input {
-
-            padding: 10px 12px;
-
-            border: 1px solid #d1d5db;
-
-            border-radius: 8px;
-
-            font-family: inherit;
-        }
-
-
-        .btn {
-
-            display: inline-block;
-
-            padding: 10px 16px;
-
-            border-radius: 8px;
-
-            border: none;
-
-            text-decoration: none;
-
-            font-size: 14px;
-
-            font-weight: 600;
-
-            cursor: pointer;
-        }
-
-
-        .btn-primary {
-
-            background: #16665a;
-
-            color: white;
-        }
-
-
-        .btn-secondary {
-
-            background: #e5e7eb;
-
-            color: #374151;
-        }
-
-
-        /* SEARCH */
-
-        .search-box {
-
-            margin-bottom: 20px;
-        }
-
-
-        .search-box input {
-
-            width: 100%;
-
-            padding: 12px 14px;
-
-            border: 1px solid #d1d5db;
-
-            border-radius: 8px;
-
-            font-size: 14px;
-        }
-
-
-        /* TABLE */
-
-        .table-wrapper {
-
-            overflow-x: auto;
-        }
-
-
-        table {
-
-            width: 100%;
-
-            border-collapse: collapse;
-
-            min-width: 800px;
-        }
-
-
-        th {
-
-            text-align: left;
-
-            padding: 14px 12px;
-
-            font-size: 12px;
-
-            color: #6b7280;
-
-            border-bottom:
-                1px solid #e5e7eb;
-        }
-
-
-        td {
-
-            padding: 14px 12px;
-
-            border-bottom:
-                1px solid #eef0f2;
-
-            font-size: 14px;
-        }
-
-
-        th.right,
-
-        td.right {
-
-            text-align: right;
-        }
-
-
-        .vehicle-number {
-
-            font-weight: 600;
-        }
-
-
-        .outstanding {
-
-            font-weight: 700;
-        }
-
-
-        .empty {
-
-            text-align: center;
-
-            padding: 40px;
-
-            color: #6b7280;
-        }
-
-
-        .back-link {
-
-            margin-top: 20px;
-        }
-
-
-        .filter-actions,
-        .export-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        /* MOBILE */
-
-        @media (max-width: 700px) {
-
-            .container {
-
-                padding: 14px 10px;
-            }
-
-            .card {
-                padding: 14px;
-            }
-
-            .filter-form {
-
-                flex-direction: column;
-
-                align-items: stretch;
-            }
-
-            .filter-group {
-                width: 100%;
-                min-width: 0;
-            }
-
-            .filter-group input,
-            .filter-group select {
-                width: 100%;
-                max-width: 100%;
-                min-width: 0;
-            }
-
-            .filter-group input[type="date"],
-            .filter-group select {
-                -webkit-appearance: none;
-                appearance: none;
-                font-size: 15px;
-                padding: 6px 8px;
-                min-height: 40px;
-                background-color: #fff;
-            }
-
-            .filter-actions,
-            .export-actions {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-                width: 100%;
-            }
-
-            .filter-actions .btn,
-            .export-actions .btn {
-                width: 100%;
-                min-height: 44px;
-                display: inline-flex;
-                justify-content: center;
-                align-items: center;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-
-            .search-box input {
-                font-size: 16px;
-                min-height: 44px;
-            }
-
-        }
-
-        /* ===== MOBILE CARDS ===== */
-        @media (max-width: 640px) {
-
-            .table-wrapper {
-                overflow: visible;
-            }
-
-            table,
-            tbody {
-                display: block;
-                width: 100%;
-                min-width: 0 !important;
-            }
-
-            thead {
-                display: none;
-            }
-
-            tr {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 4px 10px;
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                padding: 12px 14px;
-                margin-bottom: 14px;
-                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-            }
-
-            td {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                width: auto;
-                min-width: 0;
-                padding: 5px 0;
-                border: 0;
-                text-align: left;
-                font-size: 13px;
-            }
-
-            td::before {
-                content: attr(data-label);
-                font-size: 10px;
-                font-weight: 700;
-                color: #6b7280;
-                text-transform: uppercase;
-                letter-spacing: 0.4px;
-                flex-shrink: 0;
-            }
-
-            td[data-label="Vehicle"] {
-                flex-basis: 100%;
-                font-size: 15px;
-                font-weight: 700;
-                color: #0f172a;
-                padding-bottom: 8px;
-            }
-
-            td[data-label="Vehicle"]::before {
-                display: none;
-            }
-
-            td[data-label="Trips"],
-            td[data-label="Revenue"],
-            td[data-label="Received"],
-            td[data-label="Outstanding"] {
-                flex: 1 1 40%;
-                justify-content: space-between;
-                font-size: 13px;
-            }
-
-            td[data-label="Outstanding"] {
-                font-weight: 700;
-                color: #b91c1c;
-            }
-
-            td.empty {
-                display: block;
-                padding: 30px 16px;
-                flex-basis: 100%;
-            }
-
-            td.empty::before {
-                display: none;
-            }
-
-        }
-
-    </style>
-
-</head>
-
-
-<body>
-
-
-<div class="container">
-
-
-    <!-- HEADER -->
-
-    <div class="header">
-
-        <h1>
-            Vehicle Report
-        </h1>
-
-        <p>
-            Vehicle-wise trips, revenue, payments and outstanding overview
-        </p>
-
-        <p style="color: #9ca3af; font-size: 11px; margin: 4px 0 0;">
-            vehicle v2
-        </p>
-
+{% extends 'base.html' %}
+
+{% block title %}Vehicle Report{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'core:dashboard' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
+        ← Back
+    </a>
+    <form method="get" class="flex-1 relative">
+        <input type="hidden" name="from_date" value="{{ from_date }}">
+        <input type="hidden" name="to_date" value="{{ to_date }}">
+        <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search vehicle number..."
+               class="w-full h-9 pl-3 pr-8 rounded-lg border border-slate-300 bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
+    </form>
+    <span class="shrink-0 text-xs font-bold text-brand-600">{{ vehicle_rows|length }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<div class="flex items-start justify-between gap-3 mb-4 md:mb-6">
+    <div>
+    <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Vehicle Report</h1>
+    <p class="text-sm text-slate-500 mt-1">Vehicle-wise trips, revenue, payments and outstanding overview</p>
+    <p class="text-[11px] text-slate-400 mt-1">vehicle v2</p>
+    </div>
+    <details class="export-menu relative md:hidden">
+            <summary class="h-12 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-sm flex items-center justify-center gap-2 cursor-pointer active:bg-slate-50">
+                📤 Export Options <span class="text-slate-400">▾</span>
+            </summary>
+            <div class="export-sheet">
+                <div class="export-sheet-title">Export Options</div>
+                <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+                   class="export-opt">📊 Export CSV</a>
+                <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+                   class="export-opt">📗 Export Excel</a>
+                <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}" target="_blank"
+                   class="export-opt">👁️ Preview PDF</a>
+                <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+                   class="export-opt">📥 Download PDF</a>
+            
+                <a href="#" class="export-opt export-cancel">✕ Cancel</a></div>
+        </details>
+
+<!-- FILTER CARD -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 mb-4 md:mb-5 overflow-hidden">
+    <details id="filter-details" class="filter-card">
+        <summary class="flex items-center justify-between px-4 py-3.5 cursor-pointer active:bg-slate-50 md:hidden">
+            <span class="font-semibold text-slate-700">⚙️ Filters</span>
+            <span class="text-brand-500 text-sm" id="filter-toggle">Show</span>
+        </summary>
+        <div class="px-4 pb-4 md:p-5">
+            <form method="get" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                <div class="col-span-2 sm:col-span-1 md:col-span-1">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="from_date">From Date</label>
+                    <input type="date" id="from_date" name="from_date" value="{{ from_date }}"
+                           class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="to_date">To Date</label>
+                    <input type="date" id="to_date" name="to_date" value="{{ to_date }}"
+                           class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="vehicle_type">Vehicle Type</label>
+                    <select id="vehicle_type" name="vehicle_type"
+                            class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                        <option value="">-- All Vehicle Types --</option>
+                        {% for vt in vehicle_types %}
+                            <option value="{{ vt.id }}" {% if vehicle_type == vt.id|stringformat:'s' %}selected{% endif %}>{{ vt.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="vehicle_id">Vehicle No.</label>
+                    <select id="vehicle_id" name="vehicle_id"
+                            class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                        <option value="">-- All Vehicles --</option>
+                        {% for v in vehicles %}
+                            <option value="{{ v.id }}" data-type="{{ v.vehicle_type_id }}" {% if vehicle_id == v.id|stringformat:'s' %}selected{% endif %}>{{ v.registration_number }} - {{ v.vehicle_type.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5" for="driver_id">Driver</label>
+                    <select id="driver_id" name="driver_id"
+                            class="w-full h-12 md:h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                        <option value="">-- All Drivers --</option>
+                        {% for d in drivers %}
+                            <option value="{{ d.id }}" {% if driver_id == d.id|stringformat:'s' %}selected{% endif %}>{{ d.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-span-2 md:col-span-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 pt-1 md:pt-4 md:mt-1 border-t border-slate-100">
+                    <div class="grid grid-cols-2 gap-3 md:flex md:gap-2.5 w-full md:w-auto">
+                        <button type="submit"
+                                class="h-12 md:h-10 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+                            🔍 Apply Filter
+                        </button>
+                        <a href="{% url 'core:vehicle_report' %}"
+                           class="h-12 md:h-10 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm flex items-center justify-center transition active:scale-[0.98]">
+                            Reset
+                        </a>
+                    </div>
+
+                    <!-- Desktop export buttons -->
+                    <div class="hidden md:flex gap-2.5">
+                        <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+                           class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">📊 CSV</a>
+                        <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+                           class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">📗 Excel</a>
+                        <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}" target="_blank"
+                           class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">👁️ Preview PDF</a>
+                        <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+                           class="h-10 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition">📥 Download PDF</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </details>
+</div>
+
+<!-- REPORT CARD -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+
+    <!-- SEARCH (desktop only; mobile uses scroll top bar) -->
+    <div class="hidden md:block p-4 md:p-5 border-b border-slate-100">
+        <form method="get" class="relative">
+            <input type="hidden" name="from_date" value="{{ from_date }}">
+            <input type="hidden" name="to_date" value="{{ to_date }}">
+            <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search vehicle number..."
+                   class="w-full h-12 md:h-11 pl-4 pr-12 rounded-xl border border-slate-300 bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
+        </form>
     </div>
 
+    <!-- SCROLL + FREEZE PANEL -->
+    <div class="max-h-[65vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth">
 
-    {% if messages %}
-        <div style="margin-bottom: 16px;">
-            {% for message in messages %}
-                <div style="padding: 12px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">
-                    {{ message }}
+        <!-- FREEZE PANEL (desktop only) -->
+        <div class="hidden md:flex sticky top-0 z-10 flex-wrap items-center justify-between gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+            <div class="font-bold text-sm text-slate-800">
+                🚚 Vehicles <span class="text-brand-500">{{ vehicle_rows|length }}</span>
+            </div>
+            <a href="{% url 'core:dashboard' %}"
+               class="h-10 px-4 rounded-xl bg-white border border-slate-300 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition active:scale-[0.98]">
+                ← Back to Business Dashboard
+            </a>
+        </div>
+
+        <!-- MOBILE CARDS -->
+        <div class="md:hidden p-3 space-y-3">
+            {% for vehicle in vehicle_rows %}
+                <div class="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+                    <div class="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                        <div class="font-bold text-slate-900">{{ vehicle.vehicle_number }}</div>
+                    </div>
+                    <div class="px-4 py-2.5 space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Trips</span>
+                            <span class="font-medium">{{ vehicle.total_trips }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Revenue</span>
+                            <span class="font-medium">₹{{ vehicle.total_revenue|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Received</span>
+                            <span class="font-medium">₹{{ vehicle.total_received|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex justify-between border-t border-slate-100 pt-2">
+                            <span class="text-slate-500">Outstanding</span>
+                            <span class="font-bold text-brand-600">₹{{ vehicle.total_outstanding|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="text-center py-12 text-slate-500 text-sm rounded-xl border border-dashed border-slate-300">
+                    No vehicle data found.
                 </div>
             {% endfor %}
         </div>
-    {% endif %}
 
-
-    <!-- FILTER -->
-
-    <div class="card">
-
-        <form
-            method="get"
-            class="filter-form"
-        >
-
-
-            <div class="filter-group">
-
-                <label for="from_date">
-                    From Date
-                </label>
-
-                <input
-                    type="date"
-                    id="from_date"
-                    name="from_date"
-                    value="{{ from_date }}"
-                >
-
-            </div>
-
-
-            <div class="filter-group">
-
-                <label for="to_date">
-                    To Date
-                </label>
-
-                <input
-                    type="date"
-                    id="to_date"
-                    name="to_date"
-                    value="{{ to_date }}"
-                >
-
-            </div>
-
-
-            <div class="filter-group">
-
-                <label for="vehicle_type">
-                    Vehicle Type
-                </label>
-
-                <select
-                    id="vehicle_type"
-                    name="vehicle_type"
-                >
-                    <option value="">
-                        -- All Vehicle Types --
-                    </option>
-
-                    {% for vt in vehicle_types %}
-                        <option
-                            value="{{ vt.id }}"
-                            {% if vehicle_type == vt.id|stringformat:'s' %}
-                                selected
-                            {% endif %}
-                        >
-                            {{ vt.name }}
-                        </option>
-                    {% endfor %}
-
-                </select>
-
-            </div>
-
-
-            <div class="filter-group">
-
-                <label for="vehicle_id">
-                    Vehicle No.
-                </label>
-
-                <select
-                    id="vehicle_id"
-                    name="vehicle_id"
-                >
-                    <option value="">
-                        -- All Vehicles --
-                    </option>
-
-                    {% for v in vehicles %}
-                        <option
-                            value="{{ v.id }}"
-                            data-type="{{ v.vehicle_type_id }}"
-                            {% if vehicle_id == v.id|stringformat:'s' %}
-                                selected
-                            {% endif %}
-                        >
-                            {{ v.registration_number }} - {{ v.vehicle_type.name }}
-                        </option>
-                    {% endfor %}
-
-                </select>
-
-            </div>
-
-
-            <div class="filter-group">
-
-                <label for="driver_id">
-                    Driver
-                </label>
-
-                <select
-                    id="driver_id"
-                    name="driver_id"
-                >
-                    <option value="">
-                        -- All Drivers --
-                    </option>
-
-                    {% for d in drivers %}
-                        <option
-                            value="{{ d.id }}"
-                            {% if driver_id == d.id|stringformat:'s' %}
-                                selected
-                            {% endif %}
-                        >
-                            {{ d.name }}
-                        </option>
-                    {% endfor %}
-
-                </select>
-
-            </div>
-
-
-            <div class="filter-actions">
-
-                <button
-                    type="submit"
-                    class="btn btn-primary"
-                >
-                    Apply Filter
-                </button>
-
-
-                <a
-                    href="{% url 'core:vehicle_report' %}"
-                    class="btn btn-secondary"
-                >
-                    Reset
-                </a>
-
-            </div>
-
-            <div class="export-actions">
-
-                <a
-    href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
-    class="btn btn-primary"
->
-    Export CSV
-</a>
-        <a
-    href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
-    class="btn btn-primary"
->
-    Export Excel
-</a>
-        <a
-    href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
-    target="_blank"
-    class="btn btn-primary"
->
-    👁️ Preview PDF
-</a>
-        <a
-    href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
-    class="btn btn-primary"
->
-    📥 Download PDF
-</a>
-
-            </div>
-
-        </form>
-
-    </div>
-
-
-    <!-- REPORT -->
-
-    <div class="card">
-
-
-        <!-- SEARCH -->
-
-        <div class="search-box">
-
-            <form method="get">
-
-                <input
-                    type="hidden"
-                    name="from_date"
-                    value="{{ from_date }}"
-                >
-
-                <input
-                    type="hidden"
-                    name="to_date"
-                    value="{{ to_date }}"
-                >
-
-                <input
-                    type="text"
-                    name="search"
-                    value="{{ search }}"
-                    placeholder="Search vehicle number..."
-                >
-
-            </form>
-
-        </div>
-
-
-        <!-- TABLE -->
-
-        <div class="table-wrapper">
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            Vehicle
-                        </th>
-
-                        <th class="right">
-                            Trips
-                        </th>
-
-                        <th class="right">
-                            Revenue
-                        </th>
-
-                        <th class="right">
-                            Received
-                        </th>
-
-                        <th class="right">
-                            Outstanding
-                        </th>
-
+        <!-- DESKTOP TABLE -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full min-w-[800px] text-sm">
+                <thead class="sticky top-0 z-10">
+                    <tr class="bg-white border-b border-slate-200 text-left">
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Vehicle</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Trips</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Revenue</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Received</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Outstanding</th>
                     </tr>
-
                 </thead>
-
-
-                <tbody>
-
-
+                <tbody class="divide-y divide-slate-100">
                     {% for vehicle in vehicle_rows %}
-
-                        <tr>
-
-                            <td class="vehicle-number" data-label="Vehicle">
-
-                                {{ vehicle.vehicle_number }}
-
-                            </td>
-
-
-                            <td class="right" data-label="Trips">
-
-                                {{ vehicle.total_trips }}
-
-                            </td>
-
-
-                            <td class="right" data-label="Revenue">
-
-                                ₹{{ vehicle.total_revenue|floatformat:2 }}
-
-                            </td>
-
-
-                            <td class="right" data-label="Received">
-
-                                ₹{{ vehicle.total_received|floatformat:2 }}
-
-                            </td>
-
-
-                            <td class="right outstanding" data-label="Outstanding">
-
-                                ₹{{ vehicle.total_outstanding|floatformat:2 }}
-
-                            </td>
-
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-4 py-3 font-semibold text-slate-900">{{ vehicle.vehicle_number }}</td>
+                            <td class="px-4 py-3 text-right">{{ vehicle.total_trips }}</td>
+                            <td class="px-4 py-3 text-right">₹{{ vehicle.total_revenue|floatformat:2 }}</td>
+                            <td class="px-4 py-3 text-right">₹{{ vehicle.total_received|floatformat:2 }}</td>
+                            <td class="px-4 py-3 text-right font-bold text-brand-600">₹{{ vehicle.total_outstanding|floatformat:2 }}</td>
                         </tr>
-
-
                     {% empty %}
-
                         <tr>
-
-                            <td
-                                colspan="5"
-                                class="empty"
-                            >
-
-                                No vehicle data found.
-
-                            </td>
-
+                            <td colspan="5" class="px-4 py-12 text-center text-slate-500">No vehicle data found.</td>
                         </tr>
-
                     {% endfor %}
-
-
                 </tbody>
-
             </table>
-
         </div>
 
-
     </div>
-
-
-    <!-- BACK -->
-
-    <div class="back-link">
-
-        <a
-            href="{% url 'core:dashboard' %}"
-            class="btn btn-secondary"
-        >
-            ← Back to Dashboard
-        </a>
-
-    </div>
-
 
 </div>
 
+<!-- spacer for mobile bottom bars -->
+<div class="h-20 md:h-0"></div>
 
+<!-- MOBILE BOTTOM ACTION BAR -->
+
+
+{% endblock %}
+
+{% block scripts %}
 <script>
-    (function () {
+    // Filter toggle label
+    const filterDetails = document.getElementById('filter-details');
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterDetails && filterToggle) {
+        filterDetails.addEventListener('toggle', () => {
+            filterToggle.textContent = filterDetails.open ? 'Hide' : 'Show';
+        });
+    }
+    // Auto-open filters on desktop
+    if (filterDetails && window.innerWidth >= 768) {
+        filterDetails.open = true;
+        if (filterToggle) filterToggle.textContent = 'Hide';
+    }
+    // Close export dropdown after tapping an option (mobile)
+    document.querySelectorAll('.export-menu .export-opt').forEach(a => {
+        a.addEventListener('click', () => {
+            const d = a.closest('details');
+            if (d) d.open = false;
+        });
+    });
 
+    // Vehicle type -> vehicle cascading filter
+    (function () {
         var typeSelect = document.getElementById('vehicle_type');
         var vehicleSelect = document.getElementById('vehicle_id');
         if (!typeSelect || !vehicleSelect) {
             return;
         }
-
         var allOptions = Array.prototype.slice.call(vehicleSelect.options);
-
         function filterVehicles() {
-
             var selectedType = typeSelect.value;
             var currentVehicle = vehicleSelect.value;
             var keepCurrent = false;
-
             for (var i = allOptions.length - 1; i >= 0; i--) {
-
                 var opt = allOptions[i];
                 var show = (
                     opt.value === '' ||
                     selectedType === '' ||
                     opt.getAttribute('data-type') === selectedType
                 );
-
                 if (show) {
-
                     vehicleSelect.appendChild(opt);
-
                     if (opt.value === currentVehicle) {
                         keepCurrent = true;
                     }
-
                 } else {
-
                     vehicleSelect.removeChild(opt);
-
                 }
-
             }
-
             if (!keepCurrent) {
                 vehicleSelect.value = '';
             }
-
         }
-
         filterVehicles();
-
         typeSelect.addEventListener('change', filterVehicles);
-
     })();
 </script>
-
-
-</body>
-
-</html>
+{% endblock %}

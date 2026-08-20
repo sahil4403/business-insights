@@ -1,828 +1,319 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Add Trip</title>
-
-    <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont,
-                "Segoe UI", sans-serif;
-            background: #f5f7f7;
-            color: #1f2933;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 30px;
-        }
-
-        .header {
-            margin-bottom: 25px;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-        }
-
-        .header p {
-            margin: 6px 0 0;
-            color: #6b7280;
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-
-        .section {
-            margin-bottom: 28px;
-        }
-
-        .section:last-child {
-            margin-bottom: 0;
-        }
-
-        .section h2 {
-            margin: 0 0 18px;
-            font-size: 18px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 18px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 7px;
-            color: #374151;
-        }
-
-        input,
-        select,
-        textarea {
-            width: 100%;
-            max-width: 100%;
-            padding: 11px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-            background: white;
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #16665a;
-            box-shadow: 0 0 0 2px rgba(22, 102, 90, 0.1);
-        }
-
-        select[multiple] {
-            min-height: 110px;
-        }
-
-        textarea {
-            resize: vertical;
-        }
-
-        .help-text {
-            margin-top: 5px;
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        .error {
-            margin-top: 5px;
-            font-size: 12px;
-            color: #b91c1c;
-        }
-
-        .non-field-errors {
-            margin-bottom: 20px;
-            padding: 12px 14px;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 8px;
-            color: #b91c1c;
-            font-size: 13px;
-        }
-
-        .field-error {
-            border-color: #dc2626 !important;
-            box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15) !important;
-        }
-
-        .actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 28px;
-            padding-top: 20px;
-            border-top: 1px solid #eef0f2;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 11px 18px;
-            border-radius: 8px;
-            border: none;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .btn-secondary {
-            background: #e5e7eb;
-            color: #374151;
-        }
-
-        .btn-primary {
-            background: #16665a;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #125348;
-        }
-
-        .drivers-select-box {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            padding: 10px 14px;
-            background: #f9fafb;
-        }
-
-        .drivers-select-box ul, .drivers-select-box div#id_drivers {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 8px;
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-
-        .drivers-select-box label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            color: #374151;
-            transition: all 0.15s ease;
-            margin: 0;
-        }
-
-        .drivers-select-box label:hover {
-            border-color: #10b981;
-            background: #ecfdf5;
-        }
-
-        .drivers-select-box input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-            accent-color: #10b981;
-            cursor: pointer;
-        }
-
-        @media (max-width: 768px) {
-
-            .container {
-                padding: 14px 10px;
-            }
-
-            .card {
-                padding: 18px 14px;
-                border-radius: 12px;
-            }
-
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr !important;
-                gap: 14px;
-            }
-
-            .form-group.full {
-                grid-column: 1 / -1;
-            }
-
-            .actions {
-                flex-direction: column-reverse;
-                gap: 10px;
-            }
-
-            .btn {
-                width: 100%;
-                min-height: 48px;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                text-align: center;
-                font-size: 15px;
-            }
-
-            .driver-allocation-row {
-                flex-direction: column;
-                align-items: flex-start !important;
-                gap: 6px !important;
-                padding: 8px 10px !important;
-            }
-
-            .driver-allocation-row label {
-                font-size: 13px !important;
-            }
-
-            .driver-checkbox {
-                width: 16px !important;
-                height: 16px !important;
-            }
-
-            .driver-count-wrap {
-                width: 100%;
-                justify-content: space-between;
-                gap: 6px !important;
-            }
-
-            .driver-count-wrap span {
-                font-size: 12px !important;
-            }
-
-            .driver-count-input {
-                width: 74px !important;
-                min-height: 36px !important;
-                font-size: 14px !important;
-                padding: 5px 8px !important;
-            }
-
-            #driver_allocation_box {
-                gap: 8px !important;
-                padding: 12px !important;
-            }
-
-            input, select, textarea {
-                font-size: 16px !important; /* Prevents mobile Safari auto-zoom */
-                min-height: 44px;
-            }
-
-            input[type="date"] {
-                font-size: 15px !important;
-                padding: 6px 8px;
-                min-height: 40px;
-                min-width: 0;
-                -webkit-appearance: none;
-                appearance: none;
-            }
-
-            .form-group {
-                overflow: hidden;
-            }
-
-        }
-
-        /* SEARCHABLE CUSTOMER DROPDOWN */
-        .customer-search-input {
-            width: 100%;
-            padding: 11px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 14px;
-            background: white;
-            transition: all 0.2s ease;
-        }
-        .customer-search-input:focus {
-            outline: none;
-            border-color: #16665a;
-            box-shadow: 0 0 0 2px rgba(22, 102, 90, 0.1);
-        }
-        .customer-suggestions-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%;
-            max-height: 250px;
-            overflow-y: auto;
-            background: #fff;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-            z-index: 1000;
-            margin-top: 5px;
-        }
-        .suggestion-item {
-            padding: 12px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            border-bottom: 1px solid #f1f5f9;
-            transition: background 0.2s ease;
-        }
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-        .suggestion-item:hover {
-            background: #f1f5f9;
-        }
-        .suggestion-item.add-new {
-            color: #16665a;
-            font-weight: 600;
-            background: #f0fdfa;
-        }
-        .suggestion-item.add-new:hover {
-            background: #ccfbf1;
-        }
-
-        /* MODAL STYLES */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            backdrop-filter: blur(4px);
-        }
-        .modal-content {
-            background: #fff;
-            padding: 35px;
-            border-radius: 18px;
-            width: 100%;
-            max-width: 450px;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
-            position: relative;
-            border: 1px solid #e2e8f0;
-            text-align: left;
-        }
-        .modal-content h3 {
-            margin: 0 0 20px 0;
-            font-size: 22px;
-            font-weight: 700;
-            color: #16665a;
-            letter-spacing: -0.5px;
-        }
-        .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            margin-top: 25px;
-        }
-    </style>
-
-</head>
-
-
-<body>
-
-<div class="container">
-
-
-    <div class="header">
-
-        <h1>Add Trip</h1>
-
-        <p>
-            Create a new trip and record its revenue details.
-        </p>
-
-        <p style="color: #9ca3af; font-size: 11px; margin: 4px 0 0;">
-            form v3
-        </p>
-
+{% extends 'base.html' %}
+
+{% block title %}Add Trip{% endblock %}
+
+{% block head %}
+<style>
+    #trip-form input:not([type="checkbox"]):not([type="hidden"]):not(.customer-search-input):not(.driver-count-input),
+    #trip-form select {
+        width: 100%;
+        height: 3rem;
+        padding: 0 0.75rem;
+        border-radius: 0.75rem;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        font-size: 16px;
+        color: #0f172a;
+        transition: all 0.15s ease;
+        box-sizing: border-box;
+        font-family: inherit;
+    }
+    #trip-form textarea {
+        width: 100%;
+        height: auto;
+        min-height: 6rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 0.75rem;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        font-size: 16px;
+        color: #0f172a;
+        transition: all 0.15s ease;
+        box-sizing: border-box;
+        font-family: inherit;
+        resize: vertical;
+    }
+    #trip-form input:not([type="checkbox"]):not([type="hidden"]):not(.customer-search-input):not(.driver-count-input):focus,
+    #trip-form select:focus,
+    #trip-form textarea:focus {
+        outline: none;
+        border-color: #16665a;
+        box-shadow: 0 0 0 3px rgba(22, 102, 90, 0.15);
+    }
+    #trip-form select[multiple] { height: auto; min-height: 110px; }
+    #trip-form input[type="date"] { -webkit-appearance: none; appearance: none; }
+    .error { margin-top: 5px; font-size: 13px; color: #b91c1c; }
+    .help-text { margin-top: 5px; font-size: 12px; color: #6b7280; }
+    .non-field-errors { margin-bottom: 20px; padding: 12px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; color: #b91c1c; font-size: 13px; font-weight: 600; }
+    .field-error { border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important; }
+    .customer-search-input { width: 100%; height: 3rem; padding: 0 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; background: #fff; font-size: 16px; color: #0f172a; transition: all 0.2s ease; box-sizing: border-box; font-family: inherit; }
+    .customer-search-input:focus { outline: none; border-color: #16665a; box-shadow: 0 0 0 3px rgba(22, 102, 90, 0.15); }
+    @media (min-width: 768px) {
+        #trip-form input:not([type="checkbox"]):not([type="hidden"]):not(.customer-search-input):not(.driver-count-input),
+        #trip-form select { height: 2.75rem; font-size: 0.875rem; }
+        #trip-form textarea { font-size: 0.875rem; }
+        .customer-search-input { height: 2.75rem; font-size: 0.875rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<div class="mb-5 md:mb-8">
+    <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Add Trip</h1>
+    <p class="text-sm text-slate-500 mt-1">Create a new trip and record its revenue details.</p>
+    <p class="text-[11px] text-slate-400 mt-1">form v3</p>
+</div>
+
+{% if form.errors %}
+    <div class="mb-4 rounded-xl px-4 py-3 text-sm font-semibold bg-red-50 text-red-700 border border-red-200">
+        ⚠️ Unable to create trip. Please review the errors highlighted below.
     </div>
+{% endif %}
 
-    {% if messages %}
-        <div style="margin-bottom: 20px;">
-            {% for message in messages %}
-                <div style="padding: 14px 18px; border-radius: 10px; font-weight: 600; font-size: 14px; background: {% if message.tags == 'error' %}#fef2f2; color: #b91c1c; border: 1px solid #fecaca;{% else %}#ecfdf5; color: #047857; border: 1px solid #a7f3d0;{% endif %} margin-bottom: 10px;">
-                    {% if message.tags == 'error' %}❌{% else %}✅{% endif %} {{ message }}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
+<div class="card mb-4 md:mb-5">
+    <form method="post" id="trip-form">
 
-    {% if form.errors %}
-        <div style="padding: 14px 18px; border-radius: 10px; font-weight: 600; font-size: 14px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; margin-bottom: 20px;">
-            ⚠️ Unable to create trip. Please review the errors highlighted below.
-        </div>
-    {% endif %}
+        {% csrf_token %}
 
+        {% if form.non_field_errors %}
+            <div class="non-field-errors">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
 
-    <div class="card">
+        <!-- TRIP INFORMATION -->
+        <div class="card mb-4 md:mb-5">
+            <div class="p-4 md:p-5">
+                <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4">Trip Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
 
-        <form method="post">
-
-            {% csrf_token %}
-
-
-            {% if form.non_field_errors %}
-
-                <div class="non-field-errors">
-
-                    {{ form.non_field_errors }}
-
-                </div>
-
-            {% endif %}
-
-
-            <!-- TRIP INFORMATION -->
-
-            <div class="section">
-
-                <h2>Trip Information</h2>
-
-                <div class="form-grid">
-
-
-                    <div class="form-group">
-
-                        <label for="{{ form.trip_date.id_for_label }}">
-                            Trip Date *
-                        </label>
-
+                    <div class="min-w-0">
+                        <label class="label" for="{{ form.trip_date.id_for_label }}">Trip Date *</label>
                         {{ form.trip_date }}
-
                         {% for error in form.trip_date.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
+                            <div class="error">{{ error }}</div>
                         {% endfor %}
-
                     </div>
 
-
-                    <div class="form-group">
-
-                        <label for="{{ form.trip_status.id_for_label }}">
-                            Trip Status
-                        </label>
-
+                    <div class="min-w-0">
+                        <label class="label" for="{{ form.trip_status.id_for_label }}">Trip Status</label>
                         {{ form.trip_status }}
-
                         {% for error in form.trip_status.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
+                            <div class="error">{{ error }}</div>
                         {% endfor %}
-
                     </div>
 
-
-                    <div class="form-group full">
-
-                        <label for="{{ form.transaction_type.id_for_label }}">
-                            Trip Type / Category *
-                        </label>
-
+                    <div class="min-w-0 md:col-span-2">
+                        <label class="label" for="{{ form.transaction_type.id_for_label }}">Trip Type / Category *</label>
                         {{ form.transaction_type }}
-
                         {% for error in form.transaction_type.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
+                            <div class="error">{{ error }}</div>
                         {% endfor %}
-
                     </div>
 
-
-                    <div class="form-group full" id="customer_form_group">
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <label for="{{ form.customer.id_for_label }}" style="margin: 0;">
-                                Customer *
-                            </label>
-                            <button type="button" onclick="promptSaveAndViewStatement()" style="background: none; border: none; color: #16665a; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                    <div class="min-w-0 md:col-span-2 flex flex-col" id="customer_form_group">
+                        <div class="flex items-center justify-between w-full">
+                            <label class="label" for="{{ form.customer.id_for_label }}" style="margin: 0;">Customer *</label>
+                            <button type="button" onclick="promptSaveAndViewStatement()" class="bg-transparent border-0 text-brand-500 text-[13px] font-semibold cursor-pointer flex items-center gap-1 p-2" style="color: #16665a;">
                                 📄 View Customer Statement
                             </button>
                         </div>
-
                         {{ form.customer }}
-
                         {% for error in form.customer.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
+                            <div class="error">{{ error }}</div>
                         {% endfor %}
-
                     </div>
 
-
-                    <div class="form-group full">
-
-                        <label for="{{ form.destination.id_for_label }}">
-                            Destination
-                        </label>
-
+                    <div class="min-w-0 md:col-span-2">
+                        <label class="label" for="{{ form.destination.id_for_label }}">Destination</label>
                         {{ form.destination }}
-
                         {% for error in form.destination.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
+                            <div class="error">{{ error }}</div>
                         {% endfor %}
-
                     </div>
 
                 </div>
-
             </div>
+        </div>
 
+        <!-- VEHICLE & MATERIAL -->
+        <div class="card mb-4 md:mb-5">
+            <div class="p-4 md:p-5">
+                <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4">Vehicle & Material</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
 
-            <!-- VEHICLE & MATERIAL -->
-
-            <div class="section">
-
-                <h2>Vehicle & Material</h2>
-
-                <div class="form-grid">
-
-                    <div class="form-group">
-
-                        <label for="{{ form.vehicle_category.id_for_label }}">
-                            Vehicle Type
-                        </label>
-
+                    <div class="min-w-0">
+                        <label class="label" for="{{ form.vehicle_category.id_for_label }}">Vehicle Type</label>
                         {{ form.vehicle_category }}
-
-                        <label for="{{ form.vehicle.id_for_label }}" style="margin-top: 12px;">
-                            Vehicle No. (Optional)
-                        </label>
-
+                        <label class="label mt-3" for="{{ form.vehicle.id_for_label }}">Vehicle No. (Optional)</label>
                         {{ form.vehicle }}
-
-                        <div class="help-text">
-                            Select type first — vehicle numbers of that type will show below.
-                        </div>
-                        <div class="help-text">
-                            Required if Material is selected.
-                        </div>
-
+                        <div class="help-text">Select type first — vehicle numbers of that type will show below.</div>
+                        <div class="help-text">Required if Material is selected.</div>
                         {% for error in form.vehicle.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
+                            <div class="error">{{ error }}</div>
                         {% endfor %}
-
                     </div>
 
-                    <div class="form-group" id="material_form_group">
-
-                        <label for="{{ form.material.id_for_label }}">
-                            Material
-                        </label>
-
+                    <div class="min-w-0 flex flex-col" id="material_form_group">
+                        <label class="label" for="{{ form.material.id_for_label }}">Material</label>
                         {{ form.material }}
-
                         {% for error in form.material.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
-                        {% endfor %}
-
-                    </div>
-                </div>
-            </div>
-
-            <!-- JCB HOUR METER & BHATTA READING -->
-            <div class="section" id="jcb_reading_section" style="background: #fff7ed; border: 1px solid #ffedd5; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-                <h2 style="color: #c2410c; margin-top: 0; font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                    🏗️ JCB Hour Meter & Driver Bhatta
-                </h2>
-
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="{{ form.start_reading.id_for_label }}" style="color: #9a3412;">Start Reading (Decimal)</label>
-                        {{ form.start_reading }}
-                        <div class="help-text">e.g. 1233.2</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="{{ form.end_reading.id_for_label }}" style="color: #9a3412;">End Reading (Decimal)</label>
-                        {{ form.end_reading }}
-                        <div class="help-text">e.g. 1235.1</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="{{ form.total_hours.id_for_label }}" style="color: #9a3412;">Total Hours Worked</label>
-                        {{ form.total_hours }}
-                        <div class="help-text">Auto-calculated: End - Start (e.g. 1.9 hrs)</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="{{ form.driver_bhatta.id_for_label }}" style="color: #9a3412;">Driver Bhatta (₹ Fixed)</label>
-                        {{ form.driver_bhatta }}
-                        <div class="help-text">Fixed daily bhatta (Default ₹200.00)</div>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- DRIVERS ALLOCATION -->
-            <div class="section">
-                <h2>Drivers / Labour & Trip Allocation</h2>
-                <div class="form-grid">
-                    <div class="form-group full">
-                        <div style="font-size: 13px; color: #64748b; margin-bottom: 12px;">
-                            Check the drivers assigned to this trip and enter how many trips/loads each completed (e.g., Driver 1: 3 Trips, Driver 2: 2 Trips). Driver is required when a vehicle is selected — optional only for JCB.
-                        </div>
-
-                        <!-- Hidden standard select field for Django form submit -->
-                        <div style="display: none;">
-                            {{ form.drivers }}
-                        </div>
-
-                        <div id="driver_allocation_box" style="display: flex; flex-direction: column; gap: 10px; background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                            {% for driver in form.fields.drivers.queryset %}
-                                <div class="driver-allocation-row" data-driver-name="{{ driver.name }}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: white; border-radius: 8px; border: 1px solid #cbd5e1;">
-                                    <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #1e293b; cursor: pointer; margin: 0;">
-                                        <input type="checkbox" class="driver-checkbox" data-driver-id="{{ driver.id }}" style="width: 18px; height: 18px; accent-color: #16665a; cursor: pointer;">
-                                        {{ driver.name }}
-                                    </label>
-                                    <div class="driver-count-wrap" style="display: flex; align-items: center; gap: 8px; opacity: 0.4; pointer-events: none; transition: opacity 0.2s;">
-                                        <span style="font-size: 13px; color: #64748b;">Trips Done:</span>
-                                        <input type="number" name="driver_count_{{ driver.id }}" class="driver-count-input" data-driver-id="{{ driver.id }}" min="1" step="1" placeholder="e.g. 3" style="width: 95px; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; text-align: center; font-weight: 600; color: #16665a;">
-                                        <span style="font-size: 13px; font-weight: 600; color: #475569;">Trips</span>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-
-                        {% for error in form.drivers.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
+                            <div class="error">{{ error }}</div>
                         {% endfor %}
                     </div>
+
                 </div>
             </div>
+        </div>
 
+        <!-- JCB HOUR METER & BHATTA READING -->
+        <div class="rounded-2xl border border-orange-100 bg-orange-50 p-4 md:p-5 mb-4 md:mb-5" id="jcb_reading_section">
+            <h2 class="text-orange-700 font-bold text-base flex items-center gap-2 mb-4" style="color: #c2410c;">🏗️ JCB Hour Meter & Driver Bhatta</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
 
-            <!-- QUANTITY & RATE -->
+                <div class="min-w-0">
+                    <label class="label" for="{{ form.start_reading.id_for_label }}" style="color: #9a3412;">Start Reading (Decimal)</label>
+                    {{ form.start_reading }}
+                    <div class="help-text">e.g. 1233.2</div>
+                </div>
 
-            <div class="section">
+                <div class="min-w-0">
+                    <label class="label" for="{{ form.end_reading.id_for_label }}" style="color: #9a3412;">End Reading (Decimal)</label>
+                    {{ form.end_reading }}
+                    <div class="help-text">e.g. 1235.1</div>
+                </div>
 
-                <h2>Quantity & Rate</h2>
+                <div class="min-w-0">
+                    <label class="label" for="{{ form.total_hours.id_for_label }}" style="color: #9a3412;">Total Hours Worked</label>
+                    {{ form.total_hours }}
+                    <div class="help-text">Auto-calculated: End - Start (e.g. 1.9 hrs)</div>
+                </div>
 
-                <div class="form-grid">
+                <div class="min-w-0">
+                    <label class="label" for="{{ form.driver_bhatta.id_for_label }}" style="color: #9a3412;">Driver Bhatta (₹ Fixed)</label>
+                    {{ form.driver_bhatta }}
+                    <div class="help-text">Fixed daily bhatta (Default ₹200.00)</div>
+                </div>
 
+            </div>
+        </div>
 
-                    <div class="form-group">
+        <!-- DRIVERS ALLOCATION -->
+        <div class="card mb-4 md:mb-5">
+            <div class="p-4 md:p-5">
+                <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Drivers / Labour & Trip Allocation</h2>
 
-                        <label for="{{ form.quantity.id_for_label }}">
-                            Quantity
-                        </label>
+                <p class="text-[13px] text-slate-500 mb-3">
+                    Check the drivers assigned to this trip and enter how many trips/loads each completed (e.g., Driver 1: 3 Trips, Driver 2: 2 Trips). Driver is required when a vehicle is selected — optional only for JCB.
+                </p>
 
+                <!-- Hidden standard select field for Django form submit -->
+                <div style="display: none;">
+                    {{ form.drivers }}
+                </div>
+
+                <div id="driver_allocation_box" class="flex flex-col gap-2 sm:gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    {% for driver in form.fields.drivers.queryset %}
+                        <div class="driver-allocation-row flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 rounded-xl bg-white border border-slate-200" data-driver-name="{{ driver.name }}">
+                            <label class="flex items-center gap-2.5 text-sm font-semibold text-slate-800 cursor-pointer" style="margin: 0;">
+                                <input type="checkbox" class="driver-checkbox h-5 w-5 shrink-0 cursor-pointer" data-driver-id="{{ driver.id }}" style="accent-color: #16665a;">
+                                {{ driver.name }}
+                            </label>
+                            <div class="driver-count-wrap flex items-center justify-between sm:justify-end gap-2 opacity-40 pointer-events-none transition-opacity duration-200">
+                                <span class="text-[13px] text-slate-500">Trips Done:</span>
+                                <input type="number" name="driver_count_{{ driver.id }}" class="driver-count-input w-24 h-11 sm:h-10 px-2 rounded-lg border border-slate-300 text-center text-sm font-semibold text-brand-600" data-driver-id="{{ driver.id }}" min="1" step="1" placeholder="e.g. 3">
+                                <span class="text-[13px] font-semibold text-slate-600">Trips</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {% for error in form.drivers.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- QUANTITY & RATE -->
+        <div class="card mb-4 md:mb-5">
+            <div class="p-4 md:p-5">
+                <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4">Quantity & Rate</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+
+                    <div class="min-w-0">
+                        <label class="label" for="{{ form.quantity.id_for_label }}">Quantity</label>
                         {{ form.quantity }}
-
                         {% if form.quantity.help_text %}
-                            <div class="help-text">
-                                {{ form.quantity.help_text }}
-                            </div>
+                            <div class="help-text">{{ form.quantity.help_text }}</div>
                         {% endif %}
-
                         {% for error in form.quantity.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
+                            <div class="error">{{ error }}</div>
                         {% endfor %}
-
                     </div>
 
-
-                    <div class="form-group">
-
-                        <label for="{{ form.rate.id_for_label }}">
-                            Rate
-                        </label>
-
+                    <div class="min-w-0">
+                        <label class="label" for="{{ form.rate.id_for_label }}">Rate</label>
                         {{ form.rate }}
-
-                        <div class="help-text">
-                            Can be ₹0 if rate not known yet — add it later via Edit Trip.
-                        </div>
-
+                        <div class="help-text">Can be ₹0 if rate not known yet — add it later via Edit Trip.</div>
                         {% for error in form.rate.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
+                            <div class="error">{{ error }}</div>
                         {% endfor %}
-
                     </div>
 
                 </div>
-
             </div>
+        </div>
 
+        <!-- NOTES -->
+        <div class="card mb-4 md:mb-5">
+            <div class="p-4 md:p-5">
+                <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4">Additional Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
 
-            <!-- NOTES -->
-
-            <div class="section">
-
-                <h2>Additional Information</h2>
-
-                <div class="form-grid">
-
-                    <div class="form-group full">
-
-                        <label for="{{ form.notes.id_for_label }}">
-                            Notes
-                        </label>
-
+                    <div class="min-w-0 md:col-span-2">
+                        <label class="label" for="{{ form.notes.id_for_label }}">Notes</label>
                         {{ form.notes }}
-
                         {% for error in form.notes.errors %}
-                            <div class="error">
-                                {{ error }}
-                            </div>
+                            <div class="error">{{ error }}</div>
                         {% endfor %}
-
                     </div>
 
                 </div>
-
             </div>
+        </div>
 
-
-            <!-- ACTIONS -->
-
-            <div class="actions">
-
-                <a
-    href="{% url 'core:dashboard' %}"
-    class="btn btn-secondary"
->
-    ← Business Dashboard
-</a>
-
-                <a
-                    href="{% url 'trips:list' %}"
-                    class="btn btn-secondary"
-                >
-                    Cancel
-                </a>
-
-                <button
-                    type="submit"
-                    class="btn btn-primary"
-                >
-                    Create Trip
-                </button>
-
+        <!-- ACTIONS -->
+        <div class="p-4 md:p-5 flex flex-col-reverse md:flex-row md:items-center md:justify-end gap-3">
+            <button type="submit" class="btn btn-primary w-full md:w-auto">Create Trip</button>
+            <div class="grid grid-cols-2 gap-3 md:flex">
+                <a href="{% url 'core:dashboard' %}" class="btn btn-secondary">← Business Dashboard</a>
+                <a href="{% url 'trips:list' %}" class="btn btn-secondary">Cancel</a>
             </div>
+        </div>
 
-
-        </form>
-
-    </div>
-
-
+    </form>
 </div>
 
+<!-- STATEMENT CONFIRMATION MODAL -->
+<div id="statement_confirm_modal" class="hidden fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 md:p-6 shadow-2xl border border-slate-200">
+        <h3 class="mt-0 text-brand-600 text-lg font-bold" style="color: #16665a;">⚠️ Current Trip Not Saved</h3>
+        <p class="text-slate-600 text-sm mt-3 mb-5 leading-relaxed">
+            Do you want to save this current trip entry first to include it in the updated Customer Statement?
+        </p>
+        <div class="flex flex-col gap-2.5">
+            <button type="button" onclick="confirmSaveAndViewStatement(true)" class="btn btn-primary w-full">✅ Yes, Save Current Trip & Show Statement</button>
+            <button type="button" onclick="confirmSaveAndViewStatement(false)" class="btn btn-secondary w-full">🚫 No, View Statement Without Saving Current Trip</button>
+            <button type="button" onclick="closeStatementModal()" class="bg-transparent border-0 text-slate-500 text-sm font-semibold py-2 mt-1 cursor-pointer">Cancel</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const customerSelect = document.getElementById("id_customer");
@@ -1270,27 +761,4 @@ document.addEventListener("DOMContentLoaded", function() {
     if (endInput) endInput.addEventListener("input", updateJcbCalculations);
 });
 </script>
-
-<!-- STATEMENT CONFIRMATION MODAL -->
-<div id="statement_confirm_modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
-    <div style="background: white; border-radius: 16px; width: 90%; max-width: 480px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #16665a; font-size: 18px; font-weight: 700;">⚠️ Current Trip Not Saved</h3>
-        <p style="color: #475569; font-size: 14px; margin: 12px 0 20px; line-height: 1.5;">
-            Do you want to save this current trip entry first to include it in the updated Customer Statement?
-        </p>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <button type="button" onclick="confirmSaveAndViewStatement(true)" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
-                ✅ Yes, Save Current Trip & Show Statement
-            </button>
-            <button type="button" onclick="confirmSaveAndViewStatement(false)" class="btn btn-secondary" style="width: 100%; padding: 10px; font-size: 13px; cursor: pointer;">
-                🚫 No, View Statement Without Saving Current Trip
-            </button>
-            <button type="button" onclick="closeStatementModal()" style="background: none; border: none; color: #64748b; font-size: 13px; margin-top: 4px; cursor: pointer;">
-                Cancel
-            </button>
-        </div>
-    </div>
-</div>
-
-</body>
-</html>
+{% endblock %}

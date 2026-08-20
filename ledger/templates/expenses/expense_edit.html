@@ -1,500 +1,164 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'base.html' %}
 
-<head>
+{% block title %}Edit Expense{% endblock %}
 
-    <meta charset="UTF-8">
+{% block head %}
+<style>
+    #expense-form input, #expense-form select, #expense-form textarea {
+        width: 100%; height: 3rem; padding: 0 0.75rem; border-radius: 0.75rem;
+        border: 1px solid #cbd5e1; background: #fff; font-size: 0.875rem;
+        color: #0f172a; transition: all 0.15s ease; box-sizing: border-box;
+    }
+    #expense-form input:focus, #expense-form select:focus, #expense-form textarea:focus {
+        outline: none; border-color: #16665a; box-shadow: 0 0 0 3px rgba(22,102,90,0.15);
+    }
+    #expense-form textarea { height: auto; min-height: 6rem; padding-top: 0.75rem; resize: vertical; }
+    #expense-form input[type="checkbox"] { width: 1.25rem; height: 1.25rem; accent-color: #16665a; }
+    @media (min-width: 768px) {
+        #expense-form input, #expense-form select { height: 2.75rem; }
+    }
+</style>
+{% endblock %}
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Edit Expense</title>
-
-    <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            padding: 32px;
-            font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Arial,
-                sans-serif;
-            background: #f5f7f8;
-            color: #1f2933;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: auto;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            gap: 20px;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 30px;
-        }
-
-        .header p {
-            margin: 6px 0 0;
-            color: #6b7280;
-        }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn {
-            display: inline-block;
-            text-decoration: none;
-            padding: 10px 16px;
-            border-radius: 7px;
-            font-size: 14px;
-            font-weight: 600;
-            border: 1px solid #d1d5db;
-            background: white;
-            color: #1f2933;
-            cursor: pointer;
-        }
-
-        .btn.primary {
-            background: #174f43;
-            color: white;
-            border-color: #174f43;
-        }
-
-        .card {
-            background: white;
-            border: 1px solid #e1e5e8;
-            border-radius: 10px;
-            padding: 24px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 18px;
-        }
-
-        .field {
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-        }
-
-        .field.full {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #4b5563;
-        }
-
-        input,
-        select,
-        textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 7px;
-            background: white;
-            font-family: inherit;
-            font-size: 14px;
-            color: #1f2933;
-        }
-
-        input,
-        select {
-            height: 42px;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 90px;
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #174f43;
-        }
-
-        .checkbox-field {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 0;
-        }
-
-        .checkbox-field input {
-            width: 18px;
-            height: 18px;
-        }
-
-        .checkbox-field label {
-            margin: 0;
-            cursor: pointer;
-        }
-
-        .error {
-            color: #b91c1c;
-            font-size: 12px;
-        }
-
-        .non-field-errors {
-            margin-bottom: 18px;
-            padding: 12px 14px;
-            border-radius: 7px;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-            font-size: 13px;
-        }
-
-        .form-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        @media (max-width: 700px) {
-
-            body {
-                padding: 20px;
-            }
-
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .field.full {
-                grid-column: auto;
-            }
-
-            .form-actions {
-                flex-direction: column-reverse;
-            }
-
-            .btn {
-                text-align: center;
-                width: 100%;
-            }
-
-        }
-
-    </style>
-
-</head>
-
-
-<body>
-
-<div class="container">
-
+{% block content %}
 
     <!-- HEADER -->
-
-    <div class="header">
-
+    <div class="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
         <div>
-
-            <h1>Edit Expense</h1>
-
-            <p>
-                Update the recorded business expense
-            </p>
-
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Edit Expense</h1>
+            <p class="text-sm text-slate-500 mt-1">Update the recorded business expense</p>
         </div>
-
-
-        <div class="actions">
-
-            <a
-                href="{% url 'expenses:list' %}"
-                class="btn"
-            >
-                ← Expenses
-            </a>
-
+        <div>
+            <a href="{% url 'expenses:list' %}" class="btn btn-ghost">← Expenses</a>
         </div>
-
     </div>
 
-
     <!-- FORM -->
-
-    <div class="card">
-
-        <form method="post">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-6">
+        <form method="post" id="expense-form">
 
             {% csrf_token %}
 
-
             {% if form.non_field_errors %}
-
-                <div class="non-field-errors">
+                <div class="rounded-xl px-4 py-3 text-sm font-semibold bg-red-50 text-red-700 border border-red-200 mb-4">
                     {{ form.non_field_errors }}
                 </div>
-
             {% endif %}
 
-
-            <div class="form-grid">
-
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
 
                 <!-- EXPENSE DATE -->
-
-                <div class="field">
-
-                    <label for="{{ form.expense_date.id_for_label }}">
-                        Expense Date
-                    </label>
-
+                <div>
+                    <label class="label" for="{{ form.expense_date.id_for_label }}">Expense Date</label>
                     {{ form.expense_date }}
-
                     {% for error in form.expense_date.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
-
 
                 <!-- CATEGORY -->
-
-                <div class="field">
-
-                    <label for="{{ form.category.id_for_label }}">
-                        Category
-                    </label>
-
+                <div>
+                    <label class="label" for="{{ form.category.id_for_label }}">Category</label>
                     {{ form.category }}
-
                     {% for error in form.category.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
-
 
                 <!-- DESCRIPTION -->
-
-                <div class="field full">
-
-                    <label for="{{ form.description.id_for_label }}">
-                        Description
-                    </label>
-
+                <div class="md:col-span-2">
+                    <label class="label" for="{{ form.description.id_for_label }}">Description</label>
                     {{ form.description }}
-
                     {% for error in form.description.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
-
 
                 <!-- AMOUNT -->
-
-                <div class="field">
-
-                    <label for="{{ form.amount.id_for_label }}">
-                        Amount
-                    </label>
-
+                <div>
+                    <label class="label" for="{{ form.amount.id_for_label }}">Amount</label>
                     {{ form.amount }}
-
                     {% for error in form.amount.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
-
 
                 <!-- PAYMENT METHOD -->
-
-                <div class="field">
-
-                    <label for="{{ form.payment_method.id_for_label }}">
-                        Payment Method
-                    </label>
-
+                <div>
+                    <label class="label" for="{{ form.payment_method.id_for_label }}">Payment Method</label>
                     {{ form.payment_method }}
-
                     {% for error in form.payment_method.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
-
 
                 <!-- VEHICLE -->
-
-                <div class="field">
-
-                    <label for="{{ form.vehicle.id_for_label }}">
-                        Vehicle
-                    </label>
-
+                <div>
+                    <label class="label" for="{{ form.vehicle.id_for_label }}">Vehicle</label>
                     {{ form.vehicle }}
-
                     {% for error in form.vehicle.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
-
-
-
-
 
                 <!-- LABOUR -->
-
-                <div class="field">
-
-                    <label for="{{ form.labour.id_for_label }}">
-                        Labour
-                    </label>
-
+                <div>
+                    <label class="label" for="{{ form.labour.id_for_label }}">Labour</label>
                     {{ form.labour }}
-
                     {% for error in form.labour.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
-
 
                 <!-- PAID TO -->
-
-                <div class="field">
-
-                    <label for="{{ form.paid_to.id_for_label }}">
-                        Paid To
-                    </label>
-
+                <div>
+                    <label class="label" for="{{ form.paid_to.id_for_label }}">Paid To</label>
                     {{ form.paid_to }}
-
                     {% for error in form.paid_to.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
-
 
                 <!-- REFERENCE NUMBER -->
-
-                <div class="field">
-
-                    <label for="{{ form.reference_number.id_for_label }}">
-                        Reference Number
-                    </label>
-
+                <div>
+                    <label class="label" for="{{ form.reference_number.id_for_label }}">Reference Number</label>
                     {{ form.reference_number }}
-
                     {% for error in form.reference_number.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
-
 
                 <!-- NOTES -->
-
-                <div class="field full">
-
-                    <label for="{{ form.notes.id_for_label }}">
-                        Notes
-                    </label>
-
+                <div class="md:col-span-2">
+                    <label class="label" for="{{ form.notes.id_for_label }}">Notes</label>
                     {{ form.notes }}
-
                     {% for error in form.notes.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
-
 
                 <!-- INCLUDE IN PROFIT -->
-
-                <div class="field full">
-
-                    <div class="checkbox-field">
-
+                <div class="md:col-span-2">
+                    <div class="flex items-center gap-3 py-2">
                         {{ form.include_in_profit }}
-
-                        <label
-                            for="{{ form.include_in_profit.id_for_label }}"
-                        >
+                        <label class="text-sm font-semibold text-slate-700 cursor-pointer" for="{{ form.include_in_profit.id_for_label }}">
                             Include this expense in business profit calculation
                         </label>
-
                     </div>
-
                     {% for error in form.include_in_profit.errors %}
-                        <div class="error">{{ error }}</div>
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
                     {% endfor %}
-
                 </div>
 
-
             </div>
-
 
             <!-- ACTIONS -->
-
-            <div class="form-actions">
-
-                <a
-                    href="{% url 'expenses:list' %}"
-                    class="btn"
-                >
-                    Cancel
-                </a>
-
-                <button
-                    type="submit"
-                    class="btn primary"
-                >
-                    Update Expense
-                </button>
-
+            <div class="flex flex-col-reverse md:flex-row md:justify-end gap-3 mt-6 pt-5 border-t border-slate-100">
+                <a href="{% url 'expenses:list' %}" class="btn btn-ghost w-full md:w-auto">Cancel</a>
+                <button type="submit" class="btn btn-primary w-full md:w-auto">Update Expense</button>
             </div>
 
-
         </form>
-
     </div>
 
-
-</div>
-
-</body>
-
-</html>
+{% endblock %}
