@@ -32,6 +32,109 @@ import os
 from django.conf import settings
 from core.utils import get_safe_next, get_safe_next_or_referer
 
+LUMPSUM_NOTE = 'Customer lumpsum / on-account payment'
+
+
+def _payment_transactions(period_payments, today_date):
+    """Build statement transaction dicts for payments.
+
+    Rows created by lumpsum auto-allocation share the same default note;
+    when several land on the SAME day they are merged into ONE credit line
+    showing the full amount actually received that day.
+    """
+    def pdate(p):
+        return p.payment_date or (p.trip.trip_date if p.trip else today_date)
+
+    splits = {}
+    items = []
+    for payment in period_payments:
+        if payment.trip_id and (payment.notes or '') == LUMPSUM_NOTE:
+            splits.setdefault(pdate(payment), []).append(payment)
+        else:
+            items.append((pdate(payment), 'single', payment))
+
+    for pdate_key, group in splits.items():
+        if len(group) > 1:
+            items.append((pdate_key, 'merged', group))
+        else:
+            items.append((pdate_key, 'single', group[0]))
+
+    items.sort(key=lambda item: item[0])
+
+    transactions = []
+    for p_date, kind, payload in items:
+        if kind == 'merged':
+            methods = [p.payment_method for p in payload if p.payment_method]
+            method_name = methods[0].name if methods else None
+            codes = [p.trip.trip_code for p in payload if p.trip and p.trip.trip_code]
+            shown = ', '.join(codes[:3])
+            if len(codes) > 3:
+                shown += f' +{len(codes) - 3} more'
+            total = sum((p.amount for p in payload), Decimal('0'))
+            desc = (
+                f"Lumpsum Payment - {method_name} ({len(payload)} trips: {shown})"
+                if method_name
+                else f"Lumpsum Payment Received ({len(payload)} trips: {shown})"
+            )
+            transactions.append({
+                'date': p_date,
+                'type': 'PAYMENT',
+                'description': desc,
+                'debit': Decimal('0'),
+                'credit': total,
+                'reference': codes[0] if codes else 'On-Account',
+                'destination': '',
+                'trip_id': None,
+                'payment_id': None,
+            })
+        else:
+            payment = payload
+            p_ref = payment.trip.trip_code if payment.trip else (payment.reference_number or "On-Account")
+            p_trip_id = payment.trip.id if payment.trip else None
+            p_destination = (payment.trip.destination or '') if payment.trip else ''
+            p_type = getattr(payment, 'payment_type', 'RECEIVED')
+
+            if p_type == 'PAID':
+                p_desc = f"💸 Payment Paid - {payment.payment_method.name}" if payment.payment_method else "Payment Paid to Party"
+                transactions.append({
+                    'date': p_date,
+                    'type': 'PAYMENT_PAID',
+                    'description': p_desc,
+                    'debit': payment.amount,
+                    'credit': Decimal('0'),
+                    'reference': p_ref,
+                    'destination': p_destination,
+                    'trip_id': p_trip_id,
+                    'payment_id': payment.id,
+                })
+            elif p_type == 'CONTRA':
+                transactions.append({
+                    'date': p_date,
+                    'type': 'CONTRA',
+                    'description': "🔄 Contra Settlement (Mutual Netting Off)",
+                    'debit': Decimal('0'),
+                    'credit': payment.amount,
+                    'reference': p_ref,
+                    'destination': p_destination,
+                    'trip_id': p_trip_id,
+                    'payment_id': payment.id,
+                })
+            else:
+                p_desc = f"Payment - {payment.payment_method.name}" if payment.payment_method else "Payment Received"
+                transactions.append({
+                    'date': p_date,
+                    'type': 'PAYMENT',
+                    'description': p_desc,
+                    'debit': Decimal('0'),
+                    'credit': payment.amount,
+                    'reference': p_ref,
+                    'destination': p_destination,
+                    'trip_id': p_trip_id,
+                    'payment_id': payment.id,
+                })
+    return transactions
+
+
 @login_required(login_url='/login/')
 def customer_statement(request, customer_id):
     customer = get_object_or_404(
@@ -178,58 +281,10 @@ def customer_statement(request, customer_id):
             })
 
     # Payments (Received vs Paid vs Contra)
-    today_date = timezone.localdate()
-    for payment in period_payments:
-        p_date = payment.payment_date or (payment.trip.trip_date if payment.trip else today_date)
-        p_ref = payment.trip.trip_code if payment.trip else (payment.reference_number or "On-Account")
-        p_trip_id = payment.trip.id if payment.trip else None
-        p_destination = (
-            (payment.trip.destination or '') if payment.trip else ''
-        )
-        p_type = getattr(payment, 'payment_type', 'RECEIVED')
-
-        if p_type == 'PAID':
-            # Money paid by us to vendor/customer -> Debit (+)
-            p_desc = f"💸 Payment Paid - {payment.payment_method.name}" if payment.payment_method else "Payment Paid to Party"
-            transactions.append({
-                'date': p_date,
-                'type': 'PAYMENT_PAID',
-                'description': p_desc,
-                'debit': payment.amount,
-                'credit': Decimal('0'),
-                'reference': p_ref,
-                'destination': p_destination,
-                'trip_id': p_trip_id,
-                'payment_id': payment.id,
-            })
-        elif p_type == 'CONTRA':
-            # Contra Settlement / Netting off -> Credit (-)
-            p_desc = "🔄 Contra Settlement (Mutual Netting Off)"
-            transactions.append({
-                'date': p_date,
-                'type': 'CONTRA',
-                'description': p_desc,
-                'debit': Decimal('0'),
-                'credit': payment.amount,
-                'reference': p_ref,
-                'destination': p_destination,
-                'trip_id': p_trip_id,
-                'payment_id': payment.id,
-            })
-        else:
-            # Payment received from customer -> Credit (-)
-            p_desc = f"Payment - {payment.payment_method.name}" if payment.payment_method else "Payment Received"
-            transactions.append({
-                'date': p_date,
-                'type': 'PAYMENT',
-                'description': p_desc,
-                'debit': Decimal('0'),
-                'credit': payment.amount,
-                'reference': p_ref,
-                'destination': p_destination,
-                'trip_id': p_trip_id,
-                'payment_id': payment.id,
-            })
+    # Same-day lumpsum auto-allocation rows merge into ONE full-amount credit line.
+    transactions.extend(
+        _payment_transactions(period_payments, timezone.localdate())
+    )
 
     transactions.sort(
         key=lambda transaction: (
@@ -402,23 +457,9 @@ def customer_statement_pdf(request, customer_id):
             'reference': trip.trip_code,
         })
 
-    today_date = timezone.localdate()
-    for payment in period_payments:
-        p_date = payment.payment_date or (payment.trip.trip_date if payment.trip else today_date)
-        p_ref = payment.trip.trip_code if payment.trip else (payment.reference_number or "On-Account")
-
-        transactions.append({
-            'date': p_date,
-            'type': 'PAYMENT',
-            'description': (
-                f"Payment - {payment.payment_method.name}"
-                if payment.payment_method
-                else "Payment"
-            ),
-            'debit': Decimal('0'),
-            'credit': payment.amount,
-            'reference': p_ref,
-        })
+    transactions.extend(
+        _payment_transactions(period_payments, timezone.localdate())
+    )
 
     transactions.sort(
         key=lambda transaction: (
