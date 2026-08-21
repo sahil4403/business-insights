@@ -461,6 +461,7 @@ def customer_statement_pdf(request, customer_id):
             'debit': trip.total_amount,
             'credit': Decimal('0'),
             'reference': trip.trip_code,
+            'destination': trip.destination or '',
         })
 
     transactions.extend(
@@ -627,7 +628,7 @@ def customer_statement_pdf(request, customer_id):
             Paragraph('<b>Date</b>', header_style),
             Paragraph('<b>Type</b>', header_center),
             Paragraph('<b>Description</b>', header_style),
-            Paragraph('<b>Reference</b>', header_style),
+            Paragraph('<b>Destination</b>', header_style),
             Paragraph('<b>Debit (₹)</b>', header_right),
             Paragraph('<b>Credit (₹)</b>', header_right),
             Paragraph('<b>Balance (₹)</b>', header_right),
@@ -639,7 +640,7 @@ def customer_statement_pdf(request, customer_id):
             Paragraph(transaction['date'].strftime('%d-%b-%Y'), body_style),
             Paragraph(str(transaction['type']), center_body),
             Paragraph(str(transaction['description']), body_style),
-            Paragraph(str(transaction['reference']), body_style),
+            Paragraph(str(transaction.get('destination') or '—'), body_style),
             Paragraph(f"₹{transaction['debit']:,.2f}" if transaction['debit'] else '-', right_body),
             Paragraph(f"₹{transaction['credit']:,.2f}" if transaction['credit'] else '-', right_body),
             Paragraph(f"₹{transaction['balance']:,.2f}", right_body),
