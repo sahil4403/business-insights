@@ -5,9 +5,12 @@
 
 {% block scrolltopbar %}
 <div class="flex items-center gap-2 px-3 py-2">
-    <span class="shrink-0 font-bold text-sm text-slate-800">📊 Shri Raj Construction & Building Materials Supplier</span>
+    <span class="shrink-0 h-7 w-7 rounded-lg bg-brand-500 text-white flex items-center justify-center">
+        <svg class="icon-sm" aria-hidden="true"><use href="#i-logo"/></svg>
+    </span>
+    <span class="shrink-0 font-bold text-sm text-slate-800">Shri Raj Construction</span>
     {% if trips %}
-        <span class="ml-auto shrink-0 text-xs font-bold text-brand-600">{{ trips|length }} trips</span>
+        <span class="ml-auto shrink-0 text-xs font-bold num text-brand-600">{{ trips|length }} trips</span>
     {% endif %}
 </div>
 {% endblock %}
@@ -15,31 +18,35 @@
 {% block content %}
 
 <!-- HEADER -->
-<div class="mb-5 md:mb-8">
+<div class="mb-5 md:mb-8" data-animate>
     <div class="flex items-start justify-between gap-3">
         <div>
-            <h1 class="text-xl md:text-2xl font-bold text-slate-900">Shri Raj Construction & Building Materials Supplier</h1>
+            <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">Shri Raj Construction & Building Materials Supplier</h1>
             <p class="text-sm text-slate-500 mt-1">
                 Welcome back! Let's manage today's transport logistics operations.
             </p>
             {% if is_admin_user %}
-                <span class="app-chip active-soft mt-2 !h-7 !px-2.5 text-[11px]">👑 Admin Mode</span>
+                <span class="app-chip active-soft mt-2 !h-7 !px-2.5 text-[11px]"><svg class="icon-sm" aria-hidden="true"><use href="#i-shield"/></svg>Admin Mode</span>
             {% else %}
-                <span class="app-chip mt-2 !h-7 !px-2.5 text-[11px] bg-sky-50 text-sky-700">👤 Staff Mode</span>
+                <span class="app-chip mt-2 !h-7 !px-2.5 text-[11px] bg-sky-50 !text-sky-700"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Staff Mode</span>
             {% endif %}
         </div>
         <div class="md:hidden flex items-center gap-2 shrink-0">
-            <a href="{% url 'core:admin_reauth' %}" target="_blank" class="h-10 w-10 rounded-xl bg-slate-800 text-white flex items-center justify-center text-base transition active:scale-[0.98]" title="Admin">⚙️</a>
-            <a href="{% url 'authentication:logout' %}" class="h-10 w-10 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center text-base transition active:scale-[0.98]" title="Logout">🚪</a>
+            <a href="{% url 'core:admin_reauth' %}" target="_blank" class="h-10 w-10 rounded-xl bg-slate-800 text-white flex items-center justify-center transition active:scale-[0.95]" title="Admin" aria-label="Admin">
+                <svg class="icon-md" aria-hidden="true"><use href="#i-settings"/></svg>
+            </a>
+            <a href="{% url 'authentication:logout' %}" class="h-10 w-10 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center transition active:scale-[0.95]" title="Logout" aria-label="Logout">
+                <svg class="icon-md" aria-hidden="true"><use href="#i-logout"/></svg>
+            </a>
         </div>
     </div>
 </div>
 
 <!-- FILTERS -->
-<div class="mb-5 md:mb-6">
+<div class="mb-5 md:mb-6" data-animate>
     <div class="app-tabs">
         <a href="{% url 'core:dashboard' %}" class="app-chip {% if not from_date and not to_date %}active{% endif %}">All</a>
-        <button type="button" id="filter-toggle" class="app-chip {% if from_date or to_date %}active{% endif %}">📅 Date range</button>
+        <button type="button" id="filter-toggle" class="app-chip {% if from_date or to_date %}active{% endif %}"><svg class="icon-sm" aria-hidden="true"><use href="#i-calendar"/></svg>Date range</button>
     </div>
     <div id="filter-panel" class="app-surface mt-3 p-4 {% if not from_date and not to_date %}hidden{% endif %}">
         <form method="get" id="dashboard_filter_form" class="grid grid-cols-2 gap-3 items-end">
@@ -62,40 +69,40 @@
 {% if from_date or to_date %}
 
     <!-- KPI STATS -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 md:mb-6">
-        <div class="app-stat">
-            <span class="lbl">Total Revenue</span>
-            <span class="val text-brand-600">₹{{ total_revenue|floatformat:0 }}</span>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 md:mb-6" data-animate>
+        <div class="app-stat" style="--stat-accent:#16665a;">
+            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-trend-up"/></svg>Total Revenue</span>
+            <span class="val num text-brand-600">₹{{ total_revenue|floatformat:0 }}</span>
             <span class="block text-[11px] text-slate-500 mt-1">{{ total_trips }} trips</span>
         </div>
 
-        <div class="app-stat">
-            <span class="lbl">Total Received</span>
-            <span class="val text-emerald-600">₹{{ total_received|floatformat:0 }}</span>
-            <span class="block text-[11px] text-emerald-600 mt-1">{{ collection_percentage|floatformat:0 }}% recvd</span>
+        <div class="app-stat" style="--stat-accent:#059669;">
+            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-check-circle"/></svg>Total Received</span>
+            <span class="val num text-emerald-600">₹{{ total_received|floatformat:0 }}</span>
+            <span class="block text-[11px] font-semibold text-emerald-600 mt-1">{{ collection_percentage|floatformat:0 }}% recvd</span>
         </div>
 
-        <div class="app-stat">
-            <span class="lbl">Total Pending</span>
-            <span class="val text-red-600">₹{{ total_outstanding|floatformat:0 }}</span>
-            <span class="block text-[11px] text-red-600 mt-1">{{ outstanding_percentage|floatformat:0 }}% pend</span>
+        <div class="app-stat" style="--stat-accent:#dc2626;">
+            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-clock"/></svg>Total Pending</span>
+            <span class="val num text-red-600">₹{{ total_outstanding|floatformat:0 }}</span>
+            <span class="block text-[11px] font-semibold text-red-600 mt-1">{{ outstanding_percentage|floatformat:0 }}% pend</span>
         </div>
 
-        <div class="app-stat">
-            <span class="lbl">Net Profit</span>
-            <span class="val {% if net_profit >= 0 %}text-brand-600{% else %}text-red-600{% endif %}">₹{{ net_profit|floatformat:0 }}</span>
+        <div class="app-stat" style="--stat-accent:#d97706;">
+            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-chart"/></svg>Net Profit</span>
+            <span class="val num {% if net_profit >= 0 %}text-brand-600{% else %}text-red-600{% endif %}">₹{{ net_profit|floatformat:0 }}</span>
             <span class="block text-[11px] text-slate-500 mt-1">Margin: {{ profit_margin|floatformat:0 }}%</span>
         </div>
     </div>
 
     <!-- TRIP RECORDS -->
-    <div class="app-surface overflow-hidden mb-6 md:mb-8">
+    <div class="app-surface overflow-hidden mb-6 md:mb-8" data-animate>
 
         <div class="flex items-center justify-between gap-3 px-4 md:px-5 py-4 border-b border-slate-100">
             <h3 class="font-bold text-slate-900 text-base">
-                Trip Records <span class="text-xs font-medium text-slate-500">(Filtered Results)</span>
+                Trip Records <span class="text-xs font-medium text-slate-400">(Filtered Results)</span>
             </h3>
-            <a href="{% url 'trips:create' %}" class="btn btn-primary whitespace-nowrap hidden md:inline-flex">+ Add New Trip</a>
+            <a href="{% url 'trips:create' %}" class="btn btn-primary whitespace-nowrap hidden md:inline-flex"><svg class="icon-sm" aria-hidden="true"><use href="#i-plus"/></svg>Add New Trip</a>
         </div>
 
         <!-- SCROLL + FREEZE PANEL -->
@@ -109,12 +116,12 @@
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center justify-between gap-2">
                                     <span class="text-[14px] font-bold text-slate-900 truncate">
-                                        {% if trip.transaction_type == 'INTERNAL_STOCK' %}📦 Internal Stock{% else %}{{ trip.customer.name }}{% endif %}
+                                        {% if trip.transaction_type == 'INTERNAL_STOCK' %}<span class="inline-flex items-center gap-1 text-slate-500"><svg class="icon-sm" aria-hidden="true"><use href="#i-box"/></svg>Internal Stock</span>{% else %}{{ trip.customer.name }}{% endif %}
                                     </span>
                                     <span class="shrink-0 text-[11px] font-semibold text-slate-400">{{ trip.trip_date|date:"d-M-Y" }}</span>
                                 </div>
-                                <div class="text-[12px] text-slate-500 mt-1 truncate">
-                                    {% if trip.destination %}📍 {{ trip.destination }}{% endif %}{% if trip.vehicle %}{% if trip.destination %} · {% endif %}{{ trip.vehicle|vehicle_icon }} {{ trip.vehicle.registration_number }}{% endif %}
+                                <div class="flex items-center gap-1 text-[12px] text-slate-500 mt-1 truncate">
+                                    {% if trip.destination %}<svg class="icon-sm text-slate-400" aria-hidden="true"><use href="#i-map-pin"/></svg>{{ trip.destination }}{% endif %}{% if trip.vehicle %}{% if trip.destination %} · {% endif %}<span class="inline-flex items-center gap-0.5">{{ trip.vehicle.registration_number }}</span>{% endif %}
                                 </div>
                                 <div class="text-[12px] text-slate-600 mt-0.5 truncate">
                                     {{ trip.material.name }} · Qty {{ trip.quantity }}
@@ -128,21 +135,22 @@
                                 {% endif %}
                             </div>
                             <div class="shrink-0 text-right">
-                                <div class="text-[15px] font-bold text-brand-600 whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</div>
+                                <div class="text-[15px] font-bold num text-brand-600 whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</div>
                                 {% if trip.transaction_type == 'INTERNAL_STOCK' %}
-                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">Internal</span>
+                                    <span class="badge badge-neutral mt-1">Internal</span>
                                 {% elif trip.calculated_payment_status == 'PAID' %}
-                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
+                                    <span class="badge badge-paid mt-1">Paid</span>
                                 {% elif trip.calculated_payment_status == 'PARTIAL' %}
-                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700">Partial</span>
+                                    <span class="badge badge-partial mt-1">Partial</span>
                                 {% else %}
-                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700">Unpaid</span>
+                                    <span class="badge badge-unpaid mt-1">Unpaid</span>
                                 {% endif %}
                             </div>
                         </div>
                     </a>
                 {% empty %}
-                    <div class="text-center py-10 text-slate-500 text-sm">
+                    <div class="text-center py-12 text-slate-400 text-sm">
+                        <svg class="icon-xl mx-auto mb-2 text-slate-300" aria-hidden="true"><use href="#i-truck"/></svg>
                         No trip records found for this date range.
                     </div>
                 {% endfor %}
@@ -152,7 +160,7 @@
             <div class="hidden md:block overflow-x-auto">
                 <table class="w-full min-w-[820px] text-sm">
                     <thead class="sticky top-0 z-10">
-                        <tr class="bg-slate-50 border-b border-slate-200 text-left">
+                        <tr class="bg-slate-50/95 backdrop-blur border-b border-slate-200 text-left">
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer</th>
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Destination</th>
@@ -167,16 +175,16 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         {% for trip in trips %}
-                            <tr class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-3 whitespace-nowrap">{{ trip.trip_date|date:"d-M-Y" }}</td>
-                                <td class="px-4 py-3">
+                            <tr class="hover:bg-brand-50/40 transition-colors">
+                                <td class="px-4 py-3 whitespace-nowrap text-slate-600">{{ trip.trip_date|date:"d-M-Y" }}</td>
+                                <td class="px-4 py-3 font-semibold text-slate-800">
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
-                                        <span class="text-slate-500 italic">📦 Internal Stock</span>
+                                        <span class="inline-flex items-center gap-1 text-slate-400 italic"><svg class="icon-sm" aria-hidden="true"><use href="#i-box"/></svg>Internal Stock</span>
                                     {% else %}
                                         {{ trip.customer.name }}
                                     {% endif %}
                                 </td>
-                                <td class="px-4 py-3">{{ trip.destination|default:"—" }}</td>
+                                <td class="px-4 py-3 text-slate-600">{{ trip.destination|default:"—" }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     {% if trip.vehicle %}
                                         <span class="font-semibold text-slate-700">{{ trip.vehicle.registration_number }}</span>
@@ -194,27 +202,30 @@
                                         <span class="text-slate-400 italic">—</span>
                                     {% endif %}
                                 </td>
-                                <td class="px-4 py-3">{{ trip.material.name }}</td>
-                                <td class="px-4 py-3">{{ trip.quantity }}</td>
-                                <td class="px-4 py-3 text-right font-semibold">₹{{ trip.total_amount|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-slate-600">{{ trip.material.name }}</td>
+                                <td class="px-4 py-3 num text-slate-600">{{ trip.quantity }}</td>
+                                <td class="px-4 py-3 text-right font-bold num text-slate-900">₹{{ trip.total_amount|floatformat:2 }}</td>
                                 <td class="px-4 py-3">
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                         <span class="text-slate-400 italic">—</span>
                                     {% elif trip.calculated_payment_status == 'PAID' %}
-                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
+                                        <span class="badge badge-paid">Paid</span>
                                     {% elif trip.calculated_payment_status == 'PARTIAL' %}
-                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
+                                        <span class="badge badge-partial">Partial</span>
                                     {% else %}
-                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Unpaid</span>
+                                        <span class="badge badge-unpaid">Unpaid</span>
                                     {% endif %}
                                 </td>
                                 <td class="px-4 py-3">
-                                    <a href="{% url 'trips:detail' trip.id %}" class="inline-flex h-9 px-3.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-[13px] items-center transition hover:bg-slate-200 no-underline">View</a>
+                                    <a href="{% url 'trips:detail' trip.id %}" class="inline-flex h-9 px-3.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-[13px] items-center transition hover:bg-brand-100 hover:text-brand-700 no-underline">View</a>
                                 </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="9" class="px-4 py-12 text-center text-slate-500">No trip records found for this date range.</td>
+                                <td colspan="10" class="px-4 py-14 text-center text-slate-400">
+                                    <svg class="icon-xl mx-auto mb-2 text-slate-300" aria-hidden="true"><use href="#i-truck"/></svg>
+                                    No trip records found for this date range.
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -227,35 +238,48 @@
 {% endif %}
 
 <!-- QUICK-ACCESS CATEGORIES -->
-<div class="mb-4 md:mb-6 {% if from_date or to_date %}hidden md:block{% endif %}">
+<div class="mb-4 md:mb-6 {% if from_date or to_date %}hidden md:block{% endif %}" data-animate>
     <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Quick Access by Transport Type</h2>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <a href="{% url 'trips:list' %}?category=hyva{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface p-4 flex flex-col items-center text-center no-underline hover:border-brand-500 transition active:scale-[0.98]">
-            <div class="text-3xl md:text-4xl mb-2">🚛</div>
+
+        <a href="{% url 'trips:list' %}?category=hyva{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group">
+            <div class="h-14 w-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
+                <svg class="icon-xl" aria-hidden="true"><use href="#i-hyva"/></svg>
+            </div>
             <div class="font-bold text-slate-900">Hyva</div>
             <div class="text-[11px] text-slate-500 mt-1 leading-snug">View and manage Hyva dumper truck trips</div>
         </a>
-        <a href="{% url 'trips:list' %}?category=tractor{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface p-4 flex flex-col items-center text-center no-underline hover:border-brand-500 transition active:scale-[0.98]">
-            <div class="text-3xl md:text-4xl mb-2">🚜</div>
+
+        <a href="{% url 'trips:list' %}?category=tractor{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group">
+            <div class="h-14 w-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
+                <svg class="icon-xl" aria-hidden="true"><use href="#i-tractor"/></svg>
+            </div>
             <div class="font-bold text-slate-900">Tractor</div>
             <div class="text-[11px] text-slate-500 mt-1 leading-snug">View and manage Tractor-trolley trips</div>
         </a>
-        <a href="{% url 'trips:list' %}?category=halfton{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface p-4 flex flex-col items-center text-center no-underline hover:border-brand-500 transition active:scale-[0.98]">
-            <div class="text-3xl md:text-4xl mb-2">🚚</div>
+
+        <a href="{% url 'trips:list' %}?category=halfton{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group">
+            <div class="h-14 w-14 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
+                <svg class="icon-xl" aria-hidden="true"><use href="#i-truck"/></svg>
+            </div>
             <div class="font-bold text-slate-900">Halfton</div>
             <div class="text-[11px] text-slate-500 mt-1 leading-snug">View and manage Half-ton light truck trips</div>
         </a>
-        <a href="{% url 'trips:list' %}?category=jcb{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface p-4 flex flex-col items-center text-center no-underline hover:border-brand-500 transition active:scale-[0.98]">
-            <div class="text-3xl md:text-4xl mb-2">🏗️</div>
+
+        <a href="{% url 'trips:list' %}?category=jcb{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group">
+            <div class="h-14 w-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
+                <svg class="icon-xl" aria-hidden="true"><use href="#i-jcb"/></svg>
+            </div>
             <div class="font-bold text-slate-900">JCB</div>
-            <div class="text-[11px] text-slate-500 mt-1 leading-snug">View and manage JCB excavator & earthmover operations</div>
+            <div class="text-[11px] text-slate-500 mt-1 leading-snug">View and manage JCB excavator operations</div>
         </a>
+
     </div>
 </div>
 
 <!-- FAB: ADD NEW TRIP (mobile) -->
 <a href="{% url 'trips:create' %}" class="app-fab md:hidden no-underline">
-    <span>+</span> New Trip
+    <svg class="icon-md" aria-hidden="true"><use href="#i-plus"/></svg> New Trip
 </a>
 
 {% endblock %}
