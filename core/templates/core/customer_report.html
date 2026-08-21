@@ -225,6 +225,30 @@
         </details>
     </div>
 
+    <!-- MOBILE SEARCH: always visible -->
+    <div class="md:hidden mb-4">
+        <form method="get" class="relative">
+            <input type="hidden" name="from_date" value="{{ from_date }}">
+            <input type="hidden" name="to_date" value="{{ to_date }}">
+            <input type="hidden" name="min_amount" value="{{ min_amount }}">
+            <input type="hidden" name="max_amount" value="{{ max_amount }}">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+            <input type="search" name="search" value="{{ search }}"
+                   placeholder="Search customer name or code..."
+                   enterkeyhint="search" autocomplete="off"
+                   class="w-full h-11 pl-10 pr-10 rounded-full border border-[#eef1f6] bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
+            {% if search %}
+                <a href="{% url 'core:customer_report' %}"
+                   class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 text-slate-500 text-[12px] font-bold flex items-center justify-center">✕</a>
+            {% endif %}
+        </form>
+        {% if search %}
+            <p class="text-[12px] text-brand-600 mt-1.5 ml-1">
+                {{ showing_count }} result(s) for "{{ search }}"
+            </p>
+        {% endif %}
+    </div>
+
     <!-- REPORT CARD -->
     <div class="app-surface overflow-hidden">
 
