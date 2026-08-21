@@ -249,6 +249,14 @@
         {% endif %}
     </div>
 
+    <!-- A-Z NAME FILTER -->
+    <div class="app-tabs mb-3 md:mb-4" id="alphabet-filter">
+        {% for item in alphabet_links %}
+            <a href="{{ item.url }}"
+               class="app-chip sm shrink-0 {% if item.active %}active{% endif %}">{{ item.label }}</a>
+        {% endfor %}
+    </div>
+
     <!-- REPORT CARD -->
     <div class="app-surface overflow-hidden">
 
