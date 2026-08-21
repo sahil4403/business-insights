@@ -1070,7 +1070,7 @@ def customer_report(request):
             if row['total_outstanding'] > 0
         ]
         customer_rows.sort(
-            key=lambda row: (row['name'] or '').lower(),
+            key=lambda row: (row['customer_name'] or '').lower(),
             reverse=(sort_order == 'desc')
         )
 
