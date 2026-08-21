@@ -19,6 +19,7 @@ from .forms import TripForm, TripPaymentForm
 
 from master_data.models import Material, VehicleType
 from vehicles.models import Vehicle
+from labour.models import Labour
 from core.utils import get_safe_next
 
 @login_required(login_url='/login/')
@@ -82,12 +83,12 @@ def trip_list(request):
 
     if search:
         trips = trips.filter(
-            trip_code__icontains=search
-        ) | trips.filter(
-            customer__name__icontains=search
-        ) | trips.filter(
-            vehicle__registration_number__icontains=search
-        )
+            Q(trip_code__icontains=search) |
+            Q(customer__name__icontains=search) |
+            Q(vehicle__registration_number__icontains=search) |
+            Q(destination__icontains=search) |
+            Q(drivers__name__icontains=search)
+        ).distinct()
 
     trip_status = request.GET.get('trip_status', '')
 
@@ -118,6 +119,14 @@ def trip_list(request):
             Q(vehicle__registration_number__icontains=vehicle_type_code)
         )
 
+    destination = request.GET.get('destination', '').strip()
+    if destination:
+        trips = trips.filter(destination__iexact=destination)
+
+    driver_id = request.GET.get('driver', '').strip()
+    if driver_id:
+        trips = trips.filter(drivers__id=driver_id).distinct()
+
     transaction_type = request.GET.get('transaction_type', 'CUSTOMER_DELIVERY').strip()
 
     if transaction_type == 'CUSTOMER_DELIVERY':
@@ -147,6 +156,16 @@ def trip_list(request):
     materials_list = Material.objects.filter(is_active=True).order_by('name')
 
     vehicles_list = VehicleType.objects.filter(is_active=True).order_by('name')
+
+    destinations_list = list(
+        Trip.objects.exclude(destination__isnull=True)
+        .exclude(destination='')
+        .values_list('destination', flat=True)
+        .distinct()
+        .order_by('destination')
+    )
+
+    drivers_list = Labour.objects.filter(is_active=True).order_by('name')
 
     available_years = list(
         Trip.objects.annotate(y=ExtractYear('trip_date'))
@@ -194,6 +213,10 @@ def trip_list(request):
         'materials_list': materials_list,
         'selected_vehicle': vehicle_type_code,
         'vehicles_list': vehicles_list,
+        'destinations_list': destinations_list,
+        'selected_destination': destination,
+        'drivers_list': drivers_list,
+        'selected_driver': driver_id,
         'selected_year': year,
         'selected_month': month,
         'from_date': from_date,

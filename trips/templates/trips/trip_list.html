@@ -81,6 +81,22 @@
         <input type="hidden" name="trip_status" value="{{ selected_trip_status }}">
         <input type="hidden" name="payment_status" value="{{ selected_payment_status }}">
 
+        <!-- SEARCH BAR: always visible (mobile + desktop) -->
+        <div class="relative mb-2.5">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+            <input type="search"
+                   name="search"
+                   value="{{ search }}"
+                   placeholder="Search customer, place, driver, vehicle…"
+                   enterkeyhint="search"
+                   autocomplete="off"
+                   class="input !h-11 !pl-10 !pr-10 !rounded-full">
+            {% if search %}
+                <button type="button" onclick="clearTripSearch()"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 text-slate-500 text-[12px] font-bold flex items-center justify-center">✕</button>
+            {% endif %}
+        </div>
+
         <div class="flex items-center gap-2">
             <div class="app-tabs flex-1 min-w-0">
                 <button type="button" data-value="ALL"
@@ -97,19 +113,13 @@
                 </button>
             </div>
 
-            <details id="filter-details" class="relative shrink-0">
+            <details id="filter-details" class="relative shrink-0" {% if search or selected_material or selected_vehicle or selected_year or selected_month or selected_trip_status or selected_payment_status or selected_destination or selected_driver %}open{% endif %}>
                 <summary class="app-chip active-soft cursor-pointer">
                     <span id="filter-toggle">⚙ Filters</span>
                     <span id="filtersCountBadge" class="text-[11px] font-bold">All</span>
                 </summary>
                 <div class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[19rem] md:w-[42rem] max-w-[calc(100vw-3rem)] bg-white rounded-2xl border border-slate-200 shadow-xl p-3.5">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-3.5">
-                        <div class="hidden md:block">
-                            <label class="label" for="search">Search</label>
-                            <input type="text" id="search" name="search" value="{{ search }}" placeholder="Trip code, customer or vehicle"
-                                   class="input">
-                        </div>
-
                         <div>
                             <label class="label" for="material">Material</label>
                             <select id="material" name="material" class="input">
@@ -141,6 +151,42 @@
                                         {% if selected_vehicle == vt.code %}selected{% endif %}
                                     >
                                         {{ vt.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label" for="destination">Location</label>
+                            <select id="destination" name="destination" class="input">
+                                <option value="">
+                                    All Locations
+                                </option>
+                                {% for dest in destinations_list %}
+                                    <option
+                                        value="{{ dest }}"
+                                        {% if selected_destination == dest %}selected{% endif %}
+                                    >
+                                        {{ dest }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label" for="driver">Driver</label>
+                            <select id="driver" name="driver" class="input">
+                                <option value="">
+                                    All Drivers
+                                </option>
+                                {% for drv in drivers_list %}
+                                    <option
+                                        value="{{ drv.id }}"
+                                        {% if selected_driver == drv.id|stringformat:"i" or selected_driver == drv.id %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ drv.name }}
                                     </option>
                                 {% endfor %}
                             </select>
@@ -484,13 +530,21 @@
             });
         }
 
+        function clearTripSearch() {
+            const form = document.getElementById('tripFiltersForm');
+            if (!form) return;
+            const el = form.elements['search'];
+            if (el) el.value = '';
+            form.submit();
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const badge = document.getElementById('filtersCountBadge');
             const form = document.getElementById('tripFiltersForm');
             if (!form || !badge) return;
 
             let count = 0;
-            ['search', 'material', 'vehicle', 'year', 'month', 'trip_status', 'payment_status'].forEach(function(name) {
+            ['search', 'material', 'vehicle', 'year', 'month', 'trip_status', 'payment_status', 'destination', 'driver'].forEach(function(name) {
                 const el = form.elements[name];
                 if (el && el.value && el.value.trim() !== '') count++;
             });
