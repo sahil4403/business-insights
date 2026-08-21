@@ -126,6 +126,12 @@
         #scroll-topbar.show {
             transform: translateY(0);
         }
+        /* Prevent mobile keyboards from zooming when focusing topbar inputs */
+        @media (max-width: 767px) {
+            #scroll-topbar input {
+                font-size: 16px !important;
+            }
+        }
         @media (min-width: 768px) {
             .btn { height: 2.5rem; }
             .input { height: 2.75rem; }
@@ -226,7 +232,18 @@
         const scrollTopbar = document.getElementById('scroll-topbar');
         if (scrollTopbar) {
             let lastY = window.scrollY;
+            let topbarInputFocused = false;
+            // Keep the bar pinned while typing (keyboard open) — no slide-away
+            scrollTopbar.addEventListener('focusin', function () {
+                topbarInputFocused = true;
+                scrollTopbar.classList.add('show');
+            });
+            scrollTopbar.addEventListener('focusout', function () {
+                topbarInputFocused = false;
+                if (window.scrollY <= 90) scrollTopbar.classList.remove('show');
+            });
             window.addEventListener('scroll', function () {
+                if (topbarInputFocused) return; // ignore keyboard-induced scroll jumps
                 const y = window.scrollY;
                 if (y > 90) {
                     scrollTopbar.classList.add('show');
