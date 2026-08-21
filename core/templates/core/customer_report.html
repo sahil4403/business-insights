@@ -249,16 +249,20 @@
         {% endif %}
     </div>
 
-    <!-- A-Z NAME FILTER -->
-    <div class="app-tabs mb-3 md:mb-4" id="alphabet-filter">
-        {% for item in alphabet_links %}
-            <a href="{{ item.url }}"
-               class="app-chip sm shrink-0 {% if item.active %}active{% endif %}">{{ item.label }}</a>
-        {% endfor %}
-    </div>
-
     <!-- REPORT CARD -->
     <div class="app-surface overflow-hidden">
+
+        <!-- NAME SORT: A→Z / Z→A (outstanding customers only) -->
+        <div class="flex items-center gap-2 px-4 py-2.5 border-b border-[#f1f5f9] overflow-x-auto">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Name Sort</span>
+            <a href="{{ sort_asc_url }}"
+               class="app-chip sm shrink-0 {% if selected_sort == 'asc' %}active{% endif %}">A → Z</a>
+            <a href="{{ sort_desc_url }}"
+               class="app-chip sm shrink-0 {% if selected_sort == 'desc' %}active{% endif %}">Z → A</a>
+            {% if selected_sort %}
+                <a href="{{ clear_sort_url }}" class="ml-auto text-[11px] font-bold text-red-600 shrink-0">✕ Clear</a>
+            {% endif %}
+        </div>
 
         <!-- SEARCH (desktop only; mobile uses scroll top bar) -->
         <div class="hidden md:block p-4 md:p-5 border-b border-[#f1f5f9]">

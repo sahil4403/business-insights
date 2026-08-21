@@ -484,10 +484,6 @@ def customer_report(request):
         ''
     ).strip()
 
-    letter = request.GET.get('letter', '').strip().upper()
-    if not (len(letter) == 1 and letter.isalpha()):
-        letter = ''
-
     min_amount_str = request.GET.get('min_amount', '').strip()
     max_amount_str = request.GET.get('max_amount', '').strip()
 
@@ -516,9 +512,6 @@ def customer_report(request):
         customers = customers.filter(
             Q(name__icontains=search) | Q(customer_code__icontains=search)
         )
-
-    if letter:
-        customers = customers.filter(name__istartswith=letter)
 
     trip_filter = Q()
 
@@ -1053,7 +1046,7 @@ def customer_report(request):
         })
 
     is_limited = False
-    if not (search or letter or min_amount_str or max_amount_str or from_date or to_date):
+    if not (search or min_amount_str or max_amount_str or from_date or to_date):
         # Show ALL customers having an outstanding balance (no limit)
         customer_rows = [
             row for row in customer_rows
@@ -1067,33 +1060,38 @@ def customer_report(request):
             reverse=True
         )
 
-    # A-Z alphabet filter links (preserve other active filters)
+    # Name sort toggle (A→Z / Z→A) — shows only customers with outstanding balance
+    sort_order = request.GET.get('sort', '').strip().lower()
+    if sort_order not in ('asc', 'desc'):
+        sort_order = ''
+    else:
+        customer_rows = [
+            row for row in customer_rows
+            if row['total_outstanding'] > 0
+        ]
+        customer_rows.sort(
+            key=lambda row: (row['name'] or '').lower(),
+            reverse=(sort_order == 'desc')
+        )
+
+    # Sort toggle URLs (preserve other active filters)
     base_params = request.GET.copy()
-    alphabet_links = []
-    for ch in ['ALL'] + [chr(i) for i in range(ord('A'), ord('Z') + 1)]:
-        params = base_params.copy()
-        if ch == 'ALL':
-            params.pop('letter', None)
-            alphabet_links.append({
-                'label': 'All',
-                'url': '?' + params.urlencode(),
-                'active': not letter,
-            })
-        else:
-            params['letter'] = ch
-            alphabet_links.append({
-                'label': ch,
-                'url': '?' + params.urlencode(),
-                'active': letter == ch,
-            })
+    sort_asc_params = base_params.copy()
+    sort_asc_params['sort'] = 'asc'
+    sort_desc_params = base_params.copy()
+    sort_desc_params['sort'] = 'desc'
+    clear_sort_params = base_params.copy()
+    clear_sort_params.pop('sort', None)
 
     context = {
         'customer_rows': customer_rows,
         'from_date': from_date,
         'to_date': to_date,
         'search': search,
-        'selected_letter': letter,
-        'alphabet_links': alphabet_links,
+        'selected_sort': sort_order,
+        'sort_asc_url': '?' + sort_asc_params.urlencode(),
+        'sort_desc_url': '?' + sort_desc_params.urlencode(),
+        'clear_sort_url': '?' + clear_sort_params.urlencode(),
         'min_amount': min_amount_str,
         'max_amount': max_amount_str,
         'is_limited': is_limited,
