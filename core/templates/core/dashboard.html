@@ -103,35 +103,42 @@
             <!-- MOBILE TRIPS LIST -->
             <div class="md:hidden px-3">
                 {% for trip in trips %}
-                    <a href="{% url 'trips:detail' trip.id %}" class="app-row no-underline">
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[11px] font-bold text-slate-400">{{ trip.trip_date|date:"d-M-Y" }}</span>
-                            </div>
-                            <div class="text-[13px] text-slate-600 truncate mt-0.5">
-                                {% if trip.transaction_type == 'INTERNAL_STOCK' %}Internal Stock{% else %}{{ trip.customer.name }}{% endif %}
-                            </div>
-                            <div class="text-[12px] text-slate-500 mt-0.5 truncate">
-                                {% if trip.destination %}{{ trip.destination }} · {% endif %}{% if trip.vehicle %}🚛 {{ trip.vehicle.registration_number }} · {% endif %}{{ trip.material.name }} <span class="text-slate-400">(Qty: {{ trip.quantity }})</span>
-                            </div>
-                            {% if trip.get_driver_breakdown %}
-                                <div class="flex items-center gap-1 mt-1 flex-wrap">
-                                    {% for item in trip.get_driver_breakdown %}
-                                        <span class="px-1.5 py-0.5 bg-sky-100 text-sky-700 rounded text-[10px] font-semibold">{{ item.driver.name }}{% if item.count %} ({{ item.count }}){% endif %}</span>
-                                    {% endfor %}
+                    <a href="{% url 'trips:detail' trip.id %}" class="block px-3 py-3 border-b border-slate-100 no-underline active:bg-slate-50 last:border-b-0">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-[14px] font-bold text-slate-900 truncate">
+                                        {% if trip.transaction_type == 'INTERNAL_STOCK' %}📦 Internal Stock{% else %}{{ trip.customer.name }}{% endif %}
+                                    </span>
+                                    <span class="shrink-0 text-[11px] font-semibold text-slate-400">{{ trip.trip_date|date:"d-M-Y" }}</span>
                                 </div>
-                            {% endif %}
-                            <div class="text-[15px] font-bold text-brand-600 mt-1">₹{{ trip.total_amount|floatformat:2 }}</div>
+                                <div class="text-[12px] text-slate-500 mt-1 truncate">
+                                    {% if trip.destination %}📍 {{ trip.destination }}{% endif %}{% if trip.vehicle %}{% if trip.destination %} · {% endif %}🚛 {{ trip.vehicle.registration_number }}{% endif %}
+                                </div>
+                                <div class="text-[12px] text-slate-600 mt-0.5 truncate">
+                                    {{ trip.material.name }} · Qty {{ trip.quantity }}
+                                </div>
+                                {% if trip.get_driver_breakdown %}
+                                    <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                                        {% for item in trip.get_driver_breakdown %}
+                                            <span class="px-1.5 py-0.5 bg-sky-100 text-sky-700 rounded text-[10px] font-semibold">{{ item.driver.name }}{% if item.count %} ({{ item.count }}){% endif %}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="shrink-0 text-right">
+                                <div class="text-[15px] font-bold text-brand-600 whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</div>
+                                {% if trip.transaction_type == 'INTERNAL_STOCK' %}
+                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">Internal</span>
+                                {% elif trip.calculated_payment_status == 'PAID' %}
+                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
+                                {% elif trip.calculated_payment_status == 'PARTIAL' %}
+                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700">Partial</span>
+                                {% else %}
+                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700">Unpaid</span>
+                                {% endif %}
+                            </div>
                         </div>
-                        {% if trip.transaction_type == 'INTERNAL_STOCK' %}
-                            <span class="app-chip !h-7 !px-2.5 text-[11px] bg-slate-100 text-slate-500">Internal Stock</span>
-                        {% elif trip.calculated_payment_status == 'PAID' %}
-                            <span class="app-chip active-soft !h-7 !px-2.5 text-[11px]">Paid</span>
-                        {% elif trip.calculated_payment_status == 'PARTIAL' %}
-                            <span class="app-chip !h-7 !px-2.5 text-[11px] bg-orange-50 text-orange-700">Partial</span>
-                        {% else %}
-                            <span class="app-chip !h-7 !px-2.5 text-[11px] bg-red-50 text-red-700">Unpaid</span>
-                        {% endif %}
                     </a>
                 {% empty %}
                     <div class="text-center py-10 text-slate-500 text-sm">
