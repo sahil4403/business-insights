@@ -24,3 +24,6 @@ Check.pdf
 check2.pdf
 staticfiles/
 Cd_ED/
+
+# Node
+node_modules/

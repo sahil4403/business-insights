@@ -4,24 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Customer Report</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#eef7f5',
-                            100: '#d5ebe6',
-                            500: '#16665a',
-                            600: '#115248',
-                            700: '#0d423a',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <style>
         input[type="date"] { -webkit-appearance: none; appearance: none; }
         details > summary { list-style: none; }
