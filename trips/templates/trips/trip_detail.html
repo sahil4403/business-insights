@@ -336,17 +336,14 @@
         </a>
     </div>
 
-    <!-- MOBILE FLOATING ACTION BUTTON (primary) -->
-    <div class="md:hidden">
+    <!-- MOBILE BOTTOM ACTION BAR -->
+    <div class="md:hidden fixed left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 px-2 py-2 flex gap-1.5 bottom-[calc(3.5rem+env(safe-area-inset-bottom))]">
         {% if trip.transaction_type != 'INTERNAL_STOCK' and trip.outstanding_amount > 0 %}
-            <a href="{% url 'trips:payment_create' trip.id %}" class="app-fab">
-                <span>+</span> Receive Payment
+            <a href="{% url 'trips:payment_create' trip.id %}"
+               class="flex-1 h-11 rounded-xl bg-brand-600 text-white font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2">
+                + Payment
             </a>
         {% endif %}
-    </div>
-
-    <!-- MOBILE BOTTOM ACTION BAR -->
-    <div class="md:hidden fixed left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 px-3 py-2 flex gap-2 bottom-[calc(3.5rem+env(safe-area-inset-bottom))]">
         {% if trip.customer %}
             <a href="{% url 'ledger:customer_statement' trip.customer.id %}"
                class="flex-1 h-11 rounded-xl bg-sky-100 text-sky-700 font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2">
@@ -355,7 +352,7 @@
         {% endif %}
         <a href="{% url 'trips:edit' trip.id %}"
            class="flex-1 h-11 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2">
-            Edit Trip
+            Edit
         </a>
         <a href="{% url 'trips:list' %}"
            class="flex-1 h-11 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2">
