@@ -189,6 +189,17 @@
                                     <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger">Delete</a>
                                 </div>
                             {% endif %}
+                            {% if transaction.merged_payments %}
+                                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                    {% for mp in transaction.merged_payments %}
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 rounded-full pl-2.5 pr-1 py-0.5">
+                                            ₹{{ mp.amount|floatformat:0 }}
+                                            <a href="{% url 'trips:payment_edit' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-brand-600 font-bold px-1">Edit</a>
+                                            <a href="{% url 'trips:payment_delete' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 font-bold px-1">Del</a>
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         {% endif %}
                     </div>
 
@@ -272,6 +283,13 @@
                                             <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm" title="Edit Payment">Edit</a>
                                             <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger" title="Delete Payment">Delete</a>
                                         {% endif %}
+                                        {% for mp in transaction.merged_payments %}
+                                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 rounded-full pl-2.5 pr-1 py-0.5">
+                                                ₹{{ mp.amount|floatformat:0 }}
+                                                <a href="{% url 'trips:payment_edit' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-brand-600 font-bold px-1">Edit</a>
+                                                <a href="{% url 'trips:payment_delete' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 font-bold px-1">Del</a>
+                                            </span>
+                                        {% endfor %}
                                     {% endif %}
                                 </div>
                             </td>
