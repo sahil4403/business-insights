@@ -619,7 +619,13 @@ def customer_report(request):
             content_type='application/pdf'
         )
 
-        from core.pdf_utils import get_registered_font, build_pdf_header_elements, get_indian_current_time_str
+        from core.pdf_utils import (
+            get_registered_font,
+            build_pdf_header_elements,
+            get_indian_current_time_str,
+            apply_data_table_style,
+            finish_document,
+        )
         font_name = get_registered_font()
         _register_georgia_font()
 
@@ -753,21 +759,10 @@ def customer_report(request):
             colWidths=[180, 100, 80, 110, 110, 110],
         )
 
-        table.setStyle(
-            TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#CBD5E1')),
-                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F1F5F9')),
-                ('LINEABOVE', (0, -1), (-1, -1), 1.2, colors.HexColor('#1E3A8A')),
-            ])
-        )
+        apply_data_table_style(table, total_row=True)
 
         elements.append(table)
-        document.build(elements)
+        finish_document(document, elements, font_name=font_name)
 
         return response
 
@@ -1266,7 +1261,13 @@ def vehicle_report(request):
             content_type='application/pdf'
         )
 
-        from core.pdf_utils import get_registered_font, build_pdf_header_elements, get_indian_current_time_str
+        from core.pdf_utils import (
+            get_registered_font,
+            build_pdf_header_elements,
+            get_indian_current_time_str,
+            apply_data_table_style,
+            finish_document,
+        )
         font_name = get_registered_font()
         _register_georgia_font()
 
@@ -1389,21 +1390,10 @@ def vehicle_report(request):
             colWidths=[200, 110, 140, 140, 140],
         )
 
-        table.setStyle(
-            TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#CBD5E1')),
-                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F1F5F9')),
-                ('LINEABOVE', (0, -1), (-1, -1), 1.2, colors.HexColor('#1E3A8A')),
-            ])
-        )
+        apply_data_table_style(table, total_row=True)
 
         elements.append(table)
-        document.build(elements)
+        finish_document(document, elements, font_name=font_name)
 
         return response
 
@@ -1852,7 +1842,13 @@ def payment_report(request):
             content_type='application/pdf'
         )
 
-        from core.pdf_utils import get_registered_font, build_pdf_header_elements, get_indian_current_time_str
+        from core.pdf_utils import (
+            get_registered_font,
+            build_pdf_header_elements,
+            get_indian_current_time_str,
+            apply_data_table_style,
+            finish_document,
+        )
         font_name = get_registered_font()
         _register_georgia_font()
 
@@ -1961,21 +1957,10 @@ def payment_report(request):
             colWidths=[75, 140, 100, 95, 100, 100, 145],
         )
 
-        table.setStyle(
-            TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('TOPPADDING', (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ('GRID', (0, 0), (-1, -2), 0.4, colors.HexColor('#CBD5E1')),
-                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F1F5F9')),
-                ('LINEABOVE', (0, -1), (-1, -1), 1.2, colors.HexColor('#1E3A8A')),
-            ])
-        )
+        apply_data_table_style(table, total_row=True)
 
         elements.append(table)
-        document.build(elements)
+        finish_document(document, elements, font_name=font_name)
 
         return response
 

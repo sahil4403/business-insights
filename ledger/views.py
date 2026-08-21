@@ -527,7 +527,15 @@ def customer_statement_pdf(request, customer_id):
 
     styles = getSampleStyleSheet()
 
-    from core.pdf_utils import get_registered_font, build_pdf_header_elements, get_indian_current_time_str
+    from core.pdf_utils import (
+        get_registered_font,
+        build_pdf_header_elements,
+        get_indian_current_time_str,
+        build_summary_cards,
+        apply_data_table_style,
+        finish_document,
+        build_thankyou_note,
+    )
     font_name = get_registered_font()
 
     if from_date:
@@ -590,37 +598,22 @@ def customer_statement_pdf(request, customer_id):
         alignment=1,
     )
 
-    summary_data = [
+    summary_cards = build_summary_cards(
         [
-            Paragraph('<b>Opening Balance</b>', header_center),
-            Paragraph('<b>Period Sales</b>', header_center),
-            Paragraph('<b>Period Received</b>', header_center),
-            Paragraph('<b>Closing Balance</b>', header_center),
+            {'label': 'Opening Balance', 'value': f"₹{opening_balance:,.2f}", 'color': '#2563eb'},
+            {'label': 'Period Sales', 'value': f"₹{total_sales:,.2f}", 'color': '#16665a'},
+            {'label': 'Period Received', 'value': f"₹{total_received:,.2f}", 'color': '#059669'},
+            {
+                'label': 'Closing Balance',
+                'value': f"₹{closing_balance:,.2f}",
+                'color': '#dc2626' if closing_balance > 0 else '#059669',
+                'sub': 'Amount Payable' if closing_balance > 0 else 'Settled / Advance',
+            },
         ],
-        [
-            Paragraph(f"<b>₹{opening_balance:,.2f}</b>", center_body),
-            Paragraph(f"<b>₹{total_sales:,.2f}</b>", center_body),
-            Paragraph(f"<b>₹{total_received:,.2f}</b>", center_body),
-            Paragraph(f"<b>₹{closing_balance:,.2f}</b>", center_body),
-        ],
-    ]
-
-    summary_table = Table(
-        summary_data,
-        colWidths=[46 * mm, 46 * mm, 46 * mm, 46 * mm]
+        font_name=font_name,
     )
 
-    summary_table.setStyle(
-        TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
-            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#F1F5F9')),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ])
-    )
-
-    elements.append(summary_table)
+    elements.append(summary_cards)
     elements.append(Spacer(1, 12))
 
     table_data = [
@@ -647,6 +640,17 @@ def customer_statement_pdf(request, customer_id):
             Paragraph(f"₹{transaction['balance']:,.2f}", right_body),
         ])
 
+    # TOTALS FOOTER ROW
+    table_data.append([
+        Paragraph('<b>TOTAL</b>', body_style),
+        Paragraph('', center_body),
+        Paragraph('', body_style),
+        Paragraph('', body_style),
+        Paragraph(f"<b>₹{total_sales:,.2f}</b>", right_body),
+        Paragraph(f"<b>₹{total_received:,.2f}</b>", right_body),
+        Paragraph(f"<b>₹{closing_balance:,.2f}</b>", right_body),
+    ])
+
     statement_table = Table(
         table_data,
         repeatRows=1,
@@ -661,19 +665,14 @@ def customer_statement_pdf(request, customer_id):
         ]
     )
 
-    statement_table.setStyle(
-        TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#CBD5E1')),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ])
-    )
+    apply_data_table_style(statement_table, total_row=True)
 
     elements.append(statement_table)
-    document.build(elements)
+    elements.extend(build_thankyou_note(
+        "Thank you for your business! For any queries regarding this statement, please contact us.",
+        font_name=font_name,
+    ))
+    finish_document(document, elements, font_name=font_name)
 
     buffer.seek(0)
 
