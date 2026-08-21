@@ -129,17 +129,17 @@
             {% endfor %}
         </div>
 
-        <!-- DESKTOP ACTIONS -->
-        <div class="hidden md:flex justify-end gap-3 pt-2">
+        <!-- ACTIONS (in-flow: never hides under Safari toolbar on iPhone) -->
+        <div class="flex gap-3 pt-2 md:justify-end">
             <a
                 href="{% if next_url %}{{ next_url }}{% else %}{% url 'core:payment_report' %}{% endif %}"
-                class="btn btn-secondary"
+                class="btn btn-secondary flex-1 md:flex-none"
             >
                 Cancel
             </a>
             <button
                 type="submit"
-                class="btn btn-primary"
+                class="btn btn-primary flex-1 md:flex-none"
             >
                 Save Payment
             </button>
@@ -147,27 +147,6 @@
 
     </form>
 
-</div>
-
-<!-- spacer for mobile bottom action bar -->
-<div class="h-32 md:h-0"></div>
-
-<!-- MOBILE STICKY ACTION BAR -->
-<div class="md:hidden fixed left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 pt-3 pb-3 flex gap-3 shadow-[0_-4px_20px_rgba(15,23,42,0.06)]"
-     style="bottom: calc(4.25rem + env(safe-area-inset-bottom));">
-    <a
-        href="{% if next_url %}{{ next_url }}{% else %}{% url 'core:payment_report' %}{% endif %}"
-        class="btn btn-secondary flex-1"
-    >
-        Cancel
-    </a>
-    <button
-        type="submit"
-        form="payment-form"
-        class="btn btn-primary flex-1"
-    >
-        Save Payment
-    </button>
 </div>
 
 {% endblock %}

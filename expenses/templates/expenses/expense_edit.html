@@ -156,8 +156,8 @@
             </div>
         </div>
 
-        <!-- ACTIONS: sticky bottom bar (mobile) / right-aligned (desktop) -->
-        <div class="fixed left-0 right-0 z-30 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] px-4 py-3 flex gap-3 md:static md:bg-transparent md:border-0 md:shadow-none md:px-0 md:py-0 md:justify-end md:gap-3 md:mt-6">
+        <!-- ACTIONS: in-flow on mobile (never hides under Safari toolbar) / right-aligned on desktop -->
+        <div class="pt-2 mt-6 flex gap-3 md:justify-end">
             <a href="{% url 'expenses:list' %}" class="btn btn-secondary flex-1 md:flex-none">Cancel</a>
             <button type="submit" class="btn btn-primary flex-1 md:flex-none">Update Expense</button>
         </div>
