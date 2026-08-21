@@ -289,15 +289,15 @@
 
 </div>
 
-<!-- RECORD PAYMENT MODAL -->
-<div class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" id="paymentModal">
-    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+<!-- RECORD PAYMENT MODAL (mobile: bottom-sheet with internal scroll — buttons never hide under Safari toolbar) -->
+<div class="fixed inset-0 z-[70] hidden items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm" id="paymentModal">
+    <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
             <h3 class="text-lg font-bold text-brand-600">Record Payment for {{ customer.name }}</h3>
-            <button type="button" class="w-10 h-10 flex items-center justify-center rounded-xl text-2xl text-slate-400 hover:bg-slate-100 active:bg-slate-200 transition" onclick="closePaymentModal()">&times;</button>
+            <button type="button" class="w-10 h-10 flex items-center justify-center rounded-xl text-2xl text-slate-400 hover:bg-slate-100 active:bg-slate-200 transition shrink-0" onclick="closePaymentModal()">&times;</button>
         </div>
 
-        <form method="post" action="{% url 'ledger:customer_record_payment' customer.id %}" id="quickPaymentForm" class="px-5 py-4 space-y-4">
+        <form method="post" action="{% url 'ledger:customer_record_payment' customer.id %}" id="quickPaymentForm" class="px-5 py-4 space-y-4 overflow-y-auto overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))]">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
@@ -348,9 +348,9 @@
                 <textarea name="notes" id="modal_notes" rows="2" placeholder="Optional notes (e.g. Customer lumpsum payment)" class="input !h-auto py-2.5"></textarea>
             </div>
 
-            <div class="flex flex-col-reverse md:flex-row md:justify-end gap-3 pt-1">
-                <button type="button" class="btn btn-ghost w-full md:w-auto" onclick="closePaymentModal()">Cancel</button>
-                <button type="submit" class="btn bg-emerald-600 hover:bg-emerald-700 text-white w-full md:w-auto">Save Payment</button>
+            <div class="flex gap-3 pt-1">
+                <button type="button" class="btn btn-ghost flex-1 sm:flex-none" onclick="closePaymentModal()">Cancel</button>
+                <button type="submit" class="btn bg-emerald-600 hover:bg-emerald-700 text-white flex-[2] sm:flex-none">Save Payment</button>
             </div>
         </form>
     </div>
@@ -358,14 +358,14 @@
 
 {% if is_admin_user %}
 <!-- EDIT OPENING BALANCE MODAL -->
-<div class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" id="openingBalanceModal">
-    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+<div class="fixed inset-0 z-[70] hidden items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm" id="openingBalanceModal">
+    <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
             <h3 class="text-lg font-bold text-brand-600">Update Opening Balance for {{ customer.name }}</h3>
-            <button type="button" class="w-10 h-10 flex items-center justify-center rounded-xl text-2xl text-slate-400 hover:bg-slate-100 active:bg-slate-200 transition" onclick="closeOpeningBalanceModal()">&times;</button>
+            <button type="button" class="w-10 h-10 flex items-center justify-center rounded-xl text-2xl text-slate-400 hover:bg-slate-100 active:bg-slate-200 transition shrink-0" onclick="closeOpeningBalanceModal()">&times;</button>
         </div>
 
-        <form method="post" action="{% url 'ledger:update_customer_opening_balance' customer.id %}" class="px-5 py-4 space-y-4">
+        <form method="post" action="{% url 'ledger:update_customer_opening_balance' customer.id %}" class="px-5 py-4 space-y-4 overflow-y-auto overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))]">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
@@ -377,9 +377,9 @@
                 </div>
             </div>
 
-            <div class="flex flex-col-reverse md:flex-row md:justify-end gap-3 pt-1">
-                <button type="button" class="btn btn-ghost w-full md:w-auto" onclick="closeOpeningBalanceModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary w-full md:w-auto">Save Balance</button>
+            <div class="flex gap-3 pt-1">
+                <button type="button" class="btn btn-ghost flex-1 sm:flex-none" onclick="closeOpeningBalanceModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary flex-[2] sm:flex-none">Save Balance</button>
             </div>
         </form>
     </div>
