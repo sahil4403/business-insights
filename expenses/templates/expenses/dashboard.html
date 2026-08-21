@@ -1,0 +1,536 @@
+{% extends 'base.html' %}
+
+{% block title %}Expense Dashboard{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'core:dashboard' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
+        ← Back
+    </a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">Expense Dashboard</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+    <!-- HEADER -->
+    <div class="mb-4 md:mb-6">
+        <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Expense Dashboard</h1>
+                <p class="text-sm text-slate-500 mt-1">Business expense overview and analysis</p>
+            </div>
+            <div class="hidden md:flex items-center gap-2">
+                <a href="{% url 'expenses:list' %}" class="btn btn-secondary">View Expenses</a>
+                <a href="{% url 'core:dashboard' %}" class="btn btn-ghost">← Business Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBILE FAB -->
+    <a href="{% url 'expenses:create' %}" class="app-fab md:hidden">
+        <span>＋</span> Add Expense
+    </a>
+
+    <!-- FILTERS -->
+    <details id="filter-details" class="app-surface mb-4 md:mb-6 overflow-hidden">
+        <summary class="flex items-center justify-between px-4 py-3.5 cursor-pointer active:bg-slate-50 md:hidden">
+            <span class="font-bold text-sm text-slate-700">Filters</span>
+            <span class="text-brand-500 text-sm" id="filter-toggle">Show</span>
+        </summary>
+        <div class="px-4 pb-4 md:p-5">
+            <form method="get" class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                <div>
+                    <label class="label" for="from_date">From Date</label>
+                    <input type="date" id="from_date" name="from_date" value="{{ from_date }}" class="input">
+                </div>
+                <div>
+                    <label class="label" for="to_date">To Date</label>
+                    <input type="date" id="to_date" name="to_date" value="{{ to_date }}" class="input">
+                </div>
+                <div class="col-span-2 md:col-span-1">
+                    <label class="label" for="category">Category</label>
+                    <select id="category" name="category" class="input">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="label" for="payment_method">Payment Method</label>
+                    <select id="payment_method" name="payment_method" class="input">
+                        <option value="">All Payment Methods</option>
+                        {% for method in payment_methods %}
+                            <option value="{{ method.id }}" {% if selected_payment_method == method.id|stringformat:"s" %}selected{% endif %}>
+                                {{ method.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="label" for="vehicle">Vehicle</label>
+                    <select id="vehicle" name="vehicle" class="input">
+                        <option value="">All Vehicles</option>
+                        {% for vehicle in vehicles %}
+                            <option value="{{ vehicle.id }}" {% if selected_vehicle == vehicle.id|stringformat:"s" %}selected{% endif %}>
+                                {{ vehicle.registration_number }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="label" for="labour">Labour</label>
+                    <select id="labour" name="labour" class="input">
+                        <option value="">All Labour</option>
+                        {% for labour in labours %}
+                            <option value="{{ labour.id }}" {% if selected_labour == labour.id|stringformat:"s" %}selected{% endif %}>
+                                {{ labour.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-span-2 md:col-span-3 flex flex-col sm:flex-row sm:items-center gap-3 pt-1 md:pt-3 md:mt-1 border-t border-slate-100">
+                    <button type="submit" class="btn btn-primary w-full sm:w-auto">Apply Filters</button>
+                    <a href="{% url 'expenses:dashboard' %}" class="btn btn-secondary w-full sm:w-auto">Clear Filters</a>
+                </div>
+            </form>
+        </div>
+    </details>
+
+    <!-- EXPENSE SUMMARY -->
+    <div class="mb-6 md:mb-8">
+        <h2 class="text-base md:text-lg font-bold text-slate-900 mb-3 md:mb-4">Expense Summary</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
+            <div class="app-stat">
+                <span class="lbl">Total Expenses</span>
+                <span class="val">₹{{ total_expense|floatformat:2 }}</span>
+            </div>
+            <div class="app-stat">
+                <span class="lbl">This Month</span>
+                <span class="val">₹{{ this_month|floatformat:2 }}</span>
+            </div>
+            <div class="app-stat">
+                <span class="lbl">Diesel / Fuel</span>
+                <span class="val">₹{{ diesel_fuel|floatformat:2 }}</span>
+            </div>
+            <div class="app-stat">
+                <span class="lbl">Labour</span>
+                <span class="val">₹{{ labour_expense|floatformat:2 }}</span>
+            </div>
+            <div class="app-stat">
+                <span class="lbl">Vehicle Related</span>
+                <span class="val">₹{{ vehicle_expense|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- BUSINESS OVERVIEW -->
+    <div class="mb-6 md:mb-8">
+        <h2 class="text-base md:text-lg font-bold text-slate-900 mb-3 md:mb-4">Business Overview</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
+            <div class="app-stat">
+                <span class="lbl">Total Revenue</span>
+                <span class="val">₹{{ total_revenue|floatformat:2 }}</span>
+            </div>
+            <div class="app-stat">
+                <span class="lbl">Total Expenses</span>
+                <span class="val">₹{{ total_business_expense|floatformat:2 }}</span>
+            </div>
+            <div class="app-stat">
+                <span class="lbl">Net Profit</span>
+                <span class="val {% if net_profit < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">₹{{ net_profit|floatformat:2 }}</span>
+            </div>
+            <div class="app-stat">
+                <span class="lbl">Net Profit Margin</span>
+                <span class="val">{{ net_profit_margin }}%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRIP PROFITABILITY -->
+    <div class="mb-6 md:mb-8">
+        <h2 class="text-base md:text-lg font-bold text-slate-900 mb-3 md:mb-4">Trip Profitability</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
+            <div class="app-stat">
+                <span class="lbl">Total Trip Revenue</span>
+                <span class="val">₹{{ total_trip_revenue|floatformat:2 }}</span>
+            </div>
+            <div class="app-stat">
+                <span class="lbl">Total Trip Expense</span>
+                <span class="val">₹{{ total_trip_expense|floatformat:2 }}</span>
+            </div>
+            <div class="app-stat">
+                <span class="lbl">Total Trip Profit</span>
+                <span class="val {% if total_trip_profit < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">₹{{ total_trip_profit|floatformat:2 }}</span>
+            </div>
+            <div class="app-stat">
+                <span class="lbl">Overall Profit Margin</span>
+                <span class="val">{{ overall_profit_margin }}%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPENSE ANALYSIS -->
+    <div class="mb-6 md:mb-8">
+        <h2 class="text-base md:text-lg font-bold text-slate-900 mb-3 md:mb-4">Expense Analysis</h2>
+        <div class="grid md:grid-cols-2 gap-4 md:gap-5">
+
+            <!-- CATEGORY -->
+            <div class="app-surface overflow-hidden">
+                <div class="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between gap-2">
+                    <h3 class="font-bold text-sm text-slate-800">Category-wise Expense</h3>
+                </div>
+                <div class="px-4 py-2">
+                    {% for item in category_expenses %}
+                        <div class="app-row">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-3 text-sm">
+                                    <span class="font-semibold text-slate-800 truncate">{{ item.category__name }}</span>
+                                    <span class="text-slate-500 whitespace-nowrap">₹{{ item.total|floatformat:2 }} · {{ item.percentage }}%</span>
+                                </div>
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+                                    <div class="h-full bg-brand-500 rounded-full" style="width: {{ item.percentage }}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-center text-slate-500 text-sm py-8">No expense data available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- MONTHLY -->
+            <div class="app-surface overflow-hidden">
+                <div class="px-4 py-3.5 border-b border-slate-100">
+                    <h3 class="font-bold text-sm text-slate-800">Last 6 Months</h3>
+                </div>
+                <div class="px-4 py-2">
+                    {% for item in monthly_expenses %}
+                        <div class="app-row">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-3 text-sm">
+                                    <span class="font-semibold text-slate-800">{{ item.month }}</span>
+                                    <span class="text-slate-500 whitespace-nowrap">₹{{ item.total|floatformat:2 }} · {{ item.percentage }}%</span>
+                                </div>
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+                                    <div class="h-full bg-brand-500 rounded-full" style="width: {{ item.percentage }}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-center text-slate-500 text-sm py-8">No expense data available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- VEHICLE -->
+            <div class="app-surface overflow-hidden">
+                <div class="px-4 py-3.5 border-b border-slate-100">
+                    <h3 class="font-bold text-sm text-slate-800">Vehicle-wise Expense</h3>
+                </div>
+                <div class="px-4 py-2">
+                    {% for item in vehicle_expenses %}
+                        <div class="app-row">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-3 text-sm">
+                                    <span class="font-semibold text-slate-800 truncate">{{ item.vehicle__registration_number }}</span>
+                                    <span class="text-slate-500 whitespace-nowrap">₹{{ item.total|floatformat:2 }} · {{ item.percentage }}%</span>
+                                </div>
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+                                    <div class="h-full bg-brand-500 rounded-full" style="width: {{ item.percentage }}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-center text-slate-500 text-sm py-8">No vehicle-linked expense data available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- PAYMENT METHOD -->
+            <div class="app-surface overflow-hidden">
+                <div class="px-4 py-3.5 border-b border-slate-100">
+                    <h3 class="font-bold text-sm text-slate-800">Payment Method-wise Expense</h3>
+                </div>
+                <div class="px-4 py-2">
+                    {% for item in payment_expenses %}
+                        <div class="app-row">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-3 text-sm">
+                                    <span class="font-semibold text-slate-800 truncate">{{ item.payment_method__name }}</span>
+                                    <span class="text-slate-500 whitespace-nowrap">₹{{ item.total|floatformat:2 }} · {{ item.percentage }}%</span>
+                                </div>
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+                                    <div class="h-full bg-brand-500 rounded-full" style="width: {{ item.percentage }}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-center text-slate-500 text-sm py-8">No payment method expense data available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- REVENUE VS EXPENSE TREND -->
+    <div class="mb-6 md:mb-8">
+        <div class="app-surface overflow-hidden">
+            <div class="px-4 py-3.5 border-b border-slate-100">
+                <h2 class="font-bold text-sm text-slate-800">Revenue vs Expense Trend</h2>
+            </div>
+            <div class="px-4 py-2">
+                {% for item in monthly_business %}
+                    <div class="app-row">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-3 text-sm">
+                                <span class="font-semibold text-slate-800">{{ item.month }}</span>
+                                <span class="text-slate-500 whitespace-nowrap">
+                                    Rev ₹{{ item.revenue|floatformat:0 }}
+                                    &nbsp;|&nbsp;
+                                    Exp ₹{{ item.expense|floatformat:0 }}
+                                </span>
+                            </div>
+                            <div class="mt-2 space-y-1">
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-brand-500 rounded-full"
+                                         style="width: {% if item.revenue %}100{% else %}0{% endif %}%;"></div>
+                                </div>
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-slate-400 rounded-full"
+                                         style="width: {% if item.revenue %}{% widthratio item.expense item.revenue 100 %}{% else %}0{% endif %}%;"></div>
+                                </div>
+                            </div>
+                            <div class="mt-1.5 text-xs text-slate-500">
+                                Profit: ₹{{ item.profit|floatformat:0 }}
+                                &nbsp;•&nbsp;
+                                Margin: {{ item.margin }}%
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-center text-slate-500 text-sm py-8">No monthly business data available.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- MONTHLY BUSINESS PERFORMANCE -->
+    <div class="mb-6 md:mb-8">
+        <div class="app-surface overflow-hidden">
+            <div class="px-4 py-3.5 border-b border-slate-100">
+                <h2 class="font-bold text-sm text-slate-800">Monthly Business Performance</h2>
+            </div>
+
+            <!-- MOBILE ROWS -->
+            <div class="md:hidden px-4 py-2">
+                {% for item in monthly_business %}
+                    <div class="app-row">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[15px] font-bold text-slate-900">{{ item.month }}</div>
+                            <div class="mt-0.5 text-[12px] text-slate-500">
+                                Rev ₹{{ item.revenue|floatformat:2 }} · Exp ₹{{ item.expense|floatformat:2 }}
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0 pl-2">
+                            <div class="text-[15px] font-extrabold text-slate-900">₹{{ item.profit|floatformat:2 }}</div>
+                            <div class="text-[11px] font-bold text-brand-600">{{ item.margin }}%</div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="py-12 text-center text-slate-500 text-sm">No monthly business data available.</div>
+                {% endfor %}
+            </div>
+
+            <!-- DESKTOP TABLE -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full min-w-[640px] text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-left">
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Month</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Revenue</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Expense</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Profit</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Margin</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for item in monthly_business %}
+                            <tr class="hover:bg-slate-50/60 transition">
+                                <td class="px-4 py-3 font-semibold text-slate-900">{{ item.month }}</td>
+                                <td class="px-4 py-3 text-right font-semibold">₹{{ item.revenue|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right font-semibold">₹{{ item.expense|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right font-semibold">₹{{ item.profit|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right">{{ item.margin }}%</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="px-4 py-12 text-center text-slate-500">No monthly business data available.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRIP-WISE PROFITABILITY -->
+    <div class="mb-6 md:mb-8">
+        <div class="app-surface overflow-hidden">
+            <div class="px-4 py-3.5 border-b border-slate-100">
+                <h2 class="font-bold text-sm text-slate-800">Trip-wise Profitability</h2>
+            </div>
+
+            <!-- MOBILE ROWS -->
+            <div class="md:hidden px-4 py-2">
+                {% for item in trip_expenses %}
+                    <div class="app-row">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-[15px] font-bold text-brand-600">{{ item.trip__trip_code }}</span>
+                                <span class="text-[11px] font-medium text-slate-400">{{ item.trip__trip_date|date:"d-M-Y" }}</span>
+                            </div>
+                            <div class="mt-0.5 text-[12px] text-slate-500 truncate">
+                                🚚 {{ item.trip__vehicle__registration_number }}
+                                &nbsp;·&nbsp; Rev ₹{{ item.trip__total_amount|floatformat:2 }}
+                                &nbsp;·&nbsp; Exp ₹{{ item.expense_total|floatformat:2 }}
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0 pl-2">
+                            <div class="text-[15px] font-extrabold {% if item.profit < 0 %}text-red-600{% else %}text-slate-900{% endif %}">₹{{ item.profit|floatformat:2 }}</div>
+                            <div class="text-[11px] font-bold text-brand-600">{{ item.profit_percentage }}%</div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="py-12 text-center text-slate-500 text-sm">No trips available.</div>
+                {% endfor %}
+            </div>
+
+            <!-- DESKTOP TABLE -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full min-w-[820px] text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-left">
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Trip</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Vehicle</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Revenue</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Expense</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Profit</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Margin</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for item in trip_expenses %}
+                            <tr class="hover:bg-slate-50/60 transition">
+                                <td class="px-4 py-3 font-semibold text-brand-600">{{ item.trip__trip_code }}</td>
+                                <td class="px-4 py-3">{{ item.trip__trip_date|date:"d-M-Y" }}</td>
+                                <td class="px-4 py-3">{{ item.trip__vehicle__registration_number }}</td>
+                                <td class="px-4 py-3 text-right font-semibold">₹{{ item.trip__total_amount|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right font-semibold">₹{{ item.expense_total|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right font-semibold">₹{{ item.profit|floatformat:2 }}</td>
+                                <td class="px-4 py-3 text-right">{{ item.profit_percentage }}%</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="px-4 py-12 text-center text-slate-500">No trips available.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECENT EXPENSES -->
+    <div class="mb-6 md:mb-8">
+        <div class="app-surface overflow-hidden">
+            <div class="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
+                <h2 class="font-bold text-sm text-slate-800">Recent Expenses</h2>
+                <a href="{% url 'expenses:list' %}" class="app-chip active-soft h-9 px-3 text-[12px]">View All</a>
+            </div>
+
+            <!-- MOBILE ROWS -->
+            <div class="md:hidden px-4 py-2">
+                {% for expense in recent_expenses %}
+                    <div class="app-row">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-[15px] font-bold text-slate-900 truncate">{{ expense.category }}</span>
+                                <span class="text-[11px] font-medium text-slate-400">{{ expense.expense_date|date:"d-M-Y" }}</span>
+                            </div>
+                            <div class="mt-0.5 text-[12px] text-slate-500 truncate">
+                                {{ expense.description }}
+                                {% if expense.vehicle %}&nbsp;·&nbsp; 🚚 {{ expense.vehicle }}{% endif %}
+                                &nbsp;·&nbsp; {{ expense.payment_method }}
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0 pl-2">
+                            <div class="text-[15px] font-extrabold text-slate-900">₹{{ expense.amount|floatformat:2 }}</div>
+                            <div class="flex justify-end mt-0.5">
+                                {% if expense.include_in_profit %}
+                                    <span class="app-dot bg-emerald-500"></span>
+                                {% else %}
+                                    <span class="app-dot bg-amber-400"></span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="py-12 text-center text-slate-500 text-sm">No expenses found.</div>
+                {% endfor %}
+            </div>
+
+            <!-- DESKTOP TABLE -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full min-w-[760px] text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-left">
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Category</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Description</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Vehicle</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Payment</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for expense in recent_expenses %}
+                            <tr class="hover:bg-slate-50/60 transition">
+                                <td class="px-4 py-3 whitespace-nowrap">{{ expense.expense_date|date:"d-M-Y" }}</td>
+                                <td class="px-4 py-3 font-semibold text-slate-900">{{ expense.category }}</td>
+                                <td class="px-4 py-3 text-slate-700">{{ expense.description }}</td>
+                                <td class="px-4 py-3 text-slate-700">{% if expense.vehicle %}{{ expense.vehicle }}{% else %}—{% endif %}</td>
+                                <td class="px-4 py-3 text-slate-700">{{ expense.payment_method }}</td>
+                                <td class="px-4 py-3 text-right font-bold whitespace-nowrap">₹{{ expense.amount|floatformat:2 }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="px-4 py-12 text-center text-slate-500">No expenses found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Filter toggle label
+    const filterDetails = document.getElementById('filter-details');
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterDetails && filterToggle) {
+        filterDetails.addEventListener('toggle', () => {
+            filterToggle.textContent = filterDetails.open ? 'Hide' : 'Show';
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block title %}Expenses{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'expenses:dashboard' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
+        ← Back
+    </a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">Expenses</span>
+    <span class="shrink-0 text-xs font-bold text-brand-600">{{ expenses|length }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<div class="mb-4 md:mb-6">
+    <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Expenses</h1>
+            <p class="text-sm text-slate-500 mt-1">View and manage recorded business expenses</p>
+        </div>
+        <div class="hidden md:flex items-center gap-2">
+            <a href="{% url 'expenses:dashboard' %}" class="btn btn-ghost">← Expense Dashboard</a>
+            <a href="{% url 'core:dashboard' %}" class="btn btn-secondary">Business Dashboard</a>
+        </div>
+    </div>
+</div>
+
+<!-- MOBILE FAB -->
+<a href="{% url 'expenses:create' %}" class="app-fab md:hidden">
+    <span>＋</span> Add Expense
+</a>
+
+<!-- EXPENSES -->
+<div class="app-surface overflow-hidden">
+    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
+        <div class="font-bold text-slate-900 text-base">
+            All Expenses
+            <span class="text-[13px] font-medium text-slate-500">({{ expenses|length }})</span>
+        </div>
+        <details class="export-menu relative md:hidden">
+            <summary class="h-9 px-3.5 rounded-full border border-slate-300 bg-white text-slate-700 text-[13px] font-bold flex items-center gap-1.5 cursor-pointer active:bg-slate-50">
+                Actions <span class="text-slate-400">▾</span>
+            </summary>
+            <div class="export-sheet">
+                <div class="export-sheet-title">Actions</div>
+                <a href="{% url 'expenses:create' %}" class="export-opt">＋ Add Expense</a>
+                <a href="{% url 'expenses:dashboard' %}" class="export-opt">← Expense Dashboard</a>
+                <a href="{% url 'core:dashboard' %}" class="export-opt">← Business Dashboard</a>
+                <a href="#" class="export-opt export-cancel">✕ Cancel</a>
+            </div>
+        </details>
+        <div class="hidden md:flex items-center gap-2">
+            <a href="{% url 'expenses:create' %}" class="btn btn-primary">＋ Add Expense</a>
+        </div>
+    </div>
+
+    <div class="max-h-[65vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth">
+
+        <!-- MOBILE ROWS -->
+        <div class="md:hidden px-4 py-2">
+            {% for expense in expenses %}
+                <div class="app-row">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-[15px] font-bold text-slate-900 truncate">{{ expense.description|default:expense.category }}</span>
+                            <span class="text-[11px] font-medium text-slate-400">{{ expense.expense_date|date:"d-M-Y" }}</span>
+                        </div>
+                        <div class="mt-0.5 text-[12px] text-slate-500 truncate">
+                            {{ expense.category }}
+                            &nbsp;·&nbsp; {{ expense.payment_method }}
+                            {% if expense.vehicle %}&nbsp;·&nbsp; 🚚 {{ expense.vehicle }}{% endif %}
+                            {% if expense.labour %}&nbsp;·&nbsp; 👷 {{ expense.labour }}{% endif %}
+                            {% if expense.paid_to %}&nbsp;·&nbsp; → {{ expense.paid_to }}{% endif %}
+                        </div>
+                        <div class="mt-2 flex items-center gap-2">
+                            <a href="{% url 'expenses:edit' expense.id %}" class="app-chip h-8 px-3 text-[12px]">Edit</a>
+                            <a href="{% url 'expenses:delete' expense.id %}" class="app-chip h-8 px-3 text-[12px] bg-red-50 text-red-600">Delete</a>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0 pl-2">
+                        <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">₹{{ expense.amount|floatformat:2 }}</div>
+                        <div class="flex justify-end mt-1">
+                            {% if expense.include_in_profit %}
+                                <span class="app-dot bg-emerald-500"></span>
+                            {% else %}
+                                <span class="app-dot bg-amber-400"></span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="py-12 text-center text-slate-500 text-sm">No expenses found.</div>
+            {% endfor %}
+        </div>
+
+        <!-- DESKTOP TABLE -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full min-w-[1100px] text-sm">
+                <thead class="sticky top-0 z-10">
+                    <tr class="bg-slate-50 border-b border-slate-100 text-left">
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Category</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Description</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Payment</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Vehicle</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Labour</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Paid To</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Amount</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Profit</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for expense in expenses %}
+                        <tr class="hover:bg-slate-50/60 transition">
+                            <td class="px-4 py-3 whitespace-nowrap font-semibold text-slate-900">{{ expense.expense_date|date:"d-M-Y" }}</td>
+                            <td class="px-4 py-3 text-slate-700">{{ expense.category }}</td>
+                            <td class="px-4 py-3 text-slate-700">{{ expense.description }}</td>
+                            <td class="px-4 py-3 text-slate-700">{{ expense.payment_method }}</td>
+                            <td class="px-4 py-3 text-slate-700">
+                                {% if expense.vehicle %}
+                                    {{ expense.vehicle }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-slate-700">
+                                {% if expense.labour %}
+                                    {{ expense.labour }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-slate-700">
+                                {% if expense.paid_to %}
+                                    {{ expense.paid_to }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right font-bold text-slate-900 whitespace-nowrap">₹{{ expense.amount|floatformat:2 }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                {% if expense.include_in_profit %}
+                                    <span class="font-semibold text-emerald-600">Yes</span>
+                                {% else %}
+                                    <span class="font-semibold text-amber-600">No</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
+                                <div class="inline-flex items-center gap-1.5">
+                                    <a href="{% url 'expenses:edit' expense.id %}" class="inline-flex h-9 px-3.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-[13px] items-center gap-1 transition hover:bg-slate-200">
+                                        Edit
+                                    </a>
+                                    <a href="{% url 'expenses:delete' expense.id %}" class="inline-flex h-9 px-3.5 rounded-lg bg-red-50 text-red-700 border border-red-200 font-semibold text-[13px] items-center gap-1 transition hover:bg-red-100">
+                                        Delete
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="10" class="px-4 py-12 text-center text-slate-500">No expenses found.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<!-- BACK LINK (desktop) -->
+<div class="hidden md:block mt-4">
+    <a href="{% url 'core:dashboard' %}" class="btn btn-ghost">← Business Dashboard</a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Close action dropdown after tapping an option (mobile)
+    document.querySelectorAll('.export-menu .export-opt').forEach(a => {
+        a.addEventListener('click', () => {
+            const d = a.closest('details');
+            if (d) d.open = false;
+        });
+    });
+</script>
+{% endblock %}

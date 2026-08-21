@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+
+{% block title %}Vehicle Report{% endblock %}
+
+{% block head %}
+<style>
+    @media (min-width: 768px) {
+        #filter-details[open] summary { display: inline-flex; }
+    }
+</style>
+{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'core:dashboard' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
+        ← Back
+    </a>
+    <form method="get" class="flex-1 relative">
+        <input type="hidden" name="from_date" value="{{ from_date }}">
+        <input type="hidden" name="to_date" value="{{ to_date }}">
+        <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search vehicle number..."
+               class="w-full h-9 pl-3 pr-8 rounded-lg border border-slate-300 bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
+    </form>
+    <span class="shrink-0 text-xs font-bold text-brand-600">{{ vehicle_rows|length }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<div class="flex items-start justify-between gap-3 mb-4 md:mb-6">
+    <div class="min-w-0">
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Vehicle Report</h1>
+        <p class="text-sm text-slate-500 mt-1">Vehicle-wise trips, revenue, payments and outstanding overview</p>
+    </div>
+    <details class="export-menu relative md:hidden shrink-0">
+        <summary class="app-chip active-soft cursor-pointer">
+            📤 Export <span class="text-slate-400">▾</span>
+        </summary>
+        <div class="export-sheet">
+            <div class="export-sheet-title">Export Options</div>
+            <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+               class="export-opt">📊 Export CSV</a>
+            <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+               class="export-opt">📗 Export Excel</a>
+            <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}" target="_blank"
+               class="export-opt">👁️ Preview PDF</a>
+            <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+               class="export-opt">📥 Download PDF</a>
+            <a href="#" class="export-opt export-cancel">✕ Cancel</a>
+        </div>
+    </details>
+    <div class="hidden md:flex gap-2 shrink-0">
+        <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+           class="btn btn-ghost">📊 CSV</a>
+        <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+           class="btn btn-ghost">📗 Excel</a>
+        <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}" target="_blank"
+           class="btn btn-ghost">👁️ PDF</a>
+        <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+           class="btn btn-primary">📥 Download</a>
+    </div>
+</div>
+
+<!-- FILTERS: vehicle type + driver chips, advanced filter toggle -->
+<form method="get" id="vehicleFiltersForm" class="mb-4 md:mb-5">
+    <select name="vehicle_type" id="vehicle_type" class="hidden" aria-hidden="true">
+        <option value="">-- All Vehicle Types --</option>
+        {% for vt in vehicle_types %}
+            <option value="{{ vt.id }}" {% if vehicle_type == vt.id|stringformat:'s' %}selected{% endif %}>{{ vt.name }}</option>
+        {% endfor %}
+    </select>
+
+    <div class="flex items-center gap-2">
+        <div class="app-tabs flex-1 min-w-0">
+            {% for vt in vehicle_types %}
+                <button type="button" data-value="{{ vt.id }}"
+                        class="app-chip chip-type {% if vehicle_type == vt.id|stringformat:'s' %}active{% endif %}">
+                    {{ vt.name }}
+                </button>
+            {% empty %}
+                <button type="button" data-value=""
+                        class="app-chip chip-type {% if not vehicle_type %}active{% endif %}">
+                    All
+                </button>
+            {% endfor %}
+        </div>
+
+        <details id="filter-details" class="relative shrink-0">
+            <summary class="app-chip active-soft cursor-pointer">
+                <span id="filter-toggle">⚙ Filters</span>
+                <span id="filtersCountBadge" class="text-[11px] font-bold">All</span>
+            </summary>
+            <div class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[19rem] md:w-[42rem] max-w-[calc(100vw-3rem)] bg-white rounded-2xl border border-slate-200 shadow-xl p-3.5">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-3.5">
+                    <div class="col-span-2">
+                        <label class="label" for="search">Search</label>
+                        <input type="text" id="search" name="search" value="{{ search }}" placeholder="Search vehicle number..."
+                               class="input">
+                    </div>
+                    <div>
+                        <label class="label" for="from_date">From Date</label>
+                        <input type="date" id="from_date" name="from_date" value="{{ from_date }}" class="input">
+                    </div>
+                    <div>
+                        <label class="label" for="to_date">To Date</label>
+                        <input type="date" id="to_date" name="to_date" value="{{ to_date }}" class="input">
+                    </div>
+                    <div class="col-span-2 md:col-span-2">
+                        <label class="label" for="vehicle_id">Vehicle No.</label>
+                        <select id="vehicle_id" name="vehicle_id" class="input">
+                            <option value="">-- All Vehicles --</option>
+                            {% for v in vehicles %}
+                                <option value="{{ v.id }}" data-type="{{ v.vehicle_type_id }}" {% if vehicle_id == v.id|stringformat:'s' %}selected{% endif %}>{{ v.registration_number }} - {{ v.vehicle_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-span-2 md:col-span-2">
+                        <label class="label" for="driver_id">Driver</label>
+                        <select id="driver_id" name="driver_id" class="input">
+                            <option value="">-- All Drivers --</option>
+                            {% for d in drivers %}
+                                <option value="{{ d.id }}" {% if driver_id == d.id|stringformat:'s' %}selected{% endif %}>{{ d.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-span-2 md:col-span-4 flex flex-col sm:flex-row gap-2.5 pt-2.5 mt-1 border-t border-slate-100">
+                        <button type="submit" class="btn btn-primary">🔍 Apply</button>
+                        <a href="{% url 'core:vehicle_report' %}" class="btn btn-secondary">Reset</a>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </div>
+</form>
+
+<!-- REPORT -->
+<div class="app-surface overflow-hidden">
+
+    <!-- FREEZE PANEL (desktop) -->
+    <div class="hidden md:flex sticky top-0 z-10 flex-wrap items-center justify-between gap-2 px-4 md:px-5 py-3 bg-slate-50 border-b border-slate-200">
+        <div class="font-bold text-sm text-slate-800">
+            🚚 Vehicles <span class="text-brand-500">{{ vehicle_rows|length }}</span>
+        </div>
+        <a href="{% url 'core:dashboard' %}"
+           class="h-10 px-4 rounded-xl bg-white border border-slate-300 text-slate-700 font-semibold text-[13px] flex items-center gap-1.5 transition active:scale-[0.98]">
+            ← Back to Business Dashboard
+        </a>
+    </div>
+
+    <!-- SCROLL + FREEZE PANEL -->
+    <div class="max-h-[65vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth">
+
+        <!-- MOBILE LIST -->
+        <div class="md:hidden px-4">
+            {% for vehicle in vehicle_rows %}
+                <div class="app-row">
+                    <div class="app-dot {% if vehicle.total_outstanding > 0 %}bg-red-400{% else %}bg-emerald-400{% endif %}"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-[15px] text-slate-900 truncate">{{ vehicle.vehicle_number }}</div>
+                        <div class="mt-0.5 text-[12px] text-slate-500">{{ vehicle.total_trips }} Trips</div>
+                        <div class="mt-0.5 text-[12px] text-slate-500">₹{{ vehicle.total_revenue|floatformat:2 }} Revenue · ₹{{ vehicle.total_received|floatformat:2 }} Received</div>
+                    </div>
+                    <div class="text-right shrink-0 pl-2">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Outstanding</div>
+                        <div class="text-[15px] font-extrabold whitespace-nowrap {% if vehicle.total_outstanding > 0 %}text-red-600{% else %}text-slate-900{% endif %}">₹{{ vehicle.total_outstanding|floatformat:2 }}</div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="py-12 text-center text-sm text-slate-500">No vehicle data found.</div>
+            {% endfor %}
+        </div>
+
+        <!-- DESKTOP TABLE -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full min-w-[700px] text-sm">
+                <thead class="sticky top-0 z-10">
+                    <tr class="bg-white border-b border-slate-200 text-left">
+                        <th class="px-5 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Vehicle</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Trips</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Revenue</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Received</th>
+                        <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Outstanding</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for vehicle in vehicle_rows %}
+                        <tr class="hover:bg-slate-50/60 transition">
+                            <td class="px-5 py-3.5 font-semibold text-slate-900">{{ vehicle.vehicle_number }}</td>
+                            <td class="px-4 py-3.5 text-right">{{ vehicle.total_trips }}</td>
+                            <td class="px-4 py-3.5 text-right whitespace-nowrap">₹{{ vehicle.total_revenue|floatformat:2 }}</td>
+                            <td class="px-4 py-3.5 text-right whitespace-nowrap text-emerald-700">₹{{ vehicle.total_received|floatformat:2 }}</td>
+                            <td class="px-4 py-3.5 text-right font-bold whitespace-nowrap {% if vehicle.total_outstanding > 0 %}text-red-600{% endif %}">₹{{ vehicle.total_outstanding|floatformat:2 }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-4 py-12 text-center text-slate-500">No vehicle data found.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- spacer for mobile bottom bars -->
+<div class="h-20 md:h-0"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Vehicle type chips
+    document.querySelectorAll('.chip-type').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            const form = document.getElementById('vehicleFiltersForm');
+            const sel = form.querySelector('select[name="vehicle_type"]');
+            if (sel) sel.value = chip.dataset.value;
+            form.submit();
+        });
+    });
+
+    // Filter toggle label
+    const filterDetails = document.getElementById('filter-details');
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterDetails && filterToggle) {
+        filterDetails.addEventListener('toggle', () => {
+            filterToggle.textContent = filterDetails.open ? 'Hide' : 'Filters';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const badge = document.getElementById('filtersCountBadge');
+        const form = document.getElementById('vehicleFiltersForm');
+        if (form && badge) {
+            let count = 0;
+            ['from_date', 'to_date', 'search', 'vehicle_id', 'vehicle_type', 'driver_id'].forEach(function (name) {
+                const el = form.elements[name];
+                if (el && el.value && el.value.trim() !== '') count++;
+            });
+            badge.textContent = count > 0 ? (count + ' active') : 'All';
+        }
+    });
+
+    // Vehicle type -> vehicle cascading filter
+    (function () {
+        var typeSelect = document.getElementById('vehicle_type');
+        var vehicleSelect = document.getElementById('vehicle_id');
+        if (!typeSelect || !vehicleSelect) {
+            return;
+        }
+        var allOptions = Array.prototype.slice.call(vehicleSelect.options);
+        function filterVehicles() {
+            var selectedType = typeSelect.value;
+            var currentVehicle = vehicleSelect.value;
+            var keepCurrent = false;
+            for (var i = allOptions.length - 1; i >= 0; i--) {
+                var opt = allOptions[i];
+                var show = (
+                    opt.value === '' ||
+                    selectedType === '' ||
+                    opt.getAttribute('data-type') === selectedType
+                );
+                if (show) {
+                    vehicleSelect.appendChild(opt);
+                    if (opt.value === currentVehicle) {
+                        keepCurrent = true;
+                    }
+                } else {
+                    vehicleSelect.removeChild(opt);
+                }
+            }
+            if (!keepCurrent) {
+                vehicleSelect.value = '';
+            }
+        }
+        filterVehicles();
+        typeSelect.addEventListener('change', filterVehicles);
+    })();
+</script>
+{% endblock %}

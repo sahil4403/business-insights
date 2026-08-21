@@ -1,0 +1,763 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ trip.trip_code }}{% endblock %}
+
+{% block head %}
+<style>
+    #trip-form input:not([type="checkbox"]):not([type="hidden"]):not(.customer-search-input):not(.driver-count-input),
+    #trip-form select {
+        width: 100%;
+        height: 3rem;
+        padding: 0 0.75rem;
+        border-radius: 0.75rem;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        font-size: 16px;
+        color: #0f172a;
+        transition: all 0.15s ease;
+        box-sizing: border-box;
+        font-family: inherit;
+    }
+    #trip-form textarea {
+        width: 100%;
+        min-height: 6rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 0.75rem;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        font-size: 16px;
+        color: #0f172a;
+        transition: all 0.15s ease;
+        box-sizing: border-box;
+        font-family: inherit;
+        resize: vertical;
+    }
+    #trip-form input:not([type="checkbox"]):not([type="hidden"]):not(.customer-search-input):not(.driver-count-input):focus,
+    #trip-form select:focus,
+    #trip-form textarea:focus {
+        outline: none;
+        border-color: #16665a;
+        box-shadow: 0 0 0 3px rgba(22, 102, 90, 0.15);
+    }
+    #trip-form select[multiple] { height: auto; min-height: 110px; }
+    .customer-search-input { width: 100%; height: 3rem; padding: 0 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; background: #fff; font-size: 16px; color: #0f172a; transition: all 0.2s ease; box-sizing: border-box; font-family: inherit; }
+    .customer-search-input:focus { outline: none; border-color: #16665a; box-shadow: 0 0 0 3px rgba(22, 102, 90, 0.15); }
+    .error { margin-top: 6px; font-size: 13px; color: #b91c1c; }
+    .help-text { margin-top: 6px; font-size: 12px; color: #6b7280; }
+    .non-field-errors { margin-bottom: 20px; padding: 12px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; color: #b91c1c; font-size: 13px; font-weight: 600; }
+    .field-error { border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important; }
+    .form-section-title { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 18px; }
+    @media (min-width: 768px) {
+        #trip-form input:not([type="checkbox"]):not([type="hidden"]):not(.customer-search-input):not(.driver-count-input),
+        #trip-form select { height: 2.75rem; font-size: 0.875rem; }
+        #trip-form textarea { font-size: 0.875rem; }
+        .customer-search-input { height: 2.75rem; font-size: 0.875rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<div class="mb-6 md:mb-8">
+    <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Edit Trip</h1>
+            <p class="text-sm text-slate-500 mt-1">Update trip information and save your changes.</p>
+        </div>
+        <span class="app-chip shrink-0 mt-1">{{ trip.trip_code }}</span>
+    </div>
+</div>
+
+{% if form.errors %}
+    <div class="mb-4 rounded-xl px-4 py-3 text-sm font-semibold bg-red-50 text-red-700 border border-red-200">
+        ⚠️ Unable to save changes. Please review the errors highlighted below.
+    </div>
+{% endif %}
+
+<form method="post" id="trip-form" class="space-y-4 md:space-y-5">
+
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+        <div class="non-field-errors">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <!-- TRIP INFORMATION -->
+    <div class="app-surface p-5 md:p-6">
+        <h2 class="form-section-title">Trip Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+
+            <div class="min-w-0">
+                <label class="label" for="{{ form.trip_date.id_for_label }}">Trip Date *</label>
+                {{ form.trip_date }}
+                {% for error in form.trip_date.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="min-w-0">
+                <label class="label" for="{{ form.trip_status.id_for_label }}">Trip Status</label>
+                {{ form.trip_status }}
+                {% for error in form.trip_status.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="min-w-0 md:col-span-2">
+                <label class="label" for="{{ form.transaction_type.id_for_label }}">Trip Type / Category *</label>
+                {{ form.transaction_type }}
+                {% for error in form.transaction_type.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="min-w-0 md:col-span-2 flex flex-col" id="customer_form_group">
+                <div class="flex items-center justify-between w-full">
+                    <label class="label" for="{{ form.customer.id_for_label }}" style="margin: 0;">Customer *</label>
+                    <button type="button" onclick="promptSaveAndViewStatement()" class="bg-transparent border-0 text-brand-500 text-[13px] font-semibold cursor-pointer flex items-center gap-1 p-2" style="color: #16665a;">
+                        📄 View Customer Statement
+                    </button>
+                </div>
+                {{ form.customer }}
+                {% for error in form.customer.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="min-w-0 md:col-span-2">
+                <label class="label" for="{{ form.destination.id_for_label }}">Destination</label>
+                {{ form.destination }}
+                {% for error in form.destination.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- VEHICLE & MATERIAL -->
+    <div class="app-surface p-5 md:p-6">
+        <h2 class="form-section-title">Vehicle & Material</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+
+            <div class="min-w-0">
+                <label class="label" for="{{ form.vehicle_category.id_for_label }}">Vehicle Type</label>
+                {{ form.vehicle_category }}
+                <label class="label mt-4" for="{{ form.vehicle.id_for_label }}">Vehicle No. (Optional)</label>
+                {{ form.vehicle }}
+                <div class="help-text">Select type first — vehicle numbers of that type will show below.</div>
+                <div class="help-text">Required if Material is selected.</div>
+                {% for error in form.vehicle.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="min-w-0 flex flex-col" id="material_form_group">
+                <label class="label" for="{{ form.material.id_for_label }}">Material</label>
+                {{ form.material }}
+                {% for error in form.material.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JCB HOUR METER & BHATTA READING -->
+    <div class="rounded-2xl border border-orange-100 bg-orange-50 p-5 md:p-6" id="jcb_reading_section">
+        <h2 class="text-orange-700 font-bold text-base flex items-center gap-2 mb-4" style="color: #c2410c;">🏗️ JCB Hour Meter & Driver Bhatta</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+
+            <div class="min-w-0">
+                <label class="label" for="{{ form.start_reading.id_for_label }}" style="color: #9a3412;">Start Reading (Decimal)</label>
+                {{ form.start_reading }}
+                <div class="help-text">e.g. 1233.2</div>
+            </div>
+
+            <div class="min-w-0">
+                <label class="label" for="{{ form.end_reading.id_for_label }}" style="color: #9a3412;">End Reading (Decimal)</label>
+                {{ form.end_reading }}
+                <div class="help-text">e.g. 1235.1</div>
+            </div>
+
+            <div class="min-w-0">
+                <label class="label" for="{{ form.total_hours.id_for_label }}" style="color: #9a3412;">Total Hours Worked</label>
+                {{ form.total_hours }}
+                <div class="help-text">Auto-calculated: End - Start (e.g. 1.9 hrs)</div>
+            </div>
+
+            <div class="min-w-0">
+                <label class="label" for="{{ form.driver_bhatta.id_for_label }}" style="color: #9a3412;">Driver Bhatta (₹ Fixed)</label>
+                {{ form.driver_bhatta }}
+                <div class="help-text">Fixed daily bhatta (Default ₹200.00)</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- DRIVERS ALLOCATION -->
+    <div class="app-surface p-5 md:p-6">
+        <h2 class="form-section-title">Drivers / Labour & Trip Allocation</h2>
+
+        <p class="text-[13px] text-slate-500 mb-4">
+            Check the drivers assigned to this trip and enter how many trips/loads each completed (e.g., Driver 1: 3 Trips, Driver 2: 2 Trips). Driver is required when a vehicle is selected — optional for JCB and Internal Stock.
+        </p>
+
+        <!-- Hidden standard select field for Django form submit -->
+        <div style="display: none;">
+            {{ form.drivers }}
+        </div>
+
+        <div id="driver_allocation_box" class="flex flex-col gap-2 sm:gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200">
+            {% for driver in form.fields.drivers.queryset %}
+                <div class="driver-allocation-row flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 rounded-xl bg-white border border-slate-200" data-driver-name="{{ driver.name }}">
+                    <label class="flex items-center gap-2.5 text-sm font-semibold text-slate-800 cursor-pointer" style="margin: 0;">
+                        <input type="checkbox" class="driver-checkbox h-5 w-5 shrink-0 cursor-pointer" data-driver-id="{{ driver.id }}" style="accent-color: #16665a;">
+                        {{ driver.name }}
+                    </label>
+                    <div class="driver-count-wrap flex items-center justify-between sm:justify-end gap-2 opacity-40 pointer-events-none transition-opacity duration-200">
+                        <span class="text-[13px] text-slate-500">Trips Done:</span>
+                        <input type="number" name="driver_count_{{ driver.id }}" class="driver-count-input w-24 h-11 sm:h-10 px-2 rounded-lg border border-slate-300 text-center text-sm font-semibold text-brand-600" data-driver-id="{{ driver.id }}" min="1" step="1" placeholder="e.g. 3">
+                        <span class="text-[13px] font-semibold text-slate-600">Trips</span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% for error in form.drivers.errors %}
+            <div class="error">{{ error }}</div>
+        {% endfor %}
+    </div>
+
+    <!-- QUANTITY & RATE -->
+    <div class="app-surface p-5 md:p-6">
+        <h2 class="form-section-title">Quantity & Rate</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+
+            <div class="min-w-0">
+                <label class="label" for="{{ form.quantity.id_for_label }}">Quantity</label>
+                {{ form.quantity }}
+                {% if form.quantity.help_text %}
+                    <div class="help-text">{{ form.quantity.help_text }}</div>
+                {% endif %}
+                {% for error in form.quantity.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="min-w-0">
+                <label class="label" for="{{ form.rate.id_for_label }}">Rate</label>
+                {{ form.rate }}
+                <div class="help-text">Can be ₹0 if rate not known yet — add it later via Edit Trip.</div>
+                {% for error in form.rate.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="app-surface p-5 md:p-6">
+        <h2 class="form-section-title">Additional Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+
+            <div class="min-w-0 md:col-span-2">
+                <label class="label" for="{{ form.notes.id_for_label }}">Notes</label>
+                {{ form.notes }}
+                {% for error in form.notes.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="fixed left-0 right-0 z-30 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] px-4 py-3 flex gap-3 md:static md:bg-transparent md:border-0 md:shadow-none md:px-0 md:py-0 md:flex md:justify-end md:gap-3 md:mt-6">
+        <a href="{% url 'trips:detail' trip.id %}" class="btn btn-secondary flex-1 md:flex-none">Cancel</a>
+        <button type="submit" class="btn btn-primary flex-1 md:flex-none">Save Changes</button>
+    </div>
+
+</form>
+
+<!-- STATEMENT CONFIRMATION MODAL -->
+<div id="statement_confirm_modal" class="hidden fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 md:p-6 shadow-2xl border border-slate-200">
+        <h3 class="mt-0 text-brand-600 text-lg font-bold" style="color: #16665a;">⚠️ Current Trip Not Saved</h3>
+        <p class="text-slate-600 text-sm mt-3 mb-5 leading-relaxed">
+            Do you want to save this current trip entry first to include it in the updated Customer Statement?
+        </p>
+        <div class="flex flex-col gap-2.5">
+            <button type="button" onclick="confirmSaveAndViewStatement(true)" class="btn btn-primary w-full">✅ Yes, Save Current Trip & Show Statement</button>
+            <button type="button" onclick="confirmSaveAndViewStatement(false)" class="btn btn-secondary w-full">🚫 No, View Statement Without Saving Current Trip</button>
+            <button type="button" onclick="closeStatementModal()" class="bg-transparent border-0 text-slate-500 text-sm font-semibold py-2 mt-1 cursor-pointer">Cancel</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const customerSelect = document.getElementById("id_customer");
+    if (customerSelect) {
+        const searchInput = document.createElement("input");
+        searchInput.type = "text";
+        searchInput.id = "customer_quick_filter";
+        searchInput.className = "customer-search-input";
+        searchInput.placeholder = "🔍 Type to filter customer dropdown list...";
+        searchInput.autocomplete = "off";
+        searchInput.style.marginBottom = "8px";
+
+        customerSelect.parentNode.insertBefore(searchInput, customerSelect);
+
+        const originalOptions = Array.from(customerSelect.options);
+
+        function syncSearchFromSelection() {
+            const sel = customerSelect.options[customerSelect.selectedIndex];
+            searchInput.value = (sel && sel.value) ? sel.text.trim() : "";
+        }
+
+        customerSelect.addEventListener("change", syncSearchFromSelection);
+        syncSearchFromSelection();
+
+        searchInput.addEventListener("input", function() {
+            const query = searchInput.value.trim().toLowerCase();
+            const currentValue = customerSelect.value;
+
+            customerSelect.innerHTML = "";
+            
+            const blankOpt = originalOptions.find(opt => !opt.value);
+            if (blankOpt) {
+                customerSelect.appendChild(blankOpt.cloneNode(true));
+            }
+
+            const matches = originalOptions.filter(opt => opt.value && opt.text.toLowerCase().includes(query));
+            matches.forEach(opt => {
+                const clone = opt.cloneNode(true);
+                if (clone.value === currentValue) {
+                    clone.selected = true;
+                }
+                customerSelect.appendChild(clone);
+            });
+
+            if (matches.length === 1) {
+                customerSelect.value = matches[0].value;
+                searchInput.value = matches[0].text.trim();
+            }
+        });
+
+        const transTypeSelect = document.getElementById("id_transaction_type");
+        const customerGroup = document.getElementById("customer_form_group");
+
+        function toggleCustomerVisibility() {
+            if (!transTypeSelect || !customerGroup) return;
+            if (transTypeSelect.value === "INTERNAL_STOCK") {
+                customerGroup.style.display = "none";
+                customerSelect.value = "";
+                searchInput.value = "";
+            } else {
+                customerGroup.style.display = "flex";
+            }
+        }
+
+        if (transTypeSelect) {
+            transTypeSelect.addEventListener("change", toggleCustomerVisibility);
+            toggleCustomerVisibility();
+        }
+    }
+
+    // Driver trip allocation checkbox & sync handler
+    const driversSelect = document.getElementById("id_drivers");
+    const driverRows = document.querySelectorAll(".driver-allocation-row");
+    const quantityInput = document.getElementById("id_quantity");
+    const initialCounts = {{ trip.driver_trip_counts|default:"{}"|safe }};
+
+    function syncDriverTripCountSum() {
+        if (!driverRows || driverRows.length === 0 || !quantityInput) return;
+        
+        let totalDriverTrips = 0;
+        let hasDriverAllocation = false;
+
+        driverRows.forEach(row => {
+            const chk = row.querySelector(".driver-checkbox");
+            const countInput = row.querySelector(".driver-count-input");
+            if (chk && chk.checked && countInput) {
+                const val = parseFloat(countInput.value) || 0;
+                if (val > 0) {
+                    totalDriverTrips += val;
+                    hasDriverAllocation = true;
+                }
+            }
+        });
+
+        if (hasDriverAllocation) {
+            quantityInput.value = totalDriverTrips;
+            quantityInput.style.backgroundColor = "#ecfdf5";
+            quantityInput.style.borderColor = "#10b981";
+        } else {
+            quantityInput.style.backgroundColor = "";
+            quantityInput.style.borderColor = "";
+        }
+    }
+
+    if (driversSelect && driverRows.length > 0) {
+        function syncDriversSelect() {
+            driverRows.forEach(row => {
+                const chk = row.querySelector(".driver-checkbox");
+                const driverId = chk.dataset.driverId;
+                const opt = Array.from(driversSelect.options).find(o => o.value === driverId);
+                if (opt) {
+                    opt.selected = chk.checked;
+                }
+            });
+        }
+
+        driverRows.forEach(row => {
+            const chk = row.querySelector(".driver-checkbox");
+            const countWrap = row.querySelector(".driver-count-wrap");
+            const countInput = row.querySelector(".driver-count-input");
+            const driverId = chk.dataset.driverId;
+
+            // Set initial count value if exists
+            const existingCount = initialCounts[driverId] || initialCounts[String(driverId)];
+            if (existingCount) {
+                countInput.value = existingCount;
+            }
+
+            const opt = Array.from(driversSelect.options).find(o => o.value === driverId);
+            if (opt && opt.selected) {
+                chk.checked = true;
+                countWrap.style.opacity = "1";
+                countWrap.style.pointerEvents = "auto";
+            }
+
+            chk.addEventListener("change", function() {
+                if (chk.checked) {
+                    countWrap.style.opacity = "1";
+                    countWrap.style.pointerEvents = "auto";
+                    if (!countInput.value) countInput.focus();
+                } else {
+                    countWrap.style.opacity = "0.4";
+                    countWrap.style.pointerEvents = "none";
+                }
+                syncDriversSelect();
+                syncDriverTripCountSum();
+            });
+
+            if (countInput) {
+                countInput.addEventListener("input", function() {
+                    syncDriverTripCountSum();
+                });
+            }
+        });
+
+        }
+
+    // SUBMIT VALIDATION — required fields, scroll + highlight
+    function markInvalid(input) {
+        input.classList.add("field-error");
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+        input.focus({ preventScroll: true });
+        input.addEventListener("input", () => input.classList.remove("field-error"), { once: true });
+        input.addEventListener("change", () => input.classList.remove("field-error"), { once: true });
+    }
+
+    const tripForm = document.querySelector("form");
+    if (tripForm) {
+        tripForm.addEventListener("submit", function(e) {
+            syncDriversSelect();
+            syncDriverTripCountSum();
+
+            const tripDateInput = document.getElementById("id_trip_date");
+            const transTypeSelect = document.getElementById("id_transaction_type");
+            const customerSelect = document.getElementById("id_customer");
+            const customerGroup = document.getElementById("customer_form_group");
+            const materialSelect = document.getElementById("id_material");
+            const vehicleSelect = document.getElementById("id_vehicle");
+            const vehicleCatSelect = document.getElementById("id_vehicle_category");
+
+            function isJcbActive() {
+                const cat = (vehicleCatSelect && vehicleCatSelect.value || "").toUpperCase();
+                const vehText = vehicleSelect && vehicleSelect.selectedIndex >= 0
+                    ? vehicleSelect.options[vehicleSelect.selectedIndex].text.toUpperCase() : "";
+                return cat === "JCB" || vehText.includes("JCB");
+            }
+
+            if (tripDateInput && !tripDateInput.value) {
+                e.preventDefault();
+                markInvalid(tripDateInput);
+                return false;
+            }
+
+            const isInternal = transTypeSelect && transTypeSelect.value === "INTERNAL_STOCK";
+            if (!isInternal && customerGroup && customerGroup.style.display !== "none"
+                && customerSelect && !customerSelect.value) {
+                e.preventDefault();
+                markInvalid(customerSelect);
+                return false;
+            }
+
+            if (!isJcbActive() && materialSelect && materialSelect.value
+                && vehicleSelect && !vehicleSelect.value) {
+                e.preventDefault();
+                markInvalid(vehicleSelect);
+                return false;
+            }
+
+            if (!isInternal && !isJcbActive() && vehicleSelect && vehicleSelect.value) {
+                const driverCheckboxes = document.querySelectorAll(".driver-checkbox");
+                let hasDriver = false;
+                driverCheckboxes.forEach(cb => { if (cb.checked) hasDriver = true; });
+                if (!hasDriver) {
+                    const target = driverCheckboxes[0] || document.querySelector("#driver_allocation_box");
+                    if (target) {
+                        e.preventDefault();
+                        markInvalid(target);
+                        return false;
+                    }
+                }
+            }
+
+            const qtyVal = parseFloat(quantityInput ? quantityInput.value : 0) || 0;
+            if (qtyVal <= 0) {
+                e.preventDefault();
+                alert("⚠️ Please fill out the Quantity field (or enter Driver Trip Allocations) before saving!");
+                if (quantityInput) quantityInput.focus();
+                return false;
+            }
+        });
+    }
+});
+
+function promptSaveAndViewStatement() {
+    const customerSelect = document.getElementById("id_customer");
+    if (!customerSelect || !customerSelect.value) {
+        alert("Please select a customer first to view their statement.");
+        return;
+    }
+    const modal = document.getElementById("statement_confirm_modal");
+    if (modal) modal.style.display = "flex";
+}
+
+function closeStatementModal() {
+    const modal = document.getElementById("statement_confirm_modal");
+    if (modal) modal.style.display = "none";
+}
+
+function confirmSaveAndViewStatement(shouldSave) {
+    const customerSelect = document.getElementById("id_customer");
+    const customerId = customerSelect ? customerSelect.value : "";
+    if (!customerId) return;
+
+    if (shouldSave) {
+        const form = customerSelect.closest("form");
+        if (form) {
+            let hiddenInput = document.getElementById("save_and_view_statement_input");
+            if (!hiddenInput) {
+                hiddenInput = document.createElement("input");
+                hiddenInput.type = "hidden";
+                hiddenInput.id = "save_and_view_statement_input";
+                hiddenInput.name = "save_and_view_statement";
+                form.appendChild(hiddenInput);
+            }
+            hiddenInput.value = "1";
+            form.submit();
+        }
+    } else {
+        window.location.href = `/ledger/customer/${customerId}/`;
+    }
+}
+
+function toggleJcbSectionVisibility() {
+    const jcbSection = document.getElementById("jcb_reading_section");
+    const materialGroup = document.getElementById("material_form_group");
+    const vehicleSelect = document.getElementById("id_vehicle");
+    if (!jcbSection) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoryParam = (urlParams.get("category") || "").toLowerCase();
+
+    let isJcb = (categoryParam === "jcb");
+
+    const vehicleCatSelect = document.getElementById("id_vehicle_category");
+    if (!isJcb && vehicleCatSelect && (vehicleCatSelect.value || "").toUpperCase() === "JCB") {
+        isJcb = true;
+    }
+
+    if (!isJcb && vehicleSelect && vehicleSelect.selectedIndex >= 0) {
+        const selectedText = vehicleSelect.options[vehicleSelect.selectedIndex].text.toUpperCase();
+        if (selectedText.includes("JCB")) {
+            isJcb = true;
+        }
+    }
+
+    if (isJcb) {
+        jcbSection.style.display = "block";
+        if (materialGroup) {
+            materialGroup.style.display = "none";
+        }
+        const driverBhattaInput = document.getElementById("id_driver_bhatta");
+        if (driverBhattaInput && (!driverBhattaInput.value || driverBhattaInput.value === "0.00" || driverBhattaInput.value === "0")) {
+            driverBhattaInput.value = "200.00";
+        }
+    } else {
+        jcbSection.style.display = "none";
+        if (materialGroup) {
+            materialGroup.style.display = "flex";
+        }
+        const driverBhattaInput = document.getElementById("id_driver_bhatta");
+        if (driverBhattaInput) {
+            driverBhattaInput.value = "0.00";
+        }
+    }
+}
+
+function updateJcbCalculations() {
+    const startInput = document.getElementById("id_start_reading");
+    const endInput = document.getElementById("id_end_reading");
+    const totalHoursInput = document.getElementById("id_total_hours");
+    const quantityInput = document.getElementById("id_quantity");
+
+    if (startInput && endInput && totalHoursInput) {
+        const startVal = parseFloat(startInput.value);
+        const endVal = parseFloat(endInput.value);
+
+        if (!isNaN(startVal) && !isNaN(endVal) && endVal >= startVal) {
+            const hrs = (endVal - startVal).toFixed(2);
+            totalHoursInput.value = parseFloat(hrs);
+            if (quantityInput) {
+                quantityInput.value = parseFloat(hrs);
+            }
+        }
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    const vehicleSelect = document.getElementById("id_vehicle");
+    if (vehicleSelect) {
+        vehicleSelect.addEventListener("change", toggleJcbSectionVisibility);
+    }
+    toggleJcbSectionVisibility();
+
+    function setupVehicleTypeFilter() {
+        const typeSelect = document.getElementById("id_vehicle_category");
+        if (!typeSelect || !vehicleSelect) return;
+
+        const originalOptions = Array.from(vehicleSelect.options);
+        const blankOption = originalOptions.find(o => !o.value);
+
+        function vehicleTypeOf(opt) {
+            const txt = opt.text;
+            const idx = txt.lastIndexOf(" - ");
+            return idx >= 0 ? txt.substring(idx + 3).trim().toLowerCase() : "";
+        }
+
+        function filterVehicles() {
+            const want = (typeSelect.value || "").toLowerCase();
+            const current = vehicleSelect.value;
+            vehicleSelect.innerHTML = "";
+            if (blankOption) vehicleSelect.appendChild(blankOption.cloneNode(true));
+            originalOptions.forEach(opt => {
+                if (!opt.value) return;
+                if (!want || vehicleTypeOf(opt) === want) {
+                    const clone = opt.cloneNode(true);
+                    if (clone.value === current) clone.selected = true;
+                    vehicleSelect.appendChild(clone);
+                }
+            });
+            if (want && vehicleSelect.value !== current) {
+                vehicleSelect.value = "";
+            }
+            toggleJcbSectionVisibility();
+        }
+
+        typeSelect.addEventListener("change", filterVehicles);
+
+        const current = vehicleSelect.value;
+        if (current) {
+            const selOpt = originalOptions.find(o => o.value === current);
+            if (selOpt) {
+                const t = vehicleTypeOf(selOpt);
+                if (t) {
+                    Array.from(typeSelect.options).forEach(opt => {
+                        if (opt.value.toLowerCase() === t) opt.selected = true;
+                    });
+                }
+            }
+        }
+        filterVehicles();
+    }
+    setupVehicleTypeFilter();
+
+    function setupDriverFilter() {
+        const typeSel = document.getElementById("id_vehicle_category");
+        const driverSelect = document.getElementById("id_drivers");
+        if (!typeSel || !driverSelect) return;
+
+        const tractorOnlyNames = ["ankush bhau", "kishan bhau", "shubham bhau"];
+        const allDriverOptions = Array.from(driverSelect.options);
+        const driverRows = document.querySelectorAll(".driver-allocation-row");
+
+        function filterDrivers() {
+            const want = (typeSel.value || "").toLowerCase();
+            const current = driverSelect.value;
+            let keptCurrent = false;
+
+            driverSelect.innerHTML = "";
+            allDriverOptions.forEach(opt => {
+                if (!opt.value) {
+                    driverSelect.appendChild(opt.cloneNode(true));
+                    return;
+                }
+                const name = opt.text.trim().toLowerCase();
+                const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
+                const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
+                if (show) {
+                    const clone = opt.cloneNode(true);
+                    if (clone.value === current) {
+                        clone.selected = true;
+                        keptCurrent = true;
+                    }
+                    driverSelect.appendChild(clone);
+                }
+            });
+
+            if (current && !keptCurrent) {
+                driverSelect.value = "";
+            }
+
+            driverRows.forEach(row => {
+                const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
+                const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
+                const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
+                if (show) {
+                    row.style.display = "flex";
+                } else {
+                    row.style.display = "none";
+                    const chk = row.querySelector(".driver-checkbox");
+                    if (chk && chk.checked) {
+                        chk.checked = false;
+                        chk.dispatchEvent(new Event("change"));
+                    }
+                }
+            });
+        }
+
+        typeSel.addEventListener("change", filterDrivers);
+        filterDrivers();
+    }
+    setupDriverFilter();
+
+    const startInput = document.getElementById("id_start_reading");
+    const endInput = document.getElementById("id_end_reading");
+    if (startInput) startInput.addEventListener("input", updateJcbCalculations);
+    if (endInput) endInput.addEventListener("input", updateJcbCalculations);
+});
+</script>
+{% endblock %}

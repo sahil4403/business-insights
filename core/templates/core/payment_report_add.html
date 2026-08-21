@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Payment | Business Insights{% endblock %}
+
+{% block head %}
+<style>
+    .suggestion-item { padding: 12px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 600; color: #1e293b; background: #ffffff; }
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-item:hover, .suggestion-item.active { background: #eef7f5; color: #16665a; }
+    .suggestion-item small { display: block; font-weight: 400; font-size: 12px; color: #64748b; margin-top: 2px; }
+    .no-results { padding: 12px 14px; font-size: 13px; color: #64748b; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<div class="mb-4 md:mb-6">
+    <h1 class="text-xl md:text-2xl font-bold text-slate-900">Add Payment</h1>
+    <p class="text-xs text-slate-500 mt-0.5">Payment entry - customer ke account me auto-adjust hota hai</p>
+</div>
+
+<!-- FORM -->
+<div class="app-surface p-4 md:p-6 mb-4">
+
+    <form method="post" id="payment-form" class="space-y-5">
+
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="rounded-xl px-4 py-3 text-sm font-semibold bg-red-50 text-red-700 border border-red-200 space-y-1">
+                {% for error in form.non_field_errors %}
+                    <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div>
+            <label class="label" for="customer_search">Customer *</label>
+            <input
+                type="text"
+                id="customer_search"
+                autocomplete="off"
+                placeholder="Naam type karo - suggestions aayengi..."
+                value="{{ selected_customer_name|default:'' }}"
+                class="input"
+            >
+            <input
+                type="hidden"
+                name="customer"
+                id="id_customer"
+                value="{{ form.customer.value|default:'' }}"
+            >
+            <div id="customer_suggestions" class="suggestions mt-2 bg-white border border-slate-300 rounded-xl overflow-hidden max-h-[260px] overflow-y-auto shadow-lg" style="display: none;"></div>
+            {% if form.customer.errors %}
+                <div class="mt-1.5 text-xs font-semibold text-red-600">{{ form.customer.errors|join:"" }}</div>
+            {% endif %}
+        </div>
+
+        <div>
+            <label class="label" for="id_payment_date">Payment Date *</label>
+            <input
+                type="date"
+                name="payment_date"
+                id="id_payment_date"
+                value="{{ form.payment_date.value|default_if_none:'' }}"
+                class="input"
+            >
+            {% for error in form.payment_date.errors %}
+                <div class="mt-1.5 text-xs font-semibold text-red-600">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div>
+            <label class="label" for="id_amount">Amount (₹) *</label>
+            <input
+                type="number"
+                name="amount"
+                id="id_amount"
+                step="0.01"
+                min="0.01"
+                value="{{ form.amount.value|default_if_none:'' }}"
+                class="input"
+            >
+            <p class="mt-1.5 text-xs text-slate-500 leading-relaxed">
+                Jitna payment mila hai wo amount dalo - outstanding me auto-adjust ho jayega
+            </p>
+            {% for error in form.amount.errors %}
+                <div class="mt-1.5 text-xs font-semibold text-red-600">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div>
+            <label class="label" for="id_payment_method">Payment Method *</label>
+            <select name="payment_method" id="id_payment_method" class="input">
+                {% for value, label in form.payment_method.field.choices %}
+                    <option value="{{ value }}"{% if form.payment_method.value|stringformat:"s" == value|stringformat:"s" %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            {% for error in form.payment_method.errors %}
+                <div class="mt-1.5 text-xs font-semibold text-red-600">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div>
+            <label class="label" for="id_reference_number">Reference Number</label>
+            <input
+                type="text"
+                name="reference_number"
+                id="id_reference_number"
+                placeholder="Optional"
+                value="{{ form.reference_number.value|default_if_none:'' }}"
+                class="input"
+            >
+            <p class="mt-1.5 text-xs text-slate-500 leading-relaxed">
+                Optional - UPI ref / cheque no. / receipt no.
+            </p>
+            {% for error in form.reference_number.errors %}
+                <div class="mt-1.5 text-xs font-semibold text-red-600">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div>
+            <label class="label" for="id_notes">Notes</label>
+            <textarea name="notes" id="id_notes" rows="3" placeholder="Optional notes"
+                      class="w-full px-3 py-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">{{ form.notes.value|default_if_none:'' }}</textarea>
+            {% for error in form.notes.errors %}
+                <div class="mt-1.5 text-xs font-semibold text-red-600">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <!-- DESKTOP ACTIONS -->
+        <div class="hidden md:flex justify-end gap-3 pt-2">
+            <a
+                href="{% if next_url %}{{ next_url }}{% else %}{% url 'core:payment_report' %}{% endif %}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                Save Payment
+            </button>
+        </div>
+
+    </form>
+
+</div>
+
+<!-- spacer for mobile bottom action bar -->
+<div class="h-32 md:h-0"></div>
+
+<!-- MOBILE STICKY ACTION BAR -->
+<div class="md:hidden fixed left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 pt-3 pb-3 flex gap-3 shadow-[0_-4px_20px_rgba(15,23,42,0.06)]"
+     style="bottom: calc(4.25rem + env(safe-area-inset-bottom));">
+    <a
+        href="{% if next_url %}{{ next_url }}{% else %}{% url 'core:payment_report' %}{% endif %}"
+        class="btn btn-secondary flex-1"
+    >
+        Cancel
+    </a>
+    <button
+        type="submit"
+        form="payment-form"
+        class="btn btn-primary flex-1"
+    >
+        Save Payment
+    </button>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById("customer_search");
+    const hiddenInput = document.getElementById("id_customer");
+    const suggestionsBox = document.getElementById("customer_suggestions");
+    if (!searchInput) return;
+
+    let items = [];
+    let activeIndex = -1;
+    let timer = null;
+
+    function hideSuggestions() {
+        suggestionsBox.style.display = "none";
+        items = [];
+        activeIndex = -1;
+    }
+
+    function selectItem(item) {
+        hiddenInput.value = item.id;
+        searchInput.value = item.name;
+        hideSuggestions();
+    }
+
+    searchInput.addEventListener("input", function() {
+        clearTimeout(timer);
+        const q = searchInput.value.trim();
+        if (q.length < 2) {
+            hideSuggestions();
+            return;
+        }
+        timer = setTimeout(function() {
+            fetch("{% url 'core:customer_search_api' %}?q=" + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(data => {
+                    items = data.results || [];
+                    if (!items.length) {
+                        suggestionsBox.innerHTML = '<div class="no-results">Koi customer nahi mila - sahi spelling check karo</div>';
+                        suggestionsBox.style.display = "block";
+                        return;
+                    }
+                    activeIndex = -1;
+                    suggestionsBox.innerHTML = "";
+                    items.forEach(function(item, idx) {
+                        const div = document.createElement("div");
+                        div.className = "suggestion-item";
+                        div.innerHTML = item.name +
+                            (item.mobile ? " <small>📱 " + item.mobile + "</small>" : "") +
+                            (item.city ? " <small>📍 " + item.city + "</small>" : "");
+                        div.addEventListener("click", function() {
+                            selectItem(item);
+                        });
+                        div.addEventListener("mousemove", function() {
+                            activeIndex = idx;
+                            highlight();
+                        });
+                        suggestionsBox.appendChild(div);
+                    });
+                    suggestionsBox.style.display = "block";
+                });
+        }, 250);
+    });
+
+    function highlight() {
+        const els = suggestionsBox.querySelectorAll(".suggestion-item");
+        els.forEach(function(el, idx) {
+            el.classList.toggle("active", idx === activeIndex);
+        });
+    }
+
+    searchInput.addEventListener("keydown", function(e) {
+        if (suggestionsBox.style.display === "none") return;
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            activeIndex = Math.min(items.length - 1, activeIndex + 1);
+            highlight();
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            activeIndex = Math.max(-1, activeIndex - 1);
+            highlight();
+        } else if (e.key === "Enter") {
+            if (activeIndex >= 0 && items[activeIndex]) {
+                e.preventDefault();
+                selectItem(items[activeIndex]);
+            }
+        } else if (e.key === "Escape") {
+            hideSuggestions();
+        }
+    });
+
+    document.addEventListener("click", function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            hideSuggestions();
+        }
+    });
+
+    searchInput.addEventListener("blur", function() {
+        if (!hiddenInput.value) {
+            searchInput.value = "";
+        }
+    });
+});
+</script>
+{% endblock %}

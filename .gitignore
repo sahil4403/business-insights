@@ -17,6 +17,7 @@ env/
 # Django
 *.log
 db.sqlite3
+shri_raj_production
 
 # Test export files
 Check.pdf

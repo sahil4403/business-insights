@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title|default:"Add Expense" }}{% endblock %}
+
+{% block head %}
+<style>
+    #expense-form input, #expense-form select, #expense-form textarea {
+        width: 100%; height: 3rem; padding: 0 0.75rem; border-radius: 0.75rem;
+        border: 1px solid #cbd5e1; background: #fff; font-size: 16px;
+        color: #0f172a; transition: all 0.15s ease; box-sizing: border-box;
+        font-family: inherit;
+    }
+    #expense-form input:focus, #expense-form select:focus, #expense-form textarea:focus {
+        outline: none; border-color: #16665a; box-shadow: 0 0 0 3px rgba(22,102,90,0.15);
+    }
+    #expense-form textarea { height: auto; min-height: 6rem; padding-top: 0.75rem; resize: vertical; }
+    #expense-form input[type="checkbox"] { width: 1.25rem; height: 1.25rem; accent-color: #16665a; }
+    @media (min-width: 768px) {
+        #expense-form input, #expense-form select { height: 2.75rem; font-size: 0.875rem; }
+        #expense-form textarea { font-size: 0.875rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+    <!-- HEADER -->
+    <div class="mb-5 md:mb-6">
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">{{ page_title|default:"Add Expense" }}</h1>
+        <p class="text-sm text-slate-500 mt-1">Record a new business expense</p>
+    </div>
+
+    {% if form.errors %}
+        <div class="mb-4 rounded-xl px-4 py-3 text-sm font-semibold bg-red-50 text-red-700 border border-red-200">
+            ⚠️ Unable to save expense. Please review the errors highlighted below.
+        </div>
+    {% endif %}
+
+    <form method="post" id="expense-form">
+
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="mb-4 rounded-xl px-4 py-3 text-sm font-semibold bg-red-50 text-red-700 border border-red-200">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <div class="app-surface p-5 md:p-6">
+            <span class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4">Expense Details</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+
+                <!-- EXPENSE DATE -->
+                <div>
+                    <label class="label" for="{{ form.expense_date.id_for_label }}">Expense Date</label>
+                    {{ form.expense_date }}
+                    {% for error in form.expense_date.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- CATEGORY -->
+                <div>
+                    <label class="label" for="{{ form.category.id_for_label }}">Category</label>
+                    {{ form.category }}
+                    {% for error in form.category.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- DESCRIPTION -->
+                <div class="md:col-span-2">
+                    <label class="label" for="{{ form.description.id_for_label }}">Description</label>
+                    {{ form.description }}
+                    {% for error in form.description.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- AMOUNT -->
+                <div>
+                    <label class="label" for="{{ form.amount.id_for_label }}">Amount</label>
+                    {{ form.amount }}
+                    {% for error in form.amount.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- PAYMENT METHOD -->
+                <div>
+                    <label class="label" for="{{ form.payment_method.id_for_label }}">Payment Method</label>
+                    {{ form.payment_method }}
+                    {% for error in form.payment_method.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- VEHICLE -->
+                <div>
+                    <label class="label" for="{{ form.vehicle.id_for_label }}">Vehicle</label>
+                    {{ form.vehicle }}
+                    {% for error in form.vehicle.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- LABOUR -->
+                <div>
+                    <label class="label" for="{{ form.labour.id_for_label }}">Labour</label>
+                    {{ form.labour }}
+                    {% for error in form.labour.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- PAID TO -->
+                <div>
+                    <label class="label" for="{{ form.paid_to.id_for_label }}">Paid To</label>
+                    {{ form.paid_to }}
+                    {% for error in form.paid_to.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- REFERENCE -->
+                <div>
+                    <label class="label" for="{{ form.reference_number.id_for_label }}">Reference Number</label>
+                    {{ form.reference_number }}
+                    {% for error in form.reference_number.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- NOTES -->
+                <div class="md:col-span-2">
+                    <label class="label" for="{{ form.notes.id_for_label }}">Notes</label>
+                    {{ form.notes }}
+                    {% for error in form.notes.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- INCLUDE IN PROFIT -->
+                <div class="md:col-span-2">
+                    <div class="flex items-center gap-3 py-2">
+                        {{ form.include_in_profit }}
+                        <label class="text-sm font-semibold text-slate-700 cursor-pointer" for="{{ form.include_in_profit.id_for_label }}">
+                            Include this expense in business profit calculation
+                        </label>
+                    </div>
+                    {% for error in form.include_in_profit.errors %}
+                        <div class="text-red-600 text-xs font-medium mt-1.5">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ACTIONS: sticky bottom bar (mobile) / right-aligned (desktop) -->
+        <div class="fixed left-0 right-0 z-30 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] px-4 py-3 flex gap-3 md:static md:bg-transparent md:border-0 md:shadow-none md:px-0 md:py-0 md:justify-end md:gap-3 md:mt-6">
+            <a href="{% url 'expenses:dashboard' %}" class="btn btn-secondary flex-1 md:flex-none">Cancel</a>
+            <button type="submit" class="btn btn-primary flex-1 md:flex-none">Save Expense</button>
+        </div>
+
+    </form>
+
+{% endblock %}
