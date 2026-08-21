@@ -156,6 +156,7 @@ def customer_statement(request, customer_id):
                 'debit': Decimal('0'),
                 'credit': trip.total_amount,
                 'reference': trip.trip_code,
+                'destination': trip.destination or '',
                 'trip_id': trip.id,
                 'outstanding': trip.outstanding_amount,
             })
@@ -171,6 +172,7 @@ def customer_statement(request, customer_id):
                 'debit': trip.total_amount,
                 'credit': Decimal('0'),
                 'reference': trip.trip_code,
+                'destination': trip.destination or '',
                 'trip_id': trip.id,
                 'outstanding': trip.outstanding_amount,
             })
@@ -181,6 +183,9 @@ def customer_statement(request, customer_id):
         p_date = payment.payment_date or (payment.trip.trip_date if payment.trip else today_date)
         p_ref = payment.trip.trip_code if payment.trip else (payment.reference_number or "On-Account")
         p_trip_id = payment.trip.id if payment.trip else None
+        p_destination = (
+            (payment.trip.destination or '') if payment.trip else ''
+        )
         p_type = getattr(payment, 'payment_type', 'RECEIVED')
 
         if p_type == 'PAID':
@@ -193,6 +198,7 @@ def customer_statement(request, customer_id):
                 'debit': payment.amount,
                 'credit': Decimal('0'),
                 'reference': p_ref,
+                'destination': p_destination,
                 'trip_id': p_trip_id,
                 'payment_id': payment.id,
             })
@@ -206,6 +212,7 @@ def customer_statement(request, customer_id):
                 'debit': Decimal('0'),
                 'credit': payment.amount,
                 'reference': p_ref,
+                'destination': p_destination,
                 'trip_id': p_trip_id,
                 'payment_id': payment.id,
             })
@@ -219,6 +226,7 @@ def customer_statement(request, customer_id):
                 'debit': Decimal('0'),
                 'credit': payment.amount,
                 'reference': p_ref,
+                'destination': p_destination,
                 'trip_id': p_trip_id,
                 'payment_id': payment.id,
             })

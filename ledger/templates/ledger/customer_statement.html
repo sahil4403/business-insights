@@ -171,13 +171,9 @@
                             {% endif %}
                         </div>
                         <div class="text-sm font-semibold text-slate-900 mt-1 leading-snug">{{ transaction.description }}</div>
-                        <div class="text-xs text-slate-500 mt-0.5">
-                            {% if transaction.trip_id %}
-                                <a href="{% url 'trips:detail' transaction.trip_id %}" class="text-brand-600 font-semibold no-underline">{{ transaction.reference }} ↗</a>
-                            {% else %}
-                                {{ transaction.reference }}
-                            {% endif %}
-                        </div>
+                        {% if transaction.destination %}
+                            <div class="text-xs text-slate-500 mt-0.5">📍 {{ transaction.destination }}</div>
+                        {% endif %}
 
                         {% if transaction.type == 'SALE' %}
                             <div class="flex items-center gap-2 mt-2">
@@ -224,7 +220,7 @@
                         <th class="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date</th>
                         <th class="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Type</th>
                         <th class="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</th>
-                        <th class="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reference</th>
+                        <th class="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Destination</th>
                         <th class="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Debit (₹)</th>
                         <th class="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Credit (₹)</th>
                         <th class="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Balance (₹)</th>
@@ -254,12 +250,8 @@
                                 {% endif %}
                             </td>
                             <td class="px-5 py-3 text-slate-700">{{ transaction.description }}</td>
-                            <td class="px-5 py-3 whitespace-nowrap text-slate-500">
-                                {% if transaction.trip_id %}
-                                    <a href="{% url 'trips:detail' transaction.trip_id %}" class="text-brand-600 font-semibold no-underline hover:underline">{{ transaction.reference }} ↗</a>
-                                {% else %}
-                                    {{ transaction.reference }}
-                                {% endif %}
+                            <td class="px-5 py-3 text-slate-500">
+                                {% if transaction.destination %}📍 {{ transaction.destination }}{% else %}—{% endif %}
                             </td>
                             <td class="px-5 py-3 text-right font-semibold text-red-600 whitespace-nowrap">
                                 {% if transaction.debit %}₹{{ transaction.debit|floatformat:2 }}{% else %}—{% endif %}
