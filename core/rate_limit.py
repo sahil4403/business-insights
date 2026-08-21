@@ -9,7 +9,10 @@ WINDOW_SECONDS = 900
 def get_client_ip(request):
     xff = request.META.get('HTTP_X_FORWARDED_FOR')
     if xff:
-        return xff.split(',')[0].strip()
+        # Take the LAST entry: proxies (e.g. PythonAnywhere) append the real
+        # client IP at the end. The first entries can be spoofed by attackers
+        # to bypass per-IP rate limits.
+        return xff.split(',')[-1].strip()
     return request.META.get('REMOTE_ADDR', '') or 'unknown'
 
 
