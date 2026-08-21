@@ -238,27 +238,19 @@
                 document.querySelectorAll('.export-menu[open]').forEach(function (d) { d.open = false; });
             }
         });
-        // Scroll-reveal top bar (mobile)
+        // Scroll-reveal top bar (mobile) — stays visible while scrolled down so Back stays tappable
         const scrollTopbar = document.getElementById('scroll-topbar');
         if (scrollTopbar) {
             let lastY = window.scrollY;
-            let hideTimer = null;
             window.addEventListener('scroll', function () {
                 const y = window.scrollY;
-                if (y > 90 && y > lastY) {
+                if (y > 90) {
                     scrollTopbar.classList.add('show');
-                    clearTimeout(hideTimer);
-                    hideTimer = setTimeout(function () { scrollTopbar.classList.remove('show'); }, 2500);
-                } else if (y < lastY && y > 90) {
-                    scrollTopbar.classList.add('show');
-                    clearTimeout(hideTimer);
-                    hideTimer = setTimeout(function () { scrollTopbar.classList.remove('show'); }, 1500);
-                } else if (y <= 90) {
+                } else {
                     scrollTopbar.classList.remove('show');
-                    clearTimeout(hideTimer);
                 }
                 lastY = y;
-            });
+            }, { passive: true });
         }
     </script>
 </body>
