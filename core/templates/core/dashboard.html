@@ -106,14 +106,13 @@
                     <a href="{% url 'trips:detail' trip.id %}" class="app-row no-underline">
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2">
-                                <span class="font-bold text-brand-600 text-sm">{{ trip.trip_code }}</span>
-                                <span class="text-[11px] text-slate-400">{{ trip.trip_date|date:"d-M-Y" }}</span>
+                                <span class="text-[11px] font-bold text-slate-400">{{ trip.trip_date|date:"d-M-Y" }}</span>
                             </div>
                             <div class="text-[13px] text-slate-600 truncate mt-0.5">
                                 {% if trip.transaction_type == 'INTERNAL_STOCK' %}Internal Stock{% else %}{{ trip.customer.name }}{% endif %}
                             </div>
                             <div class="text-[12px] text-slate-500 mt-0.5 truncate">
-                                {% if trip.destination %}{{ trip.destination }} · {% endif %}{{ trip.material.name }} <span class="text-slate-400">(Qty: {{ trip.quantity }})</span>
+                                {% if trip.destination %}{{ trip.destination }} · {% endif %}{% if trip.vehicle %}🚛 {{ trip.vehicle.registration_number }} · {% endif %}{{ trip.material.name }} <span class="text-slate-400">(Qty: {{ trip.quantity }})</span>
                             </div>
                             {% if trip.get_driver_breakdown %}
                                 <div class="flex items-center gap-1 mt-1 flex-wrap">
@@ -146,10 +145,10 @@
                 <table class="w-full min-w-[820px] text-sm">
                     <thead class="sticky top-0 z-10">
                         <tr class="bg-slate-50 border-b border-slate-200 text-left">
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Trip Code</th>
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer</th>
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Destination</th>
+                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Vehicle</th>
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Drivers / Labour</th>
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Material</th>
                             <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Quantity</th>
@@ -161,10 +160,7 @@
                     <tbody class="divide-y divide-slate-100">
                         {% for trip in trips %}
                             <tr class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-3 font-bold">
-                                    <a href="{% url 'trips:detail' trip.id %}" class="text-brand-600 no-underline hover:underline">{{ trip.trip_code }}</a>
-                                </td>
-                                <td class="px-4 py-3">{{ trip.trip_date|date:"d-M-Y" }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">{{ trip.trip_date|date:"d-M-Y" }}</td>
                                 <td class="px-4 py-3">
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                         <span class="text-slate-500 italic">📦 Internal Stock</span>
@@ -173,6 +169,14 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-4 py-3">{{ trip.destination|default:"—" }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    {% if trip.vehicle %}
+                                        <span class="font-semibold text-slate-700">{{ trip.vehicle.registration_number }}</span>
+                                        <span class="block text-[11px] text-slate-400">{{ trip.vehicle.vehicle_code }}</span>
+                                    {% else %}
+                                        <span class="text-slate-400 italic">—</span>
+                                    {% endif %}
+                                </td>
                                 <td class="px-4 py-3">
                                     {% if trip.get_driver_breakdown %}
                                         {% for item in trip.get_driver_breakdown %}
@@ -202,7 +206,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="10" class="px-4 py-12 text-center text-slate-500">No trip records found for this date range.</td>
+                                <td colspan="9" class="px-4 py-12 text-center text-slate-500">No trip records found for this date range.</td>
                             </tr>
                         {% endfor %}
                     </tbody>
