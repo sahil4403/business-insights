@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load vehicle_extras %}
 
 {% block title %}Trips{% endblock %}
 
@@ -400,7 +401,7 @@
                             {% if trip.transaction_type == 'INTERNAL_STOCK' %}📦 Internal Stock{% else %}{{ trip.customer.name }}{% endif %}
                         </div>
                         <div class="mt-0.5 text-[12px] text-slate-500 truncate">
-                            🚚 {{ trip.vehicle.registration_number|default:"—" }} · 📦 {{ trip.material.name }}{% if trip.destination %} · 📍 {{ trip.destination }}{% endif %}
+                            {{ trip.vehicle|vehicle_icon }} {{ trip.vehicle.registration_number|default:"—" }} · 📦 {{ trip.material.name }}{% if trip.destination %} · 📍 {{ trip.destination }}{% endif %}
                         </div>
                         <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
                             {% if trip.trip_status == 'PLANNED' %}
