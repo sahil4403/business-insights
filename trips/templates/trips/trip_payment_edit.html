@@ -123,17 +123,15 @@
 
             </div>
 
-            <!-- STICKY ACTION BAR (mobile) / RIGHT-ALIGNED (desktop) -->
-            <div class="fixed left-0 right-0 z-50 px-3 pt-3 pb-3 bg-slate-100/95 backdrop-blur border-t border-slate-200 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] md:static md:bg-transparent md:border-0 md:px-0 md:pt-5 md:mt-5 md:pb-0">
-                <div class="flex gap-2.5 md:justify-end">
-                    <a href="{% if next_url %}{{ next_url }}{% elif trip %}{% url 'trips:detail' trip.id %}{% elif payment.customer %}{% url 'ledger:customer_statement' payment.customer.id %}{% else %}{% url 'trips:list' %}{% endif %}"
-                       class="btn btn-secondary flex-1 md:flex-none">
-                        Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary flex-1 md:flex-none">
-                        Save Payment Changes
-                    </button>
-                </div>
+            <!-- ACTIONS: in-flow on mobile (never hides under Safari toolbar) / right-aligned on desktop -->
+            <div class="pt-1 mt-6 flex gap-2.5 md:justify-end md:pt-5">
+                <a href="{% if next_url %}{{ next_url }}{% elif trip %}{% url 'trips:detail' trip.id %}{% elif payment.customer %}{% url 'ledger:customer_statement' payment.customer.id %}{% else %}{% url 'trips:list' %}{% endif %}"
+                   class="btn btn-secondary flex-1 md:flex-none">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary flex-1 md:flex-none">
+                    Save Payment Changes
+                </button>
             </div>
 
         </form>
