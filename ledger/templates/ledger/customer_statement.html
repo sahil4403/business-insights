@@ -190,15 +190,20 @@
                                 </div>
                             {% endif %}
                             {% if transaction.merged_payments %}
-                                <div class="flex flex-wrap items-center gap-1.5 mt-2">
-                                    {% for mp in transaction.merged_payments %}
-                                        <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 rounded-full pl-2.5 pr-1 py-0.5">
-                                            ₹{{ mp.amount|floatformat:0 }}
-                                            <a href="{% url 'trips:payment_edit' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-brand-600 font-bold px-1">Edit</a>
-                                            <a href="{% url 'trips:payment_delete' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 font-bold px-1">Del</a>
-                                        </span>
-                                    {% endfor %}
-                                </div>
+                                <details class="mt-1.5">
+                                    <summary class="inline-flex items-center gap-1 app-chip sm">{{ transaction.merged_payments|length }} Payments ▾</summary>
+                                    <div class="mt-1.5 space-y-1">
+                                        {% for mp in transaction.merged_payments %}
+                                            <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5">
+                                                <span class="text-[12px] font-semibold text-slate-700 truncate">₹{{ mp.amount|floatformat:2 }}{% if mp.trip_code %} <span class="text-slate-400 font-medium">· {{ mp.trip_code }}</span>{% endif %}</span>
+                                                <span class="flex gap-1 shrink-0">
+                                                    <a href="{% url 'trips:payment_edit' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-brand-600 font-bold text-[12px] px-1">Edit</a>
+                                                    <a href="{% url 'trips:payment_delete' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 font-bold text-[12px] px-1">Del</a>
+                                                </span>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </details>
                             {% endif %}
                         {% endif %}
                     </div>
@@ -283,13 +288,22 @@
                                             <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm" title="Edit Payment">Edit</a>
                                             <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger" title="Delete Payment">Delete</a>
                                         {% endif %}
-                                        {% for mp in transaction.merged_payments %}
-                                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 rounded-full pl-2.5 pr-1 py-0.5">
-                                                ₹{{ mp.amount|floatformat:0 }}
-                                                <a href="{% url 'trips:payment_edit' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-brand-600 font-bold px-1">Edit</a>
-                                                <a href="{% url 'trips:payment_delete' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 font-bold px-1">Del</a>
-                                            </span>
-                                        {% endfor %}
+                                        {% if transaction.merged_payments %}
+                                            <details class="inline-block">
+                                                <summary class="app-chip sm">{{ transaction.merged_payments|length }} Payments ▾</summary>
+                                                <div class="mt-1.5 space-y-1 text-left">
+                                                    {% for mp in transaction.merged_payments %}
+                                                        <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 whitespace-nowrap">
+                                                            <span class="text-[12px] font-semibold text-slate-700">₹{{ mp.amount|floatformat:2 }}{% if mp.trip_code %} <span class="text-slate-400 font-medium">· {{ mp.trip_code }}</span>{% endif %}</span>
+                                                            <span class="flex gap-1 shrink-0 ml-2">
+                                                                <a href="{% url 'trips:payment_edit' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-brand-600 font-bold text-[12px] px-1">Edit</a>
+                                                                <a href="{% url 'trips:payment_delete' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 font-bold text-[12px] px-1">Del</a>
+                                                            </span>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </details>
+                                        {% endif %}
                                     {% endif %}
                                 </div>
                             </td>

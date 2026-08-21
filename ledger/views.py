@@ -87,7 +87,10 @@ def _payment_transactions(period_payments, today_date):
                 'trip_id': None,
                 'payment_id': None,
                 'merged_payments': [
-                    {'id': p.id, 'amount': p.amount} for p in payload
+                    {'id': p.id, 'amount': p.amount,
+                     'trip_code': p.trip.trip_code if p.trip else '',
+                     'payment_date': p.payment_date}
+                    for p in payload
                 ],
             })
         else:
