@@ -98,7 +98,7 @@
         </div>
 
         <!-- SCROLL + FREEZE PANEL -->
-        <div class="max-h-[65vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth">
+        <div class="max-h-[75vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth">
 
             <!-- MOBILE TRIPS LIST -->
             <div class="md:hidden px-3">
@@ -219,7 +219,7 @@
 {% endif %}
 
 <!-- QUICK-ACCESS CATEGORIES -->
-<div class="mb-4 md:mb-6">
+<div class="mb-4 md:mb-6 {% if from_date or to_date %}hidden md:block{% endif %}">
     <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Quick Access by Transport Type</h2>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <a href="{% url 'trips:list' %}?category=hyva{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface p-4 flex flex-col items-center text-center no-underline hover:border-brand-500 transition active:scale-[0.98]">
