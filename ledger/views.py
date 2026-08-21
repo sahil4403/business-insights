@@ -639,8 +639,9 @@ def customer_statement_pdf(request, customer_id):
         table_data.append([
             Paragraph(transaction['date'].strftime('%d-%b-%Y'), body_style),
             Paragraph(str(transaction['type']), center_body),
-            Paragraph(str(transaction['description']), body_style),
-            Paragraph(str(transaction.get('destination') or '—'), body_style),
+            # Payment rows: keep Description & Destination blank (clean ledger look)
+            Paragraph('' if transaction['type'] == 'PAYMENT' else str(transaction['description']), body_style),
+            Paragraph('' if transaction['type'] == 'PAYMENT' else str(transaction.get('destination') or '—'), body_style),
             Paragraph(f"₹{transaction['debit']:,.2f}" if transaction['debit'] else '-', right_body),
             Paragraph(f"₹{transaction['credit']:,.2f}" if transaction['credit'] else '-', right_body),
             Paragraph(f"₹{transaction['balance']:,.2f}", right_body),
