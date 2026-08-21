@@ -47,8 +47,9 @@
             z-index: 60; display: inline-flex; align-items: center; gap: 0.5rem;
             height: 3.25rem; padding: 0 1.25rem; border-radius: 999px;
             background: #16665a; color: #fff; font-weight: 700; font-size: 0.9rem;
-            box-shadow: 0 8px 24px rgba(22,102,90,0.35); transition: transform 0.15s ease;
+            box-shadow: 0 8px 24px rgba(22,102,90,0.35); transition: transform 0.2s ease, opacity 0.2s ease;
         }
+        .app-fab.app-hidden { transform: translateY(160%); opacity: 0; pointer-events: none; }
         .app-fab:active { transform: scale(0.95); }
         .app-fab span { font-size: 1.25rem; line-height: 1; }
         @media (min-width: 768px) { .app-fab { position: static; height: 2.75rem; box-shadow: none; } }
@@ -243,6 +244,19 @@
                 }
                 lastY = y;
             });
+        }
+
+        // Floating action button: auto-hide while scrolling down, return on scroll up (mobile)
+        const fabEl = document.querySelector('.app-fab');
+        if (fabEl) {
+            let fabLastY = window.scrollY;
+            window.addEventListener('scroll', function () {
+                if (window.innerWidth >= 768) { fabEl.classList.remove('app-hidden'); return; }
+                const y = window.scrollY;
+                if (y > fabLastY + 6 && y > 140) fabEl.classList.add('app-hidden');
+                else if (y < fabLastY - 6) fabEl.classList.remove('app-hidden');
+                fabLastY = y;
+            }, { passive: true });
         }
     </script>
 </body>
