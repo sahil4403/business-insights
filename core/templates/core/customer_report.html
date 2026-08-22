@@ -452,31 +452,17 @@
             document.querySelectorAll('.export-menu[open]').forEach(function (d) { d.open = false; });
         }
     });
-    // Scroll-reveal top bar (mobile)
+    // Sticky top bar (mobile): attaches to top once you scroll past the
+    // header and stays there until you return to the top.
     const scrollTopbar = document.getElementById('scroll-topbar');
     if (scrollTopbar) {
-        let lastY = window.scrollY;
-        let hideTimer = null;
         window.addEventListener('scroll', function () {
-            const y = window.scrollY;
-            if (y > 90 && y > lastY) {
+            if (window.scrollY > 90) {
                 scrollTopbar.style.transform = 'translateY(0)';
-                clearTimeout(hideTimer);
-                hideTimer = setTimeout(function () {
-                    scrollTopbar.style.transform = 'translateY(-110%)';
-                }, 2500);
-            } else if (y < lastY && y > 90) {
-                scrollTopbar.style.transform = 'translateY(0)';
-                clearTimeout(hideTimer);
-                hideTimer = setTimeout(function () {
-                    scrollTopbar.style.transform = 'translateY(-110%)';
-                }, 1500);
-            } else if (y <= 90) {
+            } else {
                 scrollTopbar.style.transform = 'translateY(-110%)';
-                clearTimeout(hideTimer);
             }
-            lastY = y;
-        });
+        }, { passive: true });
     }
 </script>
 
