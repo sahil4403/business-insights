@@ -493,5 +493,17 @@
         </div>
     </nav>
 
+    <script>
+        // Desktop/laptop: auto-open the filter card so the export buttons
+        // (CSV / Excel / PDF) inside it are visible — its toggle summary is
+        // hidden on md+ screens, so without this the card stays collapsed.
+        (function () {
+            var fd = document.getElementById('filter-details');
+            if (fd && window.matchMedia('(min-width: 768px)').matches) {
+                fd.open = true;
+            }
+        })();
+    </script>
+
 </body>
 </html>
