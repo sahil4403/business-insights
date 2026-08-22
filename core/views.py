@@ -509,71 +509,166 @@ def customer_report(request):
             Q(name__icontains=search) | Q(customer_code__icontains=search)
         )
 
-    trip_filter = Q()
+    def _parse_date(value):
+        try:
+            return date.fromisoformat(value)
+        except Exception:
+            return None
 
-    if from_date:
-        trip_filter &= Q(trips__trip_date__gte=from_date)
+    from_date_parsed = _parse_date(from_date)
+    to_date_parsed = _parse_date(to_date)
 
-    if to_date:
-        trip_filter &= Q(trips__trip_date__lte=to_date)
-
-    # JCB work tracked separately from regular truck trips
-    # (trips without a vehicle stay in the regular Trips column)
-    jcb_filter = trip_filter & Q(trips__vehicle__vehicle_type__code='JCB')
-    truck_trip_filter = trip_filter & (
-        Q(trips__vehicle__isnull=True)
-        | ~Q(trips__vehicle__vehicle_type__code='JCB')
-    )
-
-    payment_filter = Q()
-
-    if from_date:
-        payment_filter &= Q(payments__payment_date__gte=from_date)
-
-    if to_date:
-        payment_filter &= Q(payments__payment_date__lte=to_date)
+    window_end = to_date_parsed or timezone.localdate()
 
     # -----------------------------------
     # CUSTOMER REPORT DATA
+    # Computed with the SAME sign rules as the ledger statement so that
+    # the Outstanding column reconciles 1:1 with the customer statement:
+    #   • VENDOR_SUPPLY trips are inward supply -> credit (reduces receivable)
+    #   • PAID-type payments are money paid out -> debit (increases receivable)
+    #   • RECEIVED / CONTRA payments reduce receivable
+    #   • payment effective date = payment_date, falling back to trip_date
     # -----------------------------------
 
-    customer_report_data = (
-        customers
-        .values(
-            'id',
-            'name',
-            'opening_balance'
-        )
-        .annotate(
-            total_trips=Count(
-                'trips', filter=truck_trip_filter, distinct=True
-            ),
-            jcb_trips=Count(
-                'trips', filter=jcb_filter, distinct=True
-            ),
-            jcb_hours=Coalesce(
-                Sum('trips__quantity', filter=jcb_filter),
-                Decimal('0'),
-                output_field=DecimalField()
-            ),
-            total_revenue=Coalesce(
-                Sum('trips__total_amount', filter=trip_filter),
-                Decimal('0'),
-                output_field=DecimalField()
-            ),
-            total_direct_received=Coalesce(
-                Sum('payments__amount', filter=payment_filter),
-                Decimal('0'),
-                output_field=DecimalField()
-            ),
-            total_trip_received=Coalesce(
-                Sum('trips__payments__amount', filter=trip_filter),
-                Decimal('0'),
-                output_field=DecimalField()
-            ),
-        )
-        .order_by('name')
+    customers_list = list(
+        customers.order_by('name').values('id', 'name', 'opening_balance')
     )
+
+    customer_ids = [c['id'] for c in customers_list]
+
+    trips_by_customer = {cid: [] for cid in customer_ids}
+    payments_by_customer = {cid: [] for cid in customer_ids}
+
+    all_trips = (
+        Trip.objects.filter(customer_id__in=customer_ids)
+        .select_related('vehicle', 'vehicle__vehicle_type')
+    )
+
+    all_payments = (
+        TripPayment.objects.filter(
+            Q(customer_id__in=customer_ids)
+            | Q(trip__customer_id__in=customer_ids)
+        ).select_related('trip')
+    )
+
+    for trip in all_trips:
+        trips_by_customer[trip.customer_id].append(trip)
+
+    for payment in all_payments:
+        owner_id = (
+            payment.customer_id
+            or (payment.trip.customer_id if payment.trip else None)
+        )
+        if owner_id in payments_by_customer:
+            payments_by_customer[owner_id].append(payment)
+
+    ZERO = Decimal('0')
+
+    customer_rows = []
+
+    for info in customers_list:
+
+        trips = trips_by_customer[info['id']]
+        payments = payments_by_customer[info['id']]
+
+        period_sales = ZERO
+        previous_sales = ZERO
+
+        total_trips_count = 0
+        jcb_trips_count = 0
+        jcb_hours_total = ZERO
+
+        for trip in trips:
+            signed_amount = (
+                -trip.total_amount
+                if trip.transaction_type == 'VENDOR_SUPPLY'
+                else trip.total_amount
+            )
+
+            if from_date_parsed and trip.trip_date < from_date_parsed:
+                previous_sales += signed_amount
+                continue
+
+            if trip.trip_date > window_end:
+                continue
+
+            # Trips column counts ALL entries for the customer,
+            # including JCB work entries.
+            total_trips_count += 1
+
+            vehicle_type_code = (
+                trip.vehicle.vehicle_type.code
+                if trip.vehicle and trip.vehicle.vehicle_type
+                else None
+            )
+            if vehicle_type_code == 'JCB':
+                jcb_trips_count += 1
+                jcb_hours_total += trip.quantity or ZERO
+
+            period_sales += signed_amount
+
+        period_received = ZERO
+        previous_received = ZERO
+
+        for payment in payments:
+            effective_date = (
+                payment.payment_date
+                or (payment.trip.trip_date if payment.trip else None)
+            )
+
+            if effective_date is None:
+                continue
+
+            signed_amount = (
+                -payment.amount
+                if payment.payment_type == 'PAID'
+                else payment.amount
+            )
+
+            if from_date_parsed and effective_date < from_date_parsed:
+                previous_received += signed_amount
+                continue
+
+            if effective_date > window_end:
+                continue
+
+            period_received += signed_amount
+
+        opening_bal = info['opening_balance'] or ZERO
+        effective_opening = opening_bal + previous_sales - previous_received
+
+        outstanding = (
+            effective_opening + period_sales - period_received
+        )
+
+        customer_rows.append({
+            'customer_id':
+                info['id'],
+
+            'customer_name':
+                info['name'],
+
+            'opening_balance':
+                effective_opening,
+
+            'total_trips':
+                total_trips_count,
+
+            'jcb_trips':
+                jcb_trips_count,
+
+            'jcb_hours':
+                jcb_hours_total,
+
+            'total_revenue':
+                period_sales,
+
+            'total_received':
+                period_received,
+
+            'total_outstanding':
+                outstanding,
+        })
 
     # -----------------------------------
     # BLANK EXPORT GUARD (no data -> block CSV/Excel/PDF)
@@ -581,27 +676,17 @@ def customer_report(request):
 
     if request.GET.get('export'):
 
-        exportable_count = 0
-
-        for customer in customer_report_data:
-
-            opening_bal = Decimal(str(customer['opening_balance'] or 0))
-            revenue = Decimal(str(customer['total_revenue'] or 0))
-            received = (
-                Decimal(str(customer['total_direct_received'] or 0))
-                + Decimal(str(customer['total_trip_received'] or 0))
-            )
-            outstanding = max(
-                opening_bal + revenue - received,
-                Decimal('0')
-            )
-
+        def _passes_amount_filters(row):
+            outstanding = row['total_outstanding']
             if min_amount is not None and outstanding < min_amount:
-                continue
+                return False
             if max_amount is not None and outstanding > max_amount:
-                continue
+                return False
+            return True
 
-            exportable_count += 1
+        exportable_count = sum(
+            1 for row in customer_rows if _passes_amount_filters(row)
+        )
 
         if exportable_count == 0:
 
@@ -728,11 +813,11 @@ def customer_report(request):
         total_rec = Decimal('0')
         total_out = Decimal('0')
 
-        for customer in customer_report_data:
-            opening_bal = Decimal(str(customer['opening_balance'] or 0))
-            revenue = Decimal(str(customer['total_revenue'] or 0))
-            received = Decimal(str(customer['total_direct_received'] or 0)) + Decimal(str(customer['total_trip_received'] or 0))
-            outstanding = max(opening_bal + revenue - received, Decimal('0'))
+        for customer in customer_rows:
+            opening_bal = customer['opening_balance']
+            revenue = customer['total_revenue']
+            received = customer['total_received']
+            outstanding = customer['total_outstanding']
 
             if min_amount is not None and outstanding < min_amount:
                 continue
@@ -752,7 +837,7 @@ def customer_report(request):
             jcb_label = f'{float(jcb_hrs):.1f}h' if jcb_cnt else '—'
 
             data.append([
-                Paragraph(str(customer['name'] or '—'), body_style),
+                Paragraph(str(customer['customer_name'] or '—'), body_style),
                 Paragraph(f'₹{opening_bal:,.2f}', right_body_style),
                 Paragraph(str(trips_cnt), center_body_style),
                 Paragraph(jcb_label, center_body_style),
@@ -818,7 +903,7 @@ def customer_report(request):
             )
 
 
-        for customer in customer_report_data:
+        for customer in customer_rows:
 
             opening_bal = (
                 customer['opening_balance']
@@ -830,15 +915,9 @@ def customer_report(request):
                 or 0
             )
 
-            received = (
-                (customer['total_direct_received'] or Decimal('0'))
-                + (customer['total_trip_received'] or Decimal('0'))
-            )
+            received = customer['total_received']
 
-            outstanding = max(
-                opening_bal + revenue - received,
-                0
-            )
+            outstanding = customer['total_outstanding']
 
             if min_amount is not None and outstanding < min_amount:
                 continue
@@ -850,7 +929,7 @@ def customer_report(request):
             jcb_label = f'{_jcb_hrs:.1f}h' if _jcb_cnt else ''
 
             worksheet.append([
-                customer['name'],
+                customer['customer_name'],
                 opening_bal,
                 customer['total_trips'],
                 jcb_label,
@@ -969,27 +1048,9 @@ def customer_report(request):
             'Outstanding',
         ])
 
-        for customer in customer_report_data:
+        for customer in customer_rows:
 
-            opening_bal = (
-                customer['opening_balance']
-                or 0
-            )
-
-            revenue = (
-                customer['total_revenue']
-                or 0
-            )
-
-            received = (
-                (customer['total_direct_received'] or Decimal('0'))
-                + (customer['total_trip_received'] or Decimal('0'))
-            )
-
-            outstanding = max(
-                opening_bal + revenue - received,
-                0
-            )
+            outstanding = customer['total_outstanding']
 
             if min_amount is not None and outstanding < min_amount:
                 continue
@@ -997,11 +1058,11 @@ def customer_report(request):
                 continue
 
             writer.writerow([
-                customer['name'],
-                opening_bal,
+                customer['customer_name'],
+                customer['opening_balance'],
                 customer['total_trips'],
-                revenue,
-                received,
+                customer['total_revenue'],
+                customer['total_received'],
                 outstanding,
             ])
 
@@ -1009,67 +1070,10 @@ def customer_report(request):
 
 
     # -----------------------------------
+    # OUTSTANDING FILTERING + SORTING
+    # (customer_rows are already computed above with statement-consistent
+    #  math; here we only apply the display filters/sorting)
     # -----------------------------------
-    # OUTSTANDING
-    # -----------------------------------
-
-    customer_rows = []
-
-    for customer in customer_report_data:
-
-        opening_bal = (
-            customer['opening_balance']
-            or 0
-        )
-
-        revenue = (
-            customer['total_revenue']
-            or 0
-        )
-
-        received = (
-            (customer['total_direct_received'] or Decimal('0'))
-            + (customer['total_trip_received'] or Decimal('0'))
-        )
-
-        outstanding = max(
-            opening_bal + revenue - received,
-            0
-        )
-
-        if min_amount is not None and outstanding < min_amount:
-            continue
-        if max_amount is not None and outstanding > max_amount:
-            continue
-
-        customer_rows.append({
-            'customer_id':
-                customer['id'],
-
-            'customer_name':
-                customer['name'],
-
-            'opening_balance':
-                opening_bal,
-
-            'total_trips':
-                customer['total_trips'],
-
-            'jcb_trips':
-                customer['jcb_trips'],
-
-            'jcb_hours':
-                customer['jcb_hours'],
-
-            'total_revenue':
-                revenue,
-
-            'total_received':
-                received,
-
-            'total_outstanding':
-                outstanding,
-        })
 
     is_limited = False
     if not (search or min_amount_str or max_amount_str or from_date or to_date):
