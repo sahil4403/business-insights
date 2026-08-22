@@ -7,6 +7,19 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <style>
+        /* NATIVE-APP FEEL */
+        @media (prefers-reduced-motion: no-preference) {
+            @view-transition { navigation: auto; }
+        }
+        html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+        body { overscroll-behavior-y: contain; }
+        button, a, input, select, textarea, [role="button"], summary { touch-action: manipulation; }
+        @media (max-width: 767px) {
+            input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+            select, textarea { font-size: 16px !important; }
+        }
+        .tabbar-link:active, .app-chip:active { opacity: .65; }
+
         input[type="date"] { -webkit-appearance: none; appearance: none; }
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
@@ -518,6 +531,34 @@
             if (fd && window.matchMedia('(min-width: 768px)').matches) {
                 fd.open = true;
             }
+        })();
+    </script>
+
+    <script>
+        // INSTANT-NAV PREFETCH: start loading internal pages on hover/touch,
+        // so taps feel instant like a native app.
+        (function () {
+            var done = new Set();
+            function prefetch(url) {
+                if (!url || done.has(url)) return;
+                try {
+                    var u = new URL(url, location.href);
+                    if (u.origin !== location.origin || u.pathname.indexOf('/static') === 0) return;
+                    done.add(url);
+                    var l = document.createElement('link');
+                    l.rel = 'prefetch';
+                    l.href = url;
+                    document.head.appendChild(l);
+                } catch (err) {}
+            }
+            document.addEventListener('pointerenter', function (e) {
+                var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+                if (a) prefetch(a.href);
+            }, true);
+            document.addEventListener('touchstart', function (e) {
+                var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+                if (a) prefetch(a.href);
+            }, { passive: true, capture: true });
         })();
     </script>
 
