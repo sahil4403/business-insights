@@ -565,7 +565,7 @@ def customer_statement_pdf(request, customer_id):
             # Inward supply from vendor -> Credit (same as HTML statement)
             transactions.append({
                 'date': trip.trip_date,
-                'type': 'INWARD SUPPLY',
+                'type': 'INWARD',
                 'description': (
                     f"Inward Supply ({material_name} - "
                     f"{trip.quantity} × ₹{trip.rate})"
@@ -645,10 +645,10 @@ def customer_statement_pdf(request, customer_id):
     document = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        rightMargin=12 * mm,
-        leftMargin=12 * mm,
-        topMargin=12 * mm,
-        bottomMargin=12 * mm,
+        rightMargin=9 * mm,
+        leftMargin=9 * mm,
+        topMargin=11 * mm,
+        bottomMargin=11 * mm,
     )
 
     styles = getSampleStyleSheet()
@@ -723,8 +723,8 @@ def customer_statement_pdf(request, customer_id):
         'BodyStyle',
         parent=styles['Normal'],
         fontName=font_name,
-        fontSize=8,
-        leading=10,
+        fontSize=7.5,
+        leading=9.5,
         textColor=colors.HexColor('#0F172A'),
     )
 
@@ -797,13 +797,13 @@ def customer_statement_pdf(request, customer_id):
         table_data,
         repeatRows=1,
         colWidths=[
-            24 * mm,
-            18 * mm,
-            48 * mm,
-            24 * mm,
-            24 * mm,
-            24 * mm,
-            24 * mm,
+            21 * mm,
+            17 * mm,
+            65 * mm,
+            26 * mm,
+            21 * mm,
+            21 * mm,
+            21 * mm,
         ]
     )
 
