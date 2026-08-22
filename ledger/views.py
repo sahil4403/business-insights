@@ -251,6 +251,43 @@ def customer_statement(request, customer_id):
             effective_date__lte=to_date
         )
 
+    # -----------------------------
+    # MATERIAL FILTER + SUMMARY
+    # -----------------------------
+    from django.db.models import Sum, Count as AggCount
+
+    raw_material = (request.GET.get('material') or '').strip()
+    selected_material_id = None
+    if raw_material.isdigit():
+        candidate = int(raw_material)
+        # Only honour ids that belong to this customer's trips
+        if customer_trips.filter(material_id=candidate).exists():
+            selected_material_id = candidate
+
+    # Material-wise purchase summary (outward sales only) for the date period
+    material_summary_qs = (
+        period_trips.exclude(transaction_type='VENDOR_SUPPLY')
+        .values('material_id', 'material__name')
+        .annotate(
+            total_qty=Sum('quantity'),
+            trip_count=AggCount('id'),
+            total_amount=Sum('total_amount'),
+        )
+        .order_by('-total_qty')
+    )
+    material_summary = list(material_summary_qs)
+
+    # Materials this customer has ever ordered (for filter chips)
+    materials_list = list(
+        customer_trips.exclude(transaction_type='VENDOR_SUPPLY')
+        .values_list('material_id', 'material__name')
+        .distinct()
+        .order_by('material__name')
+    )
+
+    if selected_material_id:
+        period_trips = period_trips.filter(material_id=selected_material_id)
+
     # Trips (Outward Customer Delivery vs Inward Vendor Supply)
     for trip in period_trips:
         if trip.transaction_type == 'VENDOR_SUPPLY':
@@ -347,6 +384,9 @@ def customer_statement(request, customer_id):
         'unpaid_trips': unpaid_trips,
         'payment_methods': payment_methods,
         'is_admin_user': is_admin_user,
+        'material_summary': material_summary,
+        'materials_list': materials_list,
+        'selected_material_id': selected_material_id,
     }
 
     return render(

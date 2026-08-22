@@ -99,8 +99,39 @@
     </div>
 </div>
 
+<!-- MATERIAL SUMMARY: kitna kya liya -->
+{% if material_summary %}
+<div class="app-surface mb-5 overflow-hidden">
+    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
+        <h2 class="font-bold text-slate-900 text-[15px]">Material Summary</h2>
+        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Kitna kya liya</span>
+    </div>
+    <div class="p-3 grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        {% for row in material_summary %}
+            <a href="?{% if from_date %}from_date={{ from_date|date:'Y-m-d' }}&{% endif %}{% if to_date %}to_date={{ to_date|date:'Y-m-d' }}&{% endif %}material={{ row.material_id }}"
+               class="{% if selected_material_id == row.material_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-xl border p-3 no-underline transition active:scale-[0.98] block">
+                <span class="block text-[11px] font-bold text-slate-500 truncate">{{ row.material__name }}</span>
+                <span class="block text-xl font-extrabold num text-brand-600 mt-1">{{ row.total_qty|floatformat:"-2" }}</span>
+                <span class="block text-[11px] text-slate-400 mt-0.5">{{ row.trip_count }} trip{{ row.trip_count|pluralize }} · ₹{{ row.total_amount|floatformat:0 }}</span>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <!-- FILTER -->
 <div class="app-surface mb-5 overflow-hidden">
+    {% if materials_list %}
+    <div class="app-tabs px-3 pt-3 pb-2 border-b border-slate-100">
+        <a href="{% url 'ledger:customer_statement' customer.id %}{% if from_date %}?from_date={{ from_date|date:'Y-m-d' }}{% if to_date %}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}{% endif %}"
+           class="app-chip {% if not selected_material_id %}active{% endif %}">All Materials</a>
+        {% for mat in materials_list %}
+            <a href="?{% if from_date %}from_date={{ from_date|date:'Y-m-d' }}&{% endif %}{% if to_date %}to_date={{ to_date|date:'Y-m-d' }}&{% endif %}{% if selected_material_id != mat.0 %}material={{ mat.0 }}{% endif %}"
+               class="app-chip {% if selected_material_id == mat.0 %}active{% endif %}">{{ mat.1 }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="app-tabs px-3 pt-3 pb-2">
         <a href="#" data-preset="all" class="app-chip">All</a>
         <a href="#" data-preset="month" class="app-chip">This Month</a>
@@ -115,6 +146,9 @@
         </summary>
         <div class="px-4 py-3 md:p-4">
             <form method="get" id="statement-filter-form" class="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+                {% if selected_material_id %}
+                    <input type="hidden" name="material" value="{{ selected_material_id }}">
+                {% endif %}
                 <div>
                     <label class="label" for="filter_from_date">From Date</label>
                     <input type="date" id="filter_from_date" name="from_date" value="{% if from_date %}{{ from_date|date:'Y-m-d' }}{% endif %}" class="input">
@@ -139,7 +173,15 @@
 
     <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
         <h2 class="font-bold text-slate-900 text-[15px]">Transactions</h2>
-        <span class="text-xs text-slate-500">{{ transactions|length }} transaction{{ transactions|length|pluralize }}</span>
+        {% if selected_material_id %}
+            {% for mat in materials_list %}
+                {% if mat.0 == selected_material_id %}
+                    <a href="?{% if from_date %}from_date={{ from_date|date:'Y-m-d' }}{% if to_date %}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}{% endif %}"
+                       class="app-chip sm active" title="Clear material filter">{{ mat.1 }} ✕</a>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        <span class="text-xs text-slate-500 ml-auto">{{ transactions|length }} transaction{{ transactions|length|pluralize }}</span>
     </div>
 
     <div class="max-h-[65vh] md:max-h-[560px] overflow-y-auto overscroll-contain">
