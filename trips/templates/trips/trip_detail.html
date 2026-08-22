@@ -344,7 +344,7 @@
                 Permanently delete this trip record ({{ trip.trip_code }}) and remove its financial entries.
             </p>
         </div>
-        <a href="{% url 'trips:delete' trip.id %}"
+        <a href="{% url 'trips:delete' trip.id %}?next={{ back_url|urlencode }}"
            class="h-12 md:h-10 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98] whitespace-nowrap">
             Delete Trip
         </a>

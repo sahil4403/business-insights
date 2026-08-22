@@ -348,12 +348,21 @@ def trip_delete(request, trip_id):
         pk=trip_id
     )
 
+    from core.utils import get_safe_next, get_safe_next_or_referer
+    from django.urls import reverse
+
     if request.method == 'POST':
         try:
             code = trip.trip_code
             trip.delete()
             messages.success(request, f"Trip {code} deleted successfully!")
-            return redirect('trips:list')
+            # Return to where the user came from (e.g. customer statement),
+            # passed through the form's hidden 'next' field.
+            target = get_safe_next(request, reverse('trips:list'))
+            # Never return to the pages of the trip we just deleted
+            if f"/trips/{trip_id}/" in target or f"/trips/{trip_id}/" in target + "/":
+                target = reverse('trips:list')
+            return redirect(target)
         except ProtectedError:
             context = {
                 'trip': trip,
@@ -368,8 +377,12 @@ def trip_delete(request, trip_id):
                 context
             )
 
+    # Where the user came from (statement / trip detail), for Cancel + post-delete return
+    back_url = get_safe_next_or_referer(request, reverse('trips:list'))
+
     context = {
         'trip': trip,
+        'back_url': back_url,
     }
 
     return render(
