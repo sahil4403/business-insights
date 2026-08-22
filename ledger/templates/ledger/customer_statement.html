@@ -261,7 +261,7 @@
                             <div class="text-xs text-slate-500 mt-0.5">📍 {{ transaction.destination }}</div>
                         {% endif %}
 
-                        {% if transaction.type == 'SALE' %}
+                        {% if transaction.type == 'SALE' or transaction.type == 'VENDOR_SUPPLY' %}
                             <div class="flex items-center gap-2 mt-2">
                                 <a href="{% url 'trips:detail' transaction.trip_id %}" class="app-chip sm">View</a>
                                 {% if transaction.outstanding > 0 %}
@@ -364,7 +364,7 @@
                             <td class="px-5 py-3 text-right font-bold text-slate-900 whitespace-nowrap">₹{{ transaction.balance|floatformat:2 }}</td>
                             <td class="px-5 py-3 text-right whitespace-nowrap">
                                 <div class="inline-flex items-center gap-1.5">
-                                    {% if transaction.type == 'SALE' %}
+                                    {% if transaction.type == 'SALE' or transaction.type == 'VENDOR_SUPPLY' %}
                                         <a href="{% url 'trips:detail' transaction.trip_id %}" class="app-chip sm" title="View Trip Details">View</a>
                                         {% if transaction.outstanding > 0 %}
                                             <a href="{% url 'trips:payment_create' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm primary" title="Record Payment for this Trip">Pay ₹{{ transaction.outstanding|floatformat:0 }}</a>

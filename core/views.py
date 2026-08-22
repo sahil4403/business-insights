@@ -518,8 +518,12 @@ def customer_report(request):
         trip_filter &= Q(trips__trip_date__lte=to_date)
 
     # JCB work tracked separately from regular truck trips
+    # (trips without a vehicle stay in the regular Trips column)
     jcb_filter = trip_filter & Q(trips__vehicle__vehicle_type__code='JCB')
-    truck_trip_filter = trip_filter & ~Q(trips__vehicle__vehicle_type__code='JCB')
+    truck_trip_filter = trip_filter & (
+        Q(trips__vehicle__isnull=True)
+        | ~Q(trips__vehicle__vehicle_type__code='JCB')
+    )
 
     payment_filter = Q()
 
@@ -745,7 +749,7 @@ def customer_report(request):
             total_rec += received
             total_out += outstanding
 
-            jcb_label = f'{jcb_cnt} · {jcb_hrs:.1f}h' if jcb_cnt else '—'
+            jcb_label = f'{float(jcb_hrs):.1f}h' if jcb_cnt else '—'
 
             data.append([
                 Paragraph(str(customer['name'] or '—'), body_style),
@@ -843,7 +847,7 @@ def customer_report(request):
 
             _jcb_cnt = customer.get('jcb_trips') or 0
             _jcb_hrs = float(customer.get('jcb_hours') or 0)
-            jcb_label = f'{_jcb_cnt} · {_jcb_hrs:.1f}h' if _jcb_cnt else ''
+            jcb_label = f'{_jcb_hrs:.1f}h' if _jcb_cnt else ''
 
             worksheet.append([
                 customer['name'],

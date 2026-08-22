@@ -314,7 +314,7 @@
                                 <div class="text-[11px] font-semibold text-slate-400 mt-1">
                                     {{ customer.total_trips }} trips
                                     {% if customer.jcb_trips %}
-                                        <span class="text-amber-600 font-bold">· JCB {{ customer.jcb_trips }} ({{ customer.jcb_hours|floatformat:"-1" }}h)</span>
+                                        <span class="text-amber-600 font-bold">· JCB {{ customer.jcb_hours|floatformat:"-1" }}h</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -379,9 +379,8 @@
                                 <td class="px-5 py-3.5 text-right text-slate-600 tabular-nums">{{ customer.total_trips }}</td>
                                 <td class="px-5 py-3.5 text-right tabular-nums">
                                     {% if customer.jcb_trips %}
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[12px] font-bold">
-                                            {{ customer.jcb_trips }} · {{ customer.jcb_hours|floatformat:"-1" }}h
-                                        </span>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[12px] font-bold"
+                                              title="{{ customer.jcb_trips }} JCB work entries">{{ customer.jcb_hours|floatformat:"-1" }}h</span>
                                     {% else %}
                                         <span class="text-slate-300">—</span>
                                     {% endif %}
