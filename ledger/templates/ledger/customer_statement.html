@@ -124,23 +124,25 @@
 </div>
 {% endif %}
 
-<!-- VEHICLE TYPE SUMMARY: kis gaadi se kitna aaya -->
+<!-- VEHICLE TYPE SUMMARY: kis gaadi se kitna aaya (compact) -->
 {% if vtype_summary %}
 <div class="app-surface mb-5 overflow-hidden">
-    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
-        <h2 class="font-bold text-slate-900 text-[15px]">Vehicle-wise Summary</h2>
-        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Kis gaadi se kitna</span>
+    <div class="px-4 md:px-5 py-2.5 border-b border-slate-100 flex items-center justify-between gap-3">
+        <h2 class="font-bold text-slate-900 text-[13px]">Vehicle-wise Summary</h2>
+        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Kis gaadi se kitna</span>
     </div>
-    <div class="p-3 grid grid-cols-2 md:grid-cols-4 gap-2.5">
+    <div class="p-2 grid grid-cols-2 md:grid-cols-4 gap-1.5">
         {% for row in vtype_summary %}
             <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_id %}material={{ selected_material_id }}&{% endif %}vehicle_type={{ row.vehicle__vehicle_type_id }}"
-               class="{% if selected_vtype_id == row.vehicle__vehicle_type_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-xl border p-3 no-underline transition active:scale-[0.98] block">
-                <span class="block text-[11px] font-bold text-slate-500 truncate">
+               class="{% if selected_vtype_id == row.vehicle__vehicle_type_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-lg border px-2.5 py-1.5 flex items-center justify-between gap-2 no-underline transition active:scale-[0.98]">
+                <span class="text-[11px] font-bold text-slate-600 truncate">
                     {{ row.vehicle__vehicle_type__name }}
-                    {% if row.is_inward %}<span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold uppercase align-middle">Inward</span>{% endif %}
+                    {% if row.is_inward %}<span class="ml-0.5 px-1 py-px rounded bg-amber-100 text-amber-700 text-[8px] font-bold uppercase align-middle">In</span>{% endif %}
                 </span>
-                <span class="block text-xl font-extrabold num {% if row.is_inward %}text-amber-600{% else %}text-sky-600{% endif %} mt-1">{{ row.total_qty|floatformat:"-2" }}</span>
-                <span class="block text-[11px] text-slate-400 mt-0.5">{{ row.trip_count }} trip{{ row.trip_count|pluralize }} · ₹{{ row.total_amount|floatformat:0 }}</span>
+                <span class="text-right shrink-0">
+                    <span class="block text-sm font-extrabold num {% if row.is_inward %}text-amber-600{% else %}text-sky-600{% endif %} leading-none">{{ row.total_qty|floatformat:"-2" }}</span>
+                    <span class="block text-[9px] text-slate-400 mt-0.5">{{ row.trip_count }}t · ₹{{ row.total_amount|floatformat:0 }}</span>
+                </span>
             </a>
         {% endfor %}
     </div>
