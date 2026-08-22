@@ -134,15 +134,12 @@
     <div class="p-2 grid grid-cols-2 md:grid-cols-4 gap-1.5">
         {% for row in vtype_summary %}
             <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_id %}material={{ selected_material_id }}&{% endif %}vehicle_type={{ row.vehicle__vehicle_type_id }}"
-               class="{% if selected_vtype_id == row.vehicle__vehicle_type_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-lg border px-2.5 py-1.5 flex items-center gap-2 no-underline transition active:scale-[0.98] min-w-0">
-                <span class="flex-1 min-w-0">
-                    <span class="block text-[11px] font-bold text-slate-600 truncate">
-                        {{ row.vehicle__vehicle_type__name }}
-                        {% if row.is_inward %}<span class="ml-0.5 px-1 py-px rounded bg-amber-100 text-amber-700 text-[8px] font-bold uppercase align-middle">In</span>{% endif %}
-                    </span>
-                    <span class="block text-[9px] text-slate-400 truncate">{{ row.trip_count }} trip{{ row.trip_count|pluralize }} · ₹{{ row.total_amount|floatformat:0 }}</span>
+               class="{% if selected_vtype_id == row.vehicle__vehicle_type_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-lg border px-2 py-1 flex items-center justify-between gap-1.5 no-underline transition active:scale-[0.98] min-w-0">
+                <span class="text-[10px] font-bold text-slate-600 truncate">
+                    {{ row.vehicle__vehicle_type__name }}
+                    {% if row.is_inward %}<span class="ml-0.5 px-1 rounded bg-amber-100 text-amber-700 text-[8px] font-bold uppercase">In</span>{% endif %}
                 </span>
-                <span class="shrink-0 text-sm font-extrabold num {% if row.is_inward %}text-amber-600{% else %}text-sky-600{% endif %} leading-none">{{ row.total_qty|floatformat:"-2" }}</span>
+                <span class="shrink-0 text-[12px] font-extrabold num {% if row.is_inward %}text-amber-600{% else %}text-sky-600{% endif %} leading-none">{{ row.total_qty|floatformat:"-2" }}</span>
             </a>
         {% endfor %}
     </div>
