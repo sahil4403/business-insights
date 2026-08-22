@@ -140,7 +140,7 @@
                     <span class="w-7 h-7 rounded-lg bg-red-50 text-red-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">PDF</span>
                     Preview PDF</a>
                 <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
-                   class="export-opt">
+                   download="Customer_Report.pdf" class="export-opt">
                     <span class="w-7 h-7 rounded-lg bg-red-50 text-red-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">PDF</span>
                     Download PDF</a>
                 <a href="#" class="export-opt export-cancel">
@@ -217,7 +217,7 @@
                             <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}" target="_blank"
                                class="app-chip">Preview PDF</a>
                             <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}"
-                               class="app-chip">Download PDF</a>
+                               download="Customer_Report.pdf" class="app-chip">Download PDF</a>
                         </div>
                     </div>
                 </form>

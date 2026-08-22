@@ -47,7 +47,7 @@
             <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}" target="_blank"
                class="export-opt">👁️ Preview PDF</a>
             <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
-               class="export-opt">📥 Download PDF</a>
+               download="Vehicle_Report.pdf" class="export-opt">📥 Download PDF</a>
             <a href="#" class="export-opt export-cancel">✕ Cancel</a>
         </div>
     </details>

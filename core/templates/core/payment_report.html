@@ -40,7 +40,7 @@
                 <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if selected_payment_method %}&payment_method={{ selected_payment_method }}{% endif %}" target="_blank"
                    class="export-opt">👁️ Preview PDF</a>
                 <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if selected_payment_method %}&payment_method={{ selected_payment_method }}{% endif %}"
-                   class="export-opt">📥 Download PDF</a>
+                   download="Payment_Report.pdf" class="export-opt">📥 Download PDF</a>
                 <a href="#" class="export-opt export-cancel">✕ Cancel</a>
             </div>
         </details>
@@ -53,7 +53,7 @@
             <a href="?export=pdf&preview=true{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if selected_payment_method %}&payment_method={{ selected_payment_method }}{% endif %}" target="_blank"
                class="btn btn-ghost h-9 px-3.5 text-xs">Preview PDF</a>
             <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if selected_payment_method %}&payment_method={{ selected_payment_method }}{% endif %}"
-               class="btn btn-ghost h-9 px-3.5 text-xs">Download PDF</a>
+               download="Payment_Report.pdf" class="btn btn-ghost h-9 px-3.5 text-xs">Download PDF</a>
             <a href="{% url 'core:payment_report_add' %}?next={% url 'core:payment_report' %}"
                class="btn btn-primary h-9 px-4 text-xs">＋ Add Payment</a>
         </div>

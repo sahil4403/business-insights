@@ -60,7 +60,8 @@
             <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?preview=true&{{ qs_dates }}{% if selected_material_id %}&material={{ selected_material_id }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}" target="_blank" class="btn btn-ghost">
                 Preview
             </a>
-            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?{{ qs_dates }}{% if selected_material_id %}&material={{ selected_material_id }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}" class="btn btn-primary">
+            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?{{ qs_dates }}{% if selected_material_id %}&material={{ selected_material_id }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
+               download="Statement_{{ customer.name|slugify }}_{{ customer.customer_code }}.pdf" class="btn btn-primary">
                 Download PDF
             </a>
         </div>
