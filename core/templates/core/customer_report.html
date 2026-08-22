@@ -90,9 +90,9 @@
 
 <body class="bg-[#f5f7fa] text-slate-800 font-sans min-h-screen antialiased">
 
-<!-- MOBILE SCROLL TOP BAR (appears on scroll-down with animation) -->
-<div id="scroll-topbar" class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-[#eef1f6] shadow-sm" style="transform: translateY(-110%); transition: transform 0.28s ease;">
-    <div class="flex items-center gap-2 px-3 py-2">
+<!-- STICKY TOP BAR (attaches on scroll - mobile + laptop) -->
+<div id="scroll-topbar" class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-[#eef1f6] shadow-sm" style="transform: translateY(-110%); transition: transform 0.28s ease;">
+    <div class="flex items-center gap-2 px-3 py-2 max-w-7xl mx-auto">
         <a href="{% url 'core:dashboard' %}"
            class="shrink-0 h-9 px-3 rounded-full border border-[#eef1f6] bg-white text-slate-600 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
