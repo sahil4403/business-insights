@@ -452,17 +452,29 @@
             document.querySelectorAll('.export-menu[open]').forEach(function (d) { d.open = false; });
         }
     });
-    // Sticky top bar (mobile): attaches to top once you scroll past the
-    // header and stays there until you return to the top.
+    // Sticky top bar: normal flow till the real search section reaches the
+    // top of the screen, then attach — gives the full long view first.
     const scrollTopbar = document.getElementById('scroll-topbar');
     if (scrollTopbar) {
-        window.addEventListener('scroll', function () {
-            if (window.scrollY > 90) {
-                scrollTopbar.style.transform = 'translateY(0)';
-            } else {
-                scrollTopbar.style.transform = 'translateY(-110%)';
+        const searchInputs = Array.prototype.filter.call(
+            document.querySelectorAll('input[name="search"]'),
+            function (inp) { return !inp.closest('#scroll-topbar'); }
+        );
+
+        const updateTopbar = function () {
+            let reached = false;
+            for (let i = 0; i < searchInputs.length; i++) {
+                const r = searchInputs[i].getBoundingClientRect();
+                if (r.height > 0 && r.top <= 4) { reached = true; break; }
             }
-        }, { passive: true });
+            scrollTopbar.style.transform = reached
+                ? 'translateY(0)'
+                : 'translateY(-110%)';
+        };
+
+        window.addEventListener('scroll', updateTopbar, { passive: true });
+        window.addEventListener('resize', updateTopbar);
+        updateTopbar();
     }
 </script>
 
