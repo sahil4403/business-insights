@@ -57,10 +57,10 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?preview=true&{{ qs_dates }}{% if selected_material_id %}&material={{ selected_material_id }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}" target="_blank" class="btn btn-ghost">
+            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?preview=true&{{ qs_dates }}{% if selected_material_param %}&material={{ selected_material_param }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}" target="_blank" class="btn btn-ghost">
                 Preview
             </a>
-            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?{{ qs_dates }}{% if selected_material_id %}&material={{ selected_material_id }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
+            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?{{ qs_dates }}{% if selected_material_param %}&material={{ selected_material_param }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
                download="Statement_{{ customer.name|slugify }}_{{ customer.customer_code }}.pdf"
                onclick="return downloadStatementPdf(this.href, 'Statement_{{ customer.name|slugify }}_{{ customer.customer_code }}.pdf');" class="btn btn-primary">
                 Download PDF
@@ -110,8 +110,8 @@
     </div>
     <div class="p-3 grid grid-cols-2 md:grid-cols-4 gap-2.5">
         {% for row in material_summary %}
-            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}material={{ row.material_id }}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
-               class="{% if selected_material_id == row.material_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-xl border p-3 no-underline transition active:scale-[0.98] block">
+            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}material={{ row.toggle_param }}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
+               class="{% if row.is_selected %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-xl border p-3 no-underline transition active:scale-[0.98] block">
                 <span class="block text-[11px] font-bold text-slate-500 truncate">
                     {{ row.material__name }}
                     {% if row.is_inward %}<span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold uppercase align-middle">Inward</span>{% endif %}
@@ -133,7 +133,7 @@
     </div>
     <div class="p-2 grid grid-cols-2 md:grid-cols-4 gap-1.5">
         {% for row in vtype_summary %}
-            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_id %}material={{ selected_material_id }}&{% endif %}vehicle_type={{ row.vehicle__vehicle_type_id }}"
+            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_param %}material={{ selected_material_param }}&{% endif %}vehicle_type={{ row.vehicle__vehicle_type_id }}"
                class="{% if selected_vtype_id == row.vehicle__vehicle_type_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-lg border px-2 py-1 flex items-center justify-between gap-1.5 no-underline transition active:scale-[0.98] min-w-0">
                 <span class="text-[10px] font-bold text-slate-600 truncate">
                     {{ row.vehicle__vehicle_type__name }}
@@ -151,10 +151,10 @@
     {% if materials_list %}
     <div class="app-tabs px-3 pt-3 pb-2 border-b border-slate-100">
         <a href="{% url 'ledger:customer_statement' customer.id %}{% if qs_dates %}?{{ qs_dates }}{% endif %}"
-           class="app-chip {% if not selected_material_id %}active{% endif %}">All Materials</a>
+           class="app-chip {% if not selected_material_param %}active{% endif %}">All Materials</a>
         {% for mat in materials_list %}
-            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_id != mat.0 %}material={{ mat.0 }}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}{% elif selected_vtype_id %}material={{ mat.0 }}&vehicle_type={{ selected_vtype_id }}{% endif %}"
-               class="app-chip {% if selected_material_id == mat.0 %}active{% endif %}">{{ mat.1 }}</a>
+            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}material={{ mat.toggle_param }}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
+               class="app-chip {% if mat.is_selected %}active{% endif %}">{{ mat.name }}</a>
         {% endfor %}
     </div>
     {% endif %}
@@ -164,7 +164,7 @@
         <a href="{% url 'ledger:customer_statement' customer.id %}{% if qs_dates %}?{{ qs_dates }}{% endif %}"
            class="app-chip {% if not selected_vtype_id %}active{% endif %}">All Vehicles</a>
         {% for vt in vtypes_list %}
-            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_id %}material={{ selected_material_id }}&{% endif %}{% if selected_vtype_id != vt.0 %}vehicle_type={{ vt.0 }}{% elif selected_material_id %}vehicle_type={{ vt.0 }}{% endif %}"
+            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_param %}material={{ selected_material_param }}&{% endif %}{% if selected_vtype_id != vt.0 %}vehicle_type={{ vt.0 }}{% elif selected_material_param %}vehicle_type={{ vt.0 }}{% endif %}"
                class="app-chip {% if selected_vtype_id == vt.0 %}active{% endif %}">{{ vt.1 }}</a>
         {% endfor %}
     </div>
@@ -184,8 +184,8 @@
         </summary>
         <div class="px-4 py-3 md:p-4">
             <form method="get" id="statement-filter-form" class="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
-                {% if selected_material_id %}
-                    <input type="hidden" name="material" value="{{ selected_material_id }}">
+                {% if selected_material_param %}
+                    <input type="hidden" name="material" value="{{ selected_material_param }}">
                 {% endif %}
                 {% if selected_vtype_id %}
                     <input type="hidden" name="vehicle_type" value="{{ selected_vtype_id }}">
@@ -215,18 +215,16 @@
     <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-2">
         <h2 class="font-bold text-slate-900 text-[15px] shrink-0">Transactions</h2>
         <div class="flex items-center gap-1.5 overflow-x-auto app-tabs">
-            {% if selected_material_id %}
-                {% for mat in materials_list %}
-                    {% if mat.0 == selected_material_id %}
-                        <a href="?{{ qs_dates }}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
-                           class="app-chip sm active whitespace-nowrap" title="Clear material filter">{{ mat.1 }} ✕</a>
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
+            {% for mat in materials_list %}
+                {% if mat.is_selected %}
+                    <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}material={{ mat.toggle_param }}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
+                       class="app-chip sm active whitespace-nowrap" title="Remove this material">{{ mat.name }} ✕</a>
+                {% endif %}
+            {% endfor %}
             {% if selected_vtype_id %}
                 {% for vt in vtypes_list %}
                     {% if vt.0 == selected_vtype_id %}
-                        <a href="?{{ qs_dates }}{% if selected_material_id %}&material={{ selected_material_id }}{% endif %}"
+                        <a href="?{{ qs_dates }}{% if selected_material_param %}&material={{ selected_material_param }}{% endif %}"
                            class="app-chip sm active whitespace-nowrap" title="Clear vehicle type filter">{{ vt.1 }} ✕</a>
                     {% endif %}
                 {% endfor %}

@@ -257,12 +257,17 @@ def customer_statement(request, customer_id):
     from django.db.models import Sum, Count as AggCount
 
     raw_material = (request.GET.get('material') or '').strip()
-    selected_material_id = None
-    if raw_material.isdigit():
-        candidate = int(raw_material)
-        # Only honour ids that belong to this customer's trips
-        if customer_trips.filter(material_id=candidate).exists():
-            selected_material_id = candidate
+    # Multi-select supported: comma separated ids e.g. ?material=3,7
+    raw_mat_ids = [p.strip() for p in raw_material.split(',') if p.strip().isdigit()]
+    valid_mat_ids = set()
+    if raw_mat_ids:
+        valid_mat_ids = set(
+            customer_trips.filter(
+                material_id__in=[int(i) for i in raw_mat_ids]
+            ).values_list('material_id', flat=True)
+        )
+    selected_material_ids = [int(i) for i in raw_mat_ids if int(i) in valid_mat_ids]
+    selected_material_param = ','.join(str(i) for i in selected_material_ids)
 
     raw_vtype = (request.GET.get('vehicle_type') or '').strip()
     selected_vtype_id = None
@@ -288,6 +293,21 @@ def customer_statement(request, customer_id):
     for row in material_summary:
         row['is_inward'] = row['transaction_type'] == 'VENDOR_SUPPLY'
 
+    # Multi-select helpers: each chip toggles its own id in/out of the
+    # comma-separated ?material= list.
+    sel_set = set(selected_material_ids)
+
+    def _material_toggle_param(mid):
+        if mid in sel_set:
+            remaining = [i for i in selected_material_ids if i != mid]
+        else:
+            remaining = selected_material_ids + [mid]
+        return ','.join(str(i) for i in remaining)
+
+    for row in material_summary:
+        row['is_selected'] = row['material_id'] in sel_set
+        row['toggle_param'] = _material_toggle_param(row['material_id'])
+
     # Vehicle-type-wise summary for the date period (same inward/outward split)
     vtype_summary = list(
         period_trips
@@ -309,12 +329,20 @@ def customer_statement(request, customer_id):
         row['is_inward'] = row['transaction_type'] == 'VENDOR_SUPPLY'
 
     # Materials this customer has ever ordered OR received (for filter chips)
-    materials_list = list(
-        customer_trips.exclude(material__isnull=True)
-        .values_list('material_id', 'material__name')
-        .distinct()
-        .order_by('material__name')
-    )
+    materials_list = [
+        {
+            'id': mid,
+            'name': mname,
+            'is_selected': mid in sel_set,
+            'toggle_param': _material_toggle_param(mid),
+        }
+        for mid, mname in (
+            customer_trips.exclude(material__isnull=True)
+            .values_list('material_id', 'material__name')
+            .distinct()
+            .order_by('material__name')
+        )
+    ]
 
     # Vehicle types this customer has used (for filter chips)
     vtypes_list = list(
@@ -325,8 +353,8 @@ def customer_statement(request, customer_id):
         .order_by('vehicle__vehicle_type__name')
     )
 
-    if selected_material_id:
-        period_trips = period_trips.filter(material_id=selected_material_id)
+    if selected_material_ids:
+        period_trips = period_trips.filter(material_id__in=selected_material_ids)
 
     if selected_vtype_id:
         period_trips = period_trips.filter(vehicle__vehicle_type_id=selected_vtype_id)
@@ -429,7 +457,8 @@ def customer_statement(request, customer_id):
         'is_admin_user': is_admin_user,
         'material_summary': material_summary,
         'materials_list': materials_list,
-        'selected_material_id': selected_material_id,
+        'selected_material_ids': selected_material_ids,
+        'selected_material_param': selected_material_param,
         'vtype_summary': vtype_summary,
         'vtypes_list': vtypes_list,
         'selected_vtype_id': selected_vtype_id,
@@ -542,18 +571,25 @@ def customer_statement_pdf(request, customer_id):
         )
 
     # Optional material / vehicle-type filters (validated against this customer's trips)
+    # Material supports multi-select: comma separated ids e.g. ?material=3,7
     raw_material = (request.GET.get('material') or '').strip()
-    selected_material_id = None
-    if raw_material.isdigit() and customer_trips.filter(material_id=int(raw_material)).exists():
-        selected_material_id = int(raw_material)
+    raw_mat_ids = [p.strip() for p in raw_material.split(',') if p.strip().isdigit()]
+    valid_mat_ids = set()
+    if raw_mat_ids:
+        valid_mat_ids = set(
+            customer_trips.filter(
+                material_id__in=[int(i) for i in raw_mat_ids]
+            ).values_list('material_id', flat=True)
+        )
+    selected_material_ids = [int(i) for i in raw_mat_ids if int(i) in valid_mat_ids]
 
     raw_vtype = (request.GET.get('vehicle_type') or '').strip()
     selected_vtype_id = None
     if raw_vtype.isdigit() and customer_trips.filter(vehicle__vehicle_type_id=int(raw_vtype)).exists():
         selected_vtype_id = int(raw_vtype)
 
-    if selected_material_id:
-        period_trips = period_trips.filter(material_id=selected_material_id)
+    if selected_material_ids:
+        period_trips = period_trips.filter(material_id__in=selected_material_ids)
 
     if selected_vtype_id:
         period_trips = period_trips.filter(vehicle__vehicle_type_id=selected_vtype_id)
@@ -676,12 +712,16 @@ def customer_statement_pdf(request, customer_id):
     meta_info = f"Customer: <b>{customer.name}</b> (Code: {customer.customer_code}) | Statement Period: <b>{period_text}</b>"
 
     filter_labels = []
-    if selected_material_id:
-        try:
-            from master_data.models import Material
-            filter_labels.append(f"Material: {Material.objects.get(pk=selected_material_id).name}")
-        except Exception:
-            pass
+    if selected_material_ids:
+        from master_data.models import Material
+        mat_names = list(
+            Material.objects.filter(id__in=selected_material_ids)
+            .values_list('name', flat=True)
+        )
+        if len(mat_names) == 1:
+            filter_labels.append(f"Material: {mat_names[0]}")
+        else:
+            filter_labels.append(f"Materials: {', '.join(mat_names)}")
     if selected_vtype_id:
         try:
             from master_data.models import VehicleType
