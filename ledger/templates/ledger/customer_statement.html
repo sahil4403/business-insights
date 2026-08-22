@@ -634,12 +634,24 @@
         });
     }
 
-    // Force real file download on mobile: confirm popup -> fetch as blob -> save.
-    // Fallback to direct navigation (server sends Content-Disposition: attachment).
+    // Force real file download:
+    //  - iOS/iPhone Safari: async blob clicks lose the user gesture and open
+    //    a preview window instead of saving -> navigate directly; the server
+    //    sends Content-Disposition: attachment so iOS saves it to Files.
+    //  - Everything else: fetch as blob and force-save (no page change).
     async function downloadStatementPdf(url, filename) {
         if (!window.confirm('Download this file?\n' + filename)) {
             return false;
         }
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        if (isIOS) {
+            window.location.href = url;
+            return false;
+        }
+
         try {
             const response = await fetch(url, { credentials: 'same-origin' });
             if (!response.ok) {
