@@ -487,7 +487,7 @@ def customer_statement_pdf(request, customer_id):
     opening_balance = customer.opening_balance or Decimal('0')
 
     if from_date:
-        previous_sales = customer_trips.filter(
+        previous_trips = customer_trips.filter(
             trip_date__lt=from_date
         )
 
@@ -496,12 +496,12 @@ def customer_statement_pdf(request, customer_id):
         )
 
         opening_sales = sum(
-            trip.total_amount
-            for trip in previous_sales
+            trip.total_amount if trip.transaction_type != 'VENDOR_SUPPLY' else -trip.total_amount
+            for trip in previous_trips
         )
 
         opening_received = sum(
-            payment.amount
+            payment.amount if payment.payment_type != 'PAID' else -payment.amount
             for payment in previous_payments
         )
 
@@ -553,18 +553,36 @@ def customer_statement_pdf(request, customer_id):
         period_trips = period_trips.filter(vehicle__vehicle_type_id=selected_vtype_id)
 
     for trip in period_trips:
-        transactions.append({
-            'date': trip.trip_date,
-            'type': 'SALE',
-            'description': (
-                f"{trip.material.name} - "
-                f"{trip.quantity} × ₹{trip.rate}"
-            ),
-            'debit': trip.total_amount,
-            'credit': Decimal('0'),
-            'reference': trip.trip_code,
-            'destination': trip.destination or '',
-        })
+        material_name = trip.material.name if trip.material else '—'
+
+        if trip.transaction_type == 'VENDOR_SUPPLY':
+            # Inward supply from vendor -> Credit (same as HTML statement)
+            transactions.append({
+                'date': trip.trip_date,
+                'type': 'INWARD SUPPLY',
+                'description': (
+                    f"Inward Supply ({material_name} - "
+                    f"{trip.quantity} × ₹{trip.rate})"
+                ),
+                'debit': Decimal('0'),
+                'credit': trip.total_amount,
+                'reference': trip.trip_code,
+                'destination': trip.destination or '',
+            })
+        else:
+            # Outward supply to customer -> Debit
+            transactions.append({
+                'date': trip.trip_date,
+                'type': 'SALE',
+                'description': (
+                    f"{material_name} - "
+                    f"{trip.quantity} × ₹{trip.rate}"
+                ),
+                'debit': trip.total_amount,
+                'credit': Decimal('0'),
+                'reference': trip.trip_code,
+                'destination': trip.destination or '',
+            })
 
     transactions.extend(
         _payment_transactions(period_payments, timezone.localdate())
