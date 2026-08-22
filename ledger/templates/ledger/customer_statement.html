@@ -61,7 +61,8 @@
                 Preview
             </a>
             <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?{{ qs_dates }}{% if selected_material_id %}&material={{ selected_material_id }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
-               download="Statement_{{ customer.name|slugify }}_{{ customer.customer_code }}.pdf" class="btn btn-primary">
+               download="Statement_{{ customer.name|slugify }}_{{ customer.customer_code }}.pdf"
+               onclick="return downloadStatementPdf(this.href, 'Statement_{{ customer.name|slugify }}_{{ customer.customer_code }}.pdf');" class="btn btn-primary">
                 Download PDF
             </a>
         </div>
@@ -631,6 +632,32 @@
                 closePaymentModal();
             }
         });
+    }
+
+    // Force real file download on mobile: confirm popup -> fetch as blob -> save.
+    // Fallback to direct navigation (server sends Content-Disposition: attachment).
+    async function downloadStatementPdf(url, filename) {
+        if (!window.confirm('Download this file?\n' + filename)) {
+            return false;
+        }
+        try {
+            const response = await fetch(url, { credentials: 'same-origin' });
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            const blob = await response.blob();
+            const link = document.createElement('a');
+            const objectUrl = URL.createObjectURL(blob);
+            link.href = objectUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(function() { URL.revokeObjectURL(objectUrl); }, 4000);
+        } catch (err) {
+            window.location.href = url;
+        }
+        return false;
     }
 </script>
 {% endblock %}
