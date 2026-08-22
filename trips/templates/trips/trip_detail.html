@@ -15,7 +15,7 @@
 
 {% block scrolltopbar %}
 <div class="flex items-center gap-2 px-3 py-2">
-    <a href="{% url 'trips:list' %}"
+    <a href="{{ back_url }}"
        class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
         ← Back
     </a>
@@ -70,7 +70,7 @@
             <a href="{% url 'trips:edit' trip.id %}" class="app-chip">
                 Edit Trip
             </a>
-            <a href="{% url 'trips:list' %}" class="app-chip">
+            <a href="{{ back_url }}" class="app-chip">
                 ← Back
             </a>
         </div>
@@ -368,7 +368,7 @@
            class="flex-1 h-11 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2">
             Edit
         </a>
-        <a href="{% url 'trips:list' %}"
+        <a href="{{ back_url }}"
            class="flex-1 h-11 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2">
             Back
         </a>

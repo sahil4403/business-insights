@@ -522,9 +522,20 @@ def trip_detail(request, trip_id):
         pk=trip_id,
     )
 
+    from core.utils import get_safe_next_or_referer
+    from django.urls import reverse
+
+    # Smart back: return to where the user came from (e.g. customer statement),
+    # falling back to the trips list only when there is no internal referrer.
+    back_url = get_safe_next_or_referer(
+        request,
+        reverse('trips:list'),
+    )
+
     context = {
         'trip': trip,
         'payments': trip.payments.all(),
+        'back_url': back_url,
     }
 
     return render(
