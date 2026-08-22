@@ -443,7 +443,7 @@
 
             <div>
                 <label class="label" for="modal_amount">Payment Amount (₹) *</label>
-                <input type="number" step="0.01" min="0.01" name="amount" id="modal_amount" value="{% if closing_balance > 0 %}{{ closing_balance }}{% endif %}" placeholder="Enter amount" required class="input">
+                <input type="number" step="0.01" min="0.01" name="amount" id="modal_amount" placeholder="Enter amount manually" required class="input">
             </div>
 
             <div>
@@ -615,8 +615,9 @@
                 helpText.style.color = "#334155";
             }
             if (outstanding && amountInput) {
-                amountInput.value = outstanding;
+                // Amount user khud bharega — sirf max limit set hoti hai
                 amountInput.max = outstanding;
+                amountInput.placeholder = 'Max \u20B9' + parseFloat(outstanding).toLocaleString('en-IN');
             }
         }
     }

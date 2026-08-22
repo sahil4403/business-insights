@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.db import models
+from django.utils import timezone
 
 from customers.models import Customer
 from vehicles.models import Vehicle
@@ -353,6 +354,13 @@ class TripPayment(models.Model):
     updated_at = models.DateTimeField(
         auto_now=True
     )
+
+    def save(self, *args, **kwargs):
+        # A payment without a date is invisible in reports/statements —
+        # never allow blank dates; default to today.
+        if not self.payment_date:
+            self.payment_date = timezone.localdate()
+        super().save(*args, **kwargs)
 
     def clean(self):
         from django.core.exceptions import ValidationError
