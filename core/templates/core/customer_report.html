@@ -311,7 +311,12 @@
                             <span class="app-dot bg-brand-500"></span>
                             <div class="flex-1 min-w-0">
                                 <div class="font-bold text-slate-900 text-[15px] leading-tight truncate">{{ customer.customer_name }}</div>
-                                <div class="text-[11px] font-semibold text-slate-400 mt-1">{{ customer.total_trips }} trips</div>
+                                <div class="text-[11px] font-semibold text-slate-400 mt-1">
+                                    {{ customer.total_trips }} trips
+                                    {% if customer.jcb_trips %}
+                                        <span class="text-amber-600 font-bold">· JCB {{ customer.jcb_trips }} ({{ customer.jcb_hours|floatformat:"-1" }}h)</span>
+                                    {% endif %}
+                                </div>
                             </div>
                             <div class="text-right shrink-0">
                                 <div class="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-400">Outstanding</div>
@@ -359,6 +364,7 @@
                             <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer</th>
                             <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Opening</th>
                             <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Trips</th>
+                            <th class="px-5 py-3.5 text-[10px] font-bold text-amber-500 uppercase tracking-wider text-right">JCB Work</th>
                             <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Revenue</th>
                             <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Received</th>
                             <th class="px-5 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Outstanding</th>
@@ -371,6 +377,15 @@
                                 <td class="px-5 py-3.5 font-semibold text-slate-900">{{ customer.customer_name }}</td>
                                 <td class="px-5 py-3.5 text-right text-slate-600 tabular-nums">₹{{ customer.opening_balance|floatformat:2 }}</td>
                                 <td class="px-5 py-3.5 text-right text-slate-600 tabular-nums">{{ customer.total_trips }}</td>
+                                <td class="px-5 py-3.5 text-right tabular-nums">
+                                    {% if customer.jcb_trips %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[12px] font-bold">
+                                            {{ customer.jcb_trips }} · {{ customer.jcb_hours|floatformat:"-1" }}h
+                                        </span>
+                                    {% else %}
+                                        <span class="text-slate-300">—</span>
+                                    {% endif %}
+                                </td>
                                 <td class="px-5 py-3.5 text-right text-slate-600 tabular-nums">₹{{ customer.total_revenue|floatformat:2 }}</td>
                                 <td class="px-5 py-3.5 text-right text-slate-600 tabular-nums">₹{{ customer.total_received|floatformat:2 }}</td>
                                 <td class="px-5 py-3.5 text-right font-bold text-brand-600 tabular-nums">₹{{ customer.total_outstanding|floatformat:2 }}</td>
@@ -387,7 +402,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="7" class="px-5 py-12 text-center text-slate-500">No customer data found.</td>
+                                <td colspan="8" class="px-5 py-12 text-center text-slate-500">No customer data found.</td>
                             </tr>
                         {% endfor %}
                     </tbody>

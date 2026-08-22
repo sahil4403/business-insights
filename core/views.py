@@ -517,6 +517,10 @@ def customer_report(request):
     if to_date:
         trip_filter &= Q(trips__trip_date__lte=to_date)
 
+    # JCB work tracked separately from regular truck trips
+    jcb_filter = trip_filter & Q(trips__vehicle__vehicle_type__code='JCB')
+    truck_trip_filter = trip_filter & ~Q(trips__vehicle__vehicle_type__code='JCB')
+
     payment_filter = Q()
 
     if from_date:
@@ -538,7 +542,15 @@ def customer_report(request):
         )
         .annotate(
             total_trips=Count(
-                'trips', filter=trip_filter, distinct=True
+                'trips', filter=truck_trip_filter, distinct=True
+            ),
+            jcb_trips=Count(
+                'trips', filter=jcb_filter, distinct=True
+            ),
+            jcb_hours=Coalesce(
+                Sum('trips__quantity', filter=jcb_filter),
+                Decimal('0'),
+                output_field=DecimalField()
             ),
             total_revenue=Coalesce(
                 Sum('trips__total_amount', filter=trip_filter),
@@ -697,7 +709,8 @@ def customer_report(request):
             [
                 Paragraph('<b>Customer</b>', header_style),
                 Paragraph('<b>Opening Bal.</b>', header_right_style),
-                Paragraph('<b>Total Trips</b>', header_center_style),
+                Paragraph('<b>Trips</b>', header_center_style),
+                Paragraph('<b>JCB Work</b>', header_center_style),
                 Paragraph('<b>Revenue</b>', header_right_style),
                 Paragraph('<b>Received</b>', header_right_style),
                 Paragraph('<b>Outstanding</b>', header_right_style),
@@ -706,6 +719,7 @@ def customer_report(request):
 
         total_open = Decimal('0')
         total_trips_count = 0
+        total_jcb_trips_count = 0
         total_rev = Decimal('0')
         total_rec = Decimal('0')
         total_out = Decimal('0')
@@ -722,16 +736,22 @@ def customer_report(request):
                 continue
 
             trips_cnt = customer['total_trips'] or 0
+            jcb_cnt = customer.get('jcb_trips') or 0
+            jcb_hrs = customer.get('jcb_hours') or Decimal('0')
             total_open += opening_bal
             total_trips_count += trips_cnt
+            total_jcb_trips_count += jcb_cnt
             total_rev += revenue
             total_rec += received
             total_out += outstanding
+
+            jcb_label = f'{jcb_cnt} · {jcb_hrs:.1f}h' if jcb_cnt else '—'
 
             data.append([
                 Paragraph(str(customer['name'] or '—'), body_style),
                 Paragraph(f'₹{opening_bal:,.2f}', right_body_style),
                 Paragraph(str(trips_cnt), center_body_style),
+                Paragraph(jcb_label, center_body_style),
                 Paragraph(f'₹{revenue:,.2f}', right_body_style),
                 Paragraph(f'₹{received:,.2f}', right_body_style),
                 Paragraph(f'₹{outstanding:,.2f}', right_body_style),
@@ -742,6 +762,7 @@ def customer_report(request):
             Paragraph('<b>TOTAL</b>', body_style),
             Paragraph(f'<b>₹{total_open:,.2f}</b>', right_body_style),
             Paragraph(f'<b>{total_trips_count}</b>', center_body_style),
+            Paragraph(f'<b>{total_jcb_trips_count}</b>', center_body_style),
             Paragraph(f'<b>₹{total_rev:,.2f}</b>', right_body_style),
             Paragraph(f'<b>₹{total_rec:,.2f}</b>', right_body_style),
             Paragraph(f'<b>₹{total_out:,.2f}</b>', right_body_style),
@@ -750,7 +771,7 @@ def customer_report(request):
         table = Table(
             data,
             repeatRows=1,
-            colWidths=[180, 100, 80, 110, 110, 110],
+            colWidths=[160, 95, 65, 90, 105, 105, 105],
         )
 
         apply_data_table_style(table, total_row=True)
@@ -776,7 +797,8 @@ def customer_report(request):
         headers = [
             'Customer',
             'Opening Balance',
-            'Total Trips',
+            'Trips',
+            'JCB Work (trips · hrs)',
             'Revenue',
             'Received',
             'Outstanding',
@@ -819,10 +841,15 @@ def customer_report(request):
             if max_amount is not None and outstanding > max_amount:
                 continue
 
+            _jcb_cnt = customer.get('jcb_trips') or 0
+            _jcb_hrs = float(customer.get('jcb_hours') or 0)
+            jcb_label = f'{_jcb_cnt} · {_jcb_hrs:.1f}h' if _jcb_cnt else ''
+
             worksheet.append([
                 customer['name'],
                 opening_bal,
                 customer['total_trips'],
+                jcb_label,
                 revenue,
                 received,
                 outstanding,
@@ -841,7 +868,7 @@ def customer_report(request):
 
             for cell in row:
 
-                if cell.column != 3:  # Skip 'Total Trips' column
+                if cell.column not in (3, 4):  # Skip 'Trips' and 'JCB Work' columns
                     cell.number_format = (
                         '₹#,##0.00'
                     )
@@ -1023,6 +1050,12 @@ def customer_report(request):
 
             'total_trips':
                 customer['total_trips'],
+
+            'jcb_trips':
+                customer['jcb_trips'],
+
+            'jcb_hours':
+                customer['jcb_hours'],
 
             'total_revenue':
                 revenue,
