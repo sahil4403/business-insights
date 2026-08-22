@@ -25,6 +25,14 @@
         }
         .tabbar-link:active, .nav-link:active, .app-chip:active { opacity: .65; }
 
+        /* PAGE LOADER BAR + BUSY BUTTONS */
+        #page-loader { position: fixed; top: 0; left: 0; height: 3px; width: 0;
+            background: linear-gradient(90deg, #16665a, #2ab39b);
+            z-index: 99999; opacity: 0; pointer-events: none;
+            transition: width .25s ease, opacity .3s ease; }
+        #page-loader.active { opacity: 1; width: 70%; }
+        .btn-busy { opacity: .55 !important; pointer-events: none !important; }
+
         :root {
             --brand: #16665a;
             --brand-dark: #115248;
@@ -393,6 +401,61 @@
                 fabLastY = y;
             }, { passive: true });
         }
+    </script>
+    <script>
+        // TAP FEEDBACK: top loader bar on navigation, busy state + double-tap
+        // guard on buttons/links so users never click repeatedly.
+        (function () {
+            var bar = document.createElement('div');
+            bar.id = 'page-loader';
+            document.body.appendChild(bar);
+
+            function reset() { bar.className = ''; bar.style.width = '0'; }
+            function start() { bar.className = 'active'; bar.style.width = '35%';
+                setTimeout(function () { if (bar.className === 'active') bar.style.width = '70%'; }, 300); }
+            window.addEventListener('load', reset);
+            window.addEventListener('pageshow', reset); // back/forward cache
+
+            var lastHref = '', lastTime = 0;
+            document.addEventListener('click', function (e) {
+                var t = e.target;
+                if (!t || !t.closest) return;
+
+                // Submit buttons: busy-lock whole form
+                var btn = t.closest('button[type="submit"], input[type="submit"]');
+                if (btn) {
+                    var f = btn.closest('form');
+                    if (f) {
+                        var lock = f.getAttribute('data-busy');
+                        if (lock === '1') { e.preventDefault(); return; }
+                        f.setAttribute('data-busy', '1');
+                        Array.prototype.forEach.call(
+                            f.querySelectorAll('button[type="submit"],input[type="submit"]'),
+                            function (b) { b.classList.add('btn-busy'); }
+                        );
+                        start();
+                    }
+                    return;
+                }
+
+                // Internal links
+                var a = t.closest('a[href]');
+                if (!a) return;
+                var href = a.getAttribute('href') || '';
+                if (!href || href.charAt(0) === '#') return;
+                if (a.origin !== location.origin) return;
+                if (a.target === '_blank' || a.hasAttribute('download')) return;
+                if (a.dataset.noLoader === '1') return;
+
+                var now = Date.now();
+                if (href === lastHref && now - lastTime < 1500) {
+                    e.preventDefault();  // double-tap on same link -> ignore
+                    return;
+                }
+                lastHref = href; lastTime = now;
+                start();
+            }, true);
+        })();
     </script>
     <script>
         // INSTANT-NAV PREFETCH: start loading internal pages on hover/touch,

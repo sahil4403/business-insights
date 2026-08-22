@@ -28,7 +28,7 @@ class Trip(models.Model):
         editable=False
     )
 
-    trip_date = models.DateField()
+    trip_date = models.DateField(db_index=True)
 
     customer = models.ForeignKey(
         Customer,
@@ -320,7 +320,8 @@ class TripPayment(models.Model):
 
     payment_date = models.DateField(
         null=True,
-        blank=True
+        blank=True,
+        db_index=True
     )
 
     amount = models.DecimalField(
