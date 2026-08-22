@@ -271,39 +271,46 @@ def customer_statement(request, customer_id):
         if customer_trips.filter(vehicle__vehicle_type_id=candidate).exists():
             selected_vtype_id = candidate
 
-    # Material-wise purchase summary (outward sales only) for the date period
-    material_summary_qs = (
-        period_trips.exclude(transaction_type='VENDOR_SUPPLY')
-        .values('material_id', 'material__name')
+    # Material-wise summary for the date period.
+    # Outward sales and inward vendor supply are shown as separate rows
+    # (is_inward flag drives the badge in the template) so vendor-supplied
+    # materials like Crushed Stone also appear here.
+    material_summary = list(
+        period_trips
+        .values('material_id', 'material__name', 'transaction_type')
         .annotate(
             total_qty=Sum('quantity'),
             trip_count=AggCount('id'),
             total_amount=Sum('total_amount'),
         )
-        .order_by('-total_qty')
+        .order_by('material__name', 'transaction_type')
     )
-    material_summary = list(material_summary_qs)
+    for row in material_summary:
+        row['is_inward'] = row['transaction_type'] == 'VENDOR_SUPPLY'
 
-    # Vehicle-type-wise summary (outward sales only) for the date period
+    # Vehicle-type-wise summary for the date period (same inward/outward split)
     vtype_summary = list(
-        period_trips.exclude(transaction_type='VENDOR_SUPPLY')
+        period_trips
         .filter(vehicle__isnull=False)
         .values(
             'vehicle__vehicle_type_id',
             'vehicle__vehicle_type__name',
             'vehicle__vehicle_type__code',
+            'transaction_type',
         )
         .annotate(
             total_qty=Sum('quantity'),
             trip_count=AggCount('id'),
             total_amount=Sum('total_amount'),
         )
-        .order_by('-total_qty')
+        .order_by('vehicle__vehicle_type__name', 'transaction_type')
     )
+    for row in vtype_summary:
+        row['is_inward'] = row['transaction_type'] == 'VENDOR_SUPPLY'
 
-    # Materials this customer has ever ordered (for filter chips)
+    # Materials this customer has ever ordered OR received (for filter chips)
     materials_list = list(
-        customer_trips.exclude(transaction_type='VENDOR_SUPPLY')
+        customer_trips.exclude(material__isnull=True)
         .values_list('material_id', 'material__name')
         .distinct()
         .order_by('material__name')
@@ -311,8 +318,7 @@ def customer_statement(request, customer_id):
 
     # Vehicle types this customer has used (for filter chips)
     vtypes_list = list(
-        customer_trips.exclude(transaction_type='VENDOR_SUPPLY')
-        .filter(vehicle__isnull=False)
+        customer_trips.filter(vehicle__isnull=False)
         .exclude(vehicle__vehicle_type__isnull=True)
         .values_list('vehicle__vehicle_type_id', 'vehicle__vehicle_type__name', 'vehicle__vehicle_type__code')
         .distinct()

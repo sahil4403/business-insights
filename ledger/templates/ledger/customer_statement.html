@@ -110,8 +110,11 @@
         {% for row in material_summary %}
             <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}material={{ row.material_id }}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
                class="{% if selected_material_id == row.material_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-xl border p-3 no-underline transition active:scale-[0.98] block">
-                <span class="block text-[11px] font-bold text-slate-500 truncate">{{ row.material__name }}</span>
-                <span class="block text-xl font-extrabold num text-brand-600 mt-1">{{ row.total_qty|floatformat:"-2" }}</span>
+                <span class="block text-[11px] font-bold text-slate-500 truncate">
+                    {{ row.material__name }}
+                    {% if row.is_inward %}<span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold uppercase align-middle">Inward</span>{% endif %}
+                </span>
+                <span class="block text-xl font-extrabold num {% if row.is_inward %}text-amber-600{% else %}text-brand-600{% endif %} mt-1">{{ row.total_qty|floatformat:"-2" }}</span>
                 <span class="block text-[11px] text-slate-400 mt-0.5">{{ row.trip_count }} trip{{ row.trip_count|pluralize }} · ₹{{ row.total_amount|floatformat:0 }}</span>
             </a>
         {% endfor %}
@@ -130,8 +133,11 @@
         {% for row in vtype_summary %}
             <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_id %}material={{ selected_material_id }}&{% endif %}vehicle_type={{ row.vehicle__vehicle_type_id }}"
                class="{% if selected_vtype_id == row.vehicle__vehicle_type_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-xl border p-3 no-underline transition active:scale-[0.98] block">
-                <span class="block text-[11px] font-bold text-slate-500 truncate">{{ row.vehicle__vehicle_type__name }}</span>
-                <span class="block text-xl font-extrabold num text-sky-600 mt-1">{{ row.total_qty|floatformat:"-2" }}</span>
+                <span class="block text-[11px] font-bold text-slate-500 truncate">
+                    {{ row.vehicle__vehicle_type__name }}
+                    {% if row.is_inward %}<span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold uppercase align-middle">Inward</span>{% endif %}
+                </span>
+                <span class="block text-xl font-extrabold num {% if row.is_inward %}text-amber-600{% else %}text-sky-600{% endif %} mt-1">{{ row.total_qty|floatformat:"-2" }}</span>
                 <span class="block text-[11px] text-slate-400 mt-0.5">{{ row.trip_count }} trip{{ row.trip_count|pluralize }} · ₹{{ row.total_amount|floatformat:0 }}</span>
             </a>
         {% endfor %}
