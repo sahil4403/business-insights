@@ -195,11 +195,7 @@ def dashboard(request):
     # TRIP COUNT
     # -----------------------------------
 
-    total_trips = int(
-        trips.aggregate(
-            total=Sum('quantity')
-        )['total'] or 0
-    )
+    total_trips = trips.count()
 
     # -----------------------------------
     # PRODUCTION
@@ -286,7 +282,7 @@ def dashboard(request):
         trip_status_counts.append({
             'code': status_code,
             'label': status_label,
-            'count': int(status_trips.aggregate(total=Sum('quantity'))['total'] or 0),
+            'count': status_trips.count(),
         })
 
     # -----------------------------------
@@ -303,7 +299,7 @@ def dashboard(request):
         payment_status_counts.append({
             'code': status_code,
             'label': status_label,
-            'count': int(status_trips.aggregate(total=Sum('quantity'))['total'] or 0),
+            'count': status_trips.count(),
         })
 
     # -----------------------------------
@@ -333,7 +329,7 @@ def dashboard(request):
             'vehicle__registration_number'
         )
         .annotate(
-            trips_count=Sum('quantity'),
+            trips_count=Count('id', distinct=True),
             revenue=Sum('total_amount')
         )
         .order_by(
@@ -541,10 +537,8 @@ def customer_report(request):
             'opening_balance'
         )
         .annotate(
-            total_trips=Coalesce(
-                Sum('trips__quantity', filter=trip_filter),
-                Decimal('0'),
-                output_field=DecimalField()
+            total_trips=Count(
+                'trips', filter=trip_filter, distinct=True
             ),
             total_revenue=Coalesce(
                 Sum('trips__total_amount', filter=trip_filter),
@@ -1218,7 +1212,7 @@ def vehicle_report(request):
             'vehicle__registration_number'
         )
         .annotate(
-            total_trips=Sum('quantity'),
+            total_trips=Count('id', distinct=True),
             total_revenue=Sum('total_amount'),
             total_received=Sum(
                 'payments__amount'
