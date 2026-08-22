@@ -57,10 +57,10 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?preview=true{% if from_date %}&from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="btn btn-ghost">
+            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?preview=true&{{ qs_dates }}{% if selected_material_id %}&material={{ selected_material_id }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}" target="_blank" class="btn btn-ghost">
                 Preview
             </a>
-            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}{% if from_date %}?from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}" class="btn btn-primary">
+            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?{{ qs_dates }}{% if selected_material_id %}&material={{ selected_material_id }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}" class="btn btn-primary">
                 Download PDF
             </a>
         </div>
@@ -108,10 +108,30 @@
     </div>
     <div class="p-3 grid grid-cols-2 md:grid-cols-4 gap-2.5">
         {% for row in material_summary %}
-            <a href="?{% if from_date %}from_date={{ from_date|date:'Y-m-d' }}&{% endif %}{% if to_date %}to_date={{ to_date|date:'Y-m-d' }}&{% endif %}material={{ row.material_id }}"
+            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}material={{ row.material_id }}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
                class="{% if selected_material_id == row.material_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-xl border p-3 no-underline transition active:scale-[0.98] block">
                 <span class="block text-[11px] font-bold text-slate-500 truncate">{{ row.material__name }}</span>
                 <span class="block text-xl font-extrabold num text-brand-600 mt-1">{{ row.total_qty|floatformat:"-2" }}</span>
+                <span class="block text-[11px] text-slate-400 mt-0.5">{{ row.trip_count }} trip{{ row.trip_count|pluralize }} · ₹{{ row.total_amount|floatformat:0 }}</span>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- VEHICLE TYPE SUMMARY: kis gaadi se kitna aaya -->
+{% if vtype_summary %}
+<div class="app-surface mb-5 overflow-hidden">
+    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
+        <h2 class="font-bold text-slate-900 text-[15px]">Vehicle-wise Summary</h2>
+        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Kis gaadi se kitna</span>
+    </div>
+    <div class="p-3 grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        {% for row in vtype_summary %}
+            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_id %}material={{ selected_material_id }}&{% endif %}vehicle_type={{ row.vehicle__vehicle_type_id }}"
+               class="{% if selected_vtype_id == row.vehicle__vehicle_type_id %}bg-brand-50 border-brand-300{% else %}bg-slate-50 border-transparent hover:border-slate-200{% endif %} rounded-xl border p-3 no-underline transition active:scale-[0.98] block">
+                <span class="block text-[11px] font-bold text-slate-500 truncate">{{ row.vehicle__vehicle_type__name }}</span>
+                <span class="block text-xl font-extrabold num text-sky-600 mt-1">{{ row.total_qty|floatformat:"-2" }}</span>
                 <span class="block text-[11px] text-slate-400 mt-0.5">{{ row.trip_count }} trip{{ row.trip_count|pluralize }} · ₹{{ row.total_amount|floatformat:0 }}</span>
             </a>
         {% endfor %}
@@ -123,11 +143,22 @@
 <div class="app-surface mb-5 overflow-hidden">
     {% if materials_list %}
     <div class="app-tabs px-3 pt-3 pb-2 border-b border-slate-100">
-        <a href="{% url 'ledger:customer_statement' customer.id %}{% if from_date %}?from_date={{ from_date|date:'Y-m-d' }}{% if to_date %}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}{% endif %}"
+        <a href="{% url 'ledger:customer_statement' customer.id %}{% if qs_dates %}?{{ qs_dates }}{% endif %}"
            class="app-chip {% if not selected_material_id %}active{% endif %}">All Materials</a>
         {% for mat in materials_list %}
-            <a href="?{% if from_date %}from_date={{ from_date|date:'Y-m-d' }}&{% endif %}{% if to_date %}to_date={{ to_date|date:'Y-m-d' }}&{% endif %}{% if selected_material_id != mat.0 %}material={{ mat.0 }}{% endif %}"
+            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_id != mat.0 %}material={{ mat.0 }}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}{% elif selected_vtype_id %}material={{ mat.0 }}&vehicle_type={{ selected_vtype_id }}{% endif %}"
                class="app-chip {% if selected_material_id == mat.0 %}active{% endif %}">{{ mat.1 }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if vtypes_list %}
+    <div class="app-tabs px-3 pt-3 pb-2 border-b border-slate-100">
+        <a href="{% url 'ledger:customer_statement' customer.id %}{% if qs_dates %}?{{ qs_dates }}{% endif %}"
+           class="app-chip {% if not selected_vtype_id %}active{% endif %}">All Vehicles</a>
+        {% for vt in vtypes_list %}
+            <a href="?{{ qs_dates }}{% if qs_dates %}&{% endif %}{% if selected_material_id %}material={{ selected_material_id }}&{% endif %}{% if selected_vtype_id != vt.0 %}vehicle_type={{ vt.0 }}{% elif selected_material_id %}vehicle_type={{ vt.0 }}{% endif %}"
+               class="app-chip {% if selected_vtype_id == vt.0 %}active{% endif %}">{{ vt.1 }}</a>
         {% endfor %}
     </div>
     {% endif %}
@@ -148,6 +179,9 @@
             <form method="get" id="statement-filter-form" class="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
                 {% if selected_material_id %}
                     <input type="hidden" name="material" value="{{ selected_material_id }}">
+                {% endif %}
+                {% if selected_vtype_id %}
+                    <input type="hidden" name="vehicle_type" value="{{ selected_vtype_id }}">
                 {% endif %}
                 <div>
                     <label class="label" for="filter_from_date">From Date</label>
@@ -171,17 +205,27 @@
 <!-- TRANSACTIONS -->
 <div class="app-surface overflow-hidden">
 
-    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
-        <h2 class="font-bold text-slate-900 text-[15px]">Transactions</h2>
-        {% if selected_material_id %}
-            {% for mat in materials_list %}
-                {% if mat.0 == selected_material_id %}
-                    <a href="?{% if from_date %}from_date={{ from_date|date:'Y-m-d' }}{% if to_date %}&to_date={{ to_date|date:'Y-m-d' }}{% endif %}{% endif %}"
-                       class="app-chip sm active" title="Clear material filter">{{ mat.1 }} ✕</a>
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-        <span class="text-xs text-slate-500 ml-auto">{{ transactions|length }} transaction{{ transactions|length|pluralize }}</span>
+    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-2">
+        <h2 class="font-bold text-slate-900 text-[15px] shrink-0">Transactions</h2>
+        <div class="flex items-center gap-1.5 overflow-x-auto app-tabs">
+            {% if selected_material_id %}
+                {% for mat in materials_list %}
+                    {% if mat.0 == selected_material_id %}
+                        <a href="?{{ qs_dates }}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
+                           class="app-chip sm active whitespace-nowrap" title="Clear material filter">{{ mat.1 }} ✕</a>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            {% if selected_vtype_id %}
+                {% for vt in vtypes_list %}
+                    {% if vt.0 == selected_vtype_id %}
+                        <a href="?{{ qs_dates }}{% if selected_material_id %}&material={{ selected_material_id }}{% endif %}"
+                           class="app-chip sm active whitespace-nowrap" title="Clear vehicle type filter">{{ vt.1 }} ✕</a>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+        <span class="text-xs text-slate-500 ml-auto shrink-0">{{ transactions|length }} transaction{{ transactions|length|pluralize }}</span>
     </div>
 
     <div class="max-h-[65vh] md:max-h-[560px] overflow-y-auto overscroll-contain">

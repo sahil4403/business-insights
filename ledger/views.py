@@ -264,6 +264,13 @@ def customer_statement(request, customer_id):
         if customer_trips.filter(material_id=candidate).exists():
             selected_material_id = candidate
 
+    raw_vtype = (request.GET.get('vehicle_type') or '').strip()
+    selected_vtype_id = None
+    if raw_vtype.isdigit():
+        candidate = int(raw_vtype)
+        if customer_trips.filter(vehicle__vehicle_type_id=candidate).exists():
+            selected_vtype_id = candidate
+
     # Material-wise purchase summary (outward sales only) for the date period
     material_summary_qs = (
         period_trips.exclude(transaction_type='VENDOR_SUPPLY')
@@ -277,6 +284,23 @@ def customer_statement(request, customer_id):
     )
     material_summary = list(material_summary_qs)
 
+    # Vehicle-type-wise summary (outward sales only) for the date period
+    vtype_summary = list(
+        period_trips.exclude(transaction_type='VENDOR_SUPPLY')
+        .filter(vehicle__isnull=False)
+        .values(
+            'vehicle__vehicle_type_id',
+            'vehicle__vehicle_type__name',
+            'vehicle__vehicle_type__code',
+        )
+        .annotate(
+            total_qty=Sum('quantity'),
+            trip_count=AggCount('id'),
+            total_amount=Sum('total_amount'),
+        )
+        .order_by('-total_qty')
+    )
+
     # Materials this customer has ever ordered (for filter chips)
     materials_list = list(
         customer_trips.exclude(transaction_type='VENDOR_SUPPLY')
@@ -285,8 +309,21 @@ def customer_statement(request, customer_id):
         .order_by('material__name')
     )
 
+    # Vehicle types this customer has used (for filter chips)
+    vtypes_list = list(
+        customer_trips.exclude(transaction_type='VENDOR_SUPPLY')
+        .filter(vehicle__isnull=False)
+        .exclude(vehicle__vehicle_type__isnull=True)
+        .values_list('vehicle__vehicle_type_id', 'vehicle__vehicle_type__name', 'vehicle__vehicle_type__code')
+        .distinct()
+        .order_by('vehicle__vehicle_type__name')
+    )
+
     if selected_material_id:
         period_trips = period_trips.filter(material_id=selected_material_id)
+
+    if selected_vtype_id:
+        period_trips = period_trips.filter(vehicle__vehicle_type_id=selected_vtype_id)
 
     # Trips (Outward Customer Delivery vs Inward Vendor Supply)
     for trip in period_trips:
@@ -387,6 +424,14 @@ def customer_statement(request, customer_id):
         'material_summary': material_summary,
         'materials_list': materials_list,
         'selected_material_id': selected_material_id,
+        'vtype_summary': vtype_summary,
+        'vtypes_list': vtypes_list,
+        'selected_vtype_id': selected_vtype_id,
+        'qs_dates': (
+            f"from_date={from_date.isoformat()}" if from_date else ''
+        ) + (
+            f"{'&' if from_date else ''}to_date={to_date.isoformat()}" if to_date else ''
+        ),
     }
 
     return render(
@@ -490,6 +535,23 @@ def customer_statement_pdf(request, customer_id):
             effective_date__lte=to_date
         )
 
+    # Optional material / vehicle-type filters (validated against this customer's trips)
+    raw_material = (request.GET.get('material') or '').strip()
+    selected_material_id = None
+    if raw_material.isdigit() and customer_trips.filter(material_id=int(raw_material)).exists():
+        selected_material_id = int(raw_material)
+
+    raw_vtype = (request.GET.get('vehicle_type') or '').strip()
+    selected_vtype_id = None
+    if raw_vtype.isdigit() and customer_trips.filter(vehicle__vehicle_type_id=int(raw_vtype)).exists():
+        selected_vtype_id = int(raw_vtype)
+
+    if selected_material_id:
+        period_trips = period_trips.filter(material_id=selected_material_id)
+
+    if selected_vtype_id:
+        period_trips = period_trips.filter(vehicle__vehicle_type_id=selected_vtype_id)
+
     for trip in period_trips:
         transactions.append({
             'date': trip.trip_date,
@@ -588,6 +650,22 @@ def customer_statement_pdf(request, customer_id):
         period_text = "All Transactions"
 
     meta_info = f"Customer: <b>{customer.name}</b> (Code: {customer.customer_code}) | Statement Period: <b>{period_text}</b>"
+
+    filter_labels = []
+    if selected_material_id:
+        try:
+            from master_data.models import Material
+            filter_labels.append(f"Material: {Material.objects.get(pk=selected_material_id).name}")
+        except Exception:
+            pass
+    if selected_vtype_id:
+        try:
+            from master_data.models import VehicleType
+            filter_labels.append(f"Vehicle Type: {VehicleType.objects.get(pk=selected_vtype_id).name}")
+        except Exception:
+            pass
+    if filter_labels:
+        meta_info += " | " + " | ".join(filter_labels)
 
     elements = build_pdf_header_elements(
         font_name=font_name,
