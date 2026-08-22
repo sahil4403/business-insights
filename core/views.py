@@ -2358,3 +2358,92 @@ def payment_report_add(request):
         'core/payment_report_add.html',
         context
     )
+
+# -----------------------------------
+# OVERDUE REMINDERS LIST
+# -----------------------------------
+@login_required(login_url='/login/')
+def overdue_reminders(request):
+    from decimal import Decimal as _D
+    from trips.models import TripPayment
+    from django.db.models import Q as _Q
+    from django.db.models.functions import Coalesce as _Coalesce
+
+    today = timezone.localdate()
+    customers = Customer.objects.filter(is_active=True).order_by('name')
+
+    rows = []
+    total_due = _D('0')
+
+    for customer in customers:
+        trips = list(Trip.objects.select_related('vehicle', 'vehicle__vehicle_type').filter(customer=customer))
+        payments = (
+            TripPayment.objects.filter(
+                _Q(customer=customer) | _Q(trip__customer=customer)
+            ).annotate(effective_date=_Coalesce('payment_date', 'trip__trip_date'))
+        )
+
+        opening = customer.opening_balance or _D('0')
+        sales = sum(
+            (-t.total_amount if t.transaction_type == 'VENDOR_SUPPLY' else t.total_amount)
+            for t in trips
+        )
+        received = sum(
+            (-p.amount if p.payment_type == 'PAID' else p.amount)
+            for p in payments if p.effective_date
+        )
+        outstanding = opening + sales - received
+
+        if outstanding <= 0:
+            continue
+
+        last_payment = (
+            payments.exclude(payment_type='PAID')
+            .filter(effective_date__isnull=False)
+            .order_by('-effective_date')
+            .first()
+        )
+
+        digits = ''.join(ch for ch in (customer.mobile or '') if ch.isdigit())
+        if len(digits) == 10:
+            wa_number = '91' + digits
+        elif len(digits) == 11 and digits.startswith('0'):
+            wa_number = '91' + digits[1:]
+        elif len(digits) == 12 and digits.startswith('91'):
+            wa_number = digits
+        else:
+            wa_number = ''
+
+        reminder_text = (
+            f"Namaste {customer.name} ji 🙏\n"
+            f"{today.strftime('%d %b %Y')} tak aapka pending: *₹{outstanding:,.0f}*\n"
+            f"Kripya jald payment kar dijiye.\n"
+            f"Dhanyavaad! 🙏"
+        )
+
+        rows.append({
+            'customer': customer,
+            'outstanding': outstanding,
+            'trips_count': len(trips),
+            'last_payment_date': last_payment.effective_date if last_payment else None,
+            'days_since_payment': (
+                (today - last_payment.effective_date).days
+                if last_payment and last_payment.effective_date else None
+            ),
+            'wa_link': (
+                f"https://wa.me/{wa_number}?text={reminder_text.replace(' ', '%20').replace(chr(10), '%0A')}"
+                if wa_number else ''
+            ),
+            'phone_raw': customer.mobile or '',
+        })
+        total_due += outstanding
+
+    rows.sort(key=lambda r: r['outstanding'], reverse=True)
+
+    context = {
+        'rows': rows,
+        'total_due': total_due,
+        'as_of': today,
+    }
+
+    return render(request, 'core/overdue_reminders.html', context)

@@ -16,6 +16,7 @@ from django.db.models import (
 from decimal import Decimal
 from .models import Trip, TripPayment
 from .forms import TripForm, TripPaymentForm
+from core.audit import log_action
 
 from master_data.models import Material, VehicleType
 from vehicles.models import Vehicle
@@ -354,7 +355,15 @@ def trip_delete(request, trip_id):
     if request.method == 'POST':
         try:
             code = trip.trip_code
+            deleted_amount = trip.total_amount
             trip.delete()
+            log_action(
+                request,
+                'TRIP_DELETE',
+                model_name='Trip',
+                object_repr=code,
+                details=f"Deleted trip of \u20B9{deleted_amount}",
+            )
             messages.success(request, f"Trip {code} deleted successfully!")
             # Return to where the user came from (e.g. customer statement),
             # passed through the form's hidden 'next' field.
@@ -411,6 +420,12 @@ def trip_payment_create(request, trip_id):
         )
         if form.is_valid():
             form.save()
+            log_action(
+                request,
+                'PAYMENT_CREATE',
+                obj=form.instance,
+                details=f"Trip {trip.trip_code} | Amount \u20B9{form.instance.amount} | Date {form.instance.payment_date}",
+            )
             messages.success(request, f"Payment of ₹{payment_instance.amount} added to trip {trip.trip_code}!")
             if next_url:
                 return redirect(next_url)
@@ -458,6 +473,12 @@ def trip_payment_edit(request, payment_id):
         )
         if form.is_valid():
             form.save()
+            log_action(
+                request,
+                'PAYMENT_EDIT',
+                obj=form.instance,
+                details=f"Trip {trip.trip_code if trip else '-'} | Amount \u20B9{form.instance.amount} | Date {form.instance.payment_date}",
+            )
             messages.success(request, f"Payment updated successfully!")
             if next_url:
                 return redirect(next_url)
@@ -499,7 +520,15 @@ def trip_payment_delete(request, payment_id):
 
     if request.method == 'POST':
         customer = payment.customer
+        deleted_amount = payment.amount
         payment.delete()
+        log_action(
+            request,
+            'PAYMENT_DELETE',
+            model_name='TripPayment',
+            object_repr=f"{payment.payment_code or ''} {deleted_amount}".strip(),
+            details=f"Deleted payment of \u20B9{deleted_amount} (trip {trip.trip_code if trip else '-'})",
+        )
         messages.success(request, f"Payment removed successfully!")
         if next_url:
             return redirect(next_url)
@@ -556,3 +585,39 @@ def trip_detail(request, trip_id):
         'trips/trip_detail.html',
         context
     )
+
+@login_required(login_url='/login/')
+def trip_quickfill(request):
+    """
+    JSON: customer (+ optional material) ki latest trip ka rate/quantity/
+    destination/vehicle — naya trip bharte waqt auto-fill ke liye.
+    """
+    from django.http import JsonResponse
+
+    customer_id = request.GET.get('customer', '').strip()
+    material_id = request.GET.get('material', '').strip()
+
+    if not customer_id.isdigit():
+        return JsonResponse({'found': False})
+
+    qs = Trip.objects.filter(customer_id=int(customer_id))
+
+    if material_id.isdigit():
+        match = (
+            qs.filter(material_id=int(material_id))
+            .order_by('-trip_date', '-id')
+            .values('rate', 'quantity', 'vehicle_id', 'destination')
+            .first()
+        )
+        if match:
+            return JsonResponse({'found': True, 'matched_on': 'material', **match})
+
+    last_any = (
+        qs.order_by('-trip_date', '-id')
+        .values('rate', 'quantity', 'vehicle_id', 'destination', 'material_id')
+        .first()
+    )
+    if last_any:
+        return JsonResponse({'found': True, 'matched_on': 'customer', **last_any})
+
+    return JsonResponse({'found': False})

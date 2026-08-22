@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from django.db.models.functions import Coalesce
 from django.db.models import Q
+from core.audit import log_action
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse
 
@@ -443,6 +444,30 @@ def customer_statement(request, customer_id):
 
     is_admin_user = request.user.is_authenticated and request.user.is_superuser
 
+    # WhatsApp share text (used by the share button on the statement page)
+    if from_date and to_date:
+        period_label = f"{from_date.strftime('%d %b %Y')} - {to_date.strftime('%d %b %Y')}"
+    elif from_date:
+        period_label = f"From {from_date.strftime('%d %b %Y')}"
+    elif to_date:
+        period_label = f"Till {to_date.strftime('%d %b %Y')}"
+    else:
+        period_label = "All time"
+
+    if closing_balance > 0:
+        dues_line = f"*Pending: \u20B9{closing_balance:,.0f}*"
+    else:
+        dues_line = "Account Cleared \u2705"
+
+    whatsapp_text = (
+        f"Namaste {customer.name} ji 🙏\n"
+        f"Aapka Account Statement ({period_label}):\n"
+        f"Total Billed: \u20B9{total_sales:,.0f}\n"
+        f"Total Received: \u20B9{total_received:,.0f}\n"
+        f"{dues_line}\n"
+        f"Dhanyavaad! 🙏"
+    )
+
     context = {
         'customer': customer,
         'transactions': transactions,
@@ -450,6 +475,7 @@ def customer_statement(request, customer_id):
         'total_received': total_received,
         'opening_balance': opening_balance,
         'closing_balance': closing_balance,
+        'whatsapp_text': whatsapp_text,
         'from_date': from_date,
         'to_date': to_date,
         'unpaid_trips': unpaid_trips,
@@ -968,6 +994,15 @@ def customer_record_payment(request, customer_id):
                     notes=notes or "Customer lumpsum / opening balance payment",
                 )
 
+        log_action(
+            request,
+            'PAYMENT_CREATE',
+            model_name='Customer',
+            object_repr=str(customer),
+            details=f"Record Payment \u20B9{amount} | Date {payment_date} | "
+                    f"{'Trip ' + trip_id if trip_id and trip_id.isdigit() else 'Lumpsum auto-allocate'}",
+        )
+
         return redirect(next_url)
 
     return redirect(next_url)
@@ -994,8 +1029,15 @@ def update_customer_opening_balance(request, customer_id):
             balance = Decimal(raw_balance)
             if balance < 0:
                 balance = Decimal('0')
+            old_balance = customer.opening_balance
             customer.opening_balance = balance
             customer.save()
+            log_action(
+                request,
+                'OPENING_BALANCE_UPDATE',
+                obj=customer,
+                details=f"Opening balance changed \u20B9{old_balance} -> \u20B9{balance}",
+            )
             from django.contrib import messages
             messages.success(request, f"Opening balance updated to ₹{balance:,.2f} successfully!")
         except (InvalidOperation, ValueError):

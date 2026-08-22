@@ -9,6 +9,7 @@ from .views import (
     trip_payment_create,
     trip_payment_edit,
     trip_payment_delete,
+    trip_quickfill,
 )
 app_name = 'trips'
 
@@ -66,6 +67,12 @@ urlpatterns = [
         'payment/<int:payment_id>/delete/',
         trip_payment_delete,
         name='payment_delete',
+    ),
+
+    path(
+        'api/quickfill/',
+        trip_quickfill,
+        name='quickfill',
     ),
 
 ]

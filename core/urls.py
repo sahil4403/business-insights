@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     dashboard,
     customer_report,
+    overdue_reminders,
     vehicle_report,
     payment_report,
     payment_report_add,
@@ -29,6 +30,12 @@ urlpatterns = [
         'reports/customers/',
         customer_report,
         name='customer_report',
+    ),
+
+    path(
+        'reports/overdue/',
+        overdue_reminders,
+        name='overdue_reminders',
     ),
 
     path(
