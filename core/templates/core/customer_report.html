@@ -134,10 +134,10 @@
     </div>
 </div>
 
-<div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-5 md:py-8 pb-6">
+<div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2.5 md:py-8 pb-6">
 
     <!-- BACK -->
-    <div class="flex items-center gap-2 mb-3 md:mb-4">
+    <div class="flex items-center gap-2 mb-2 md:mb-4">
         <a href="{% url 'core:dashboard' %}"
            class="inline-flex items-center gap-1.5 -ml-1 px-2.5 py-1.5 rounded-full bg-white border border-slate-200 text-[12px] font-bold text-slate-600 hover:text-brand-700 hover:border-brand-300 active:bg-slate-50 transition no-underline">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
@@ -150,11 +150,11 @@
         </a>
     </div>
 
-    <!-- HEADER -->
-    <div class="flex items-center justify-between gap-3 mb-5 md:mb-7">
+    <!-- HEADER (mobile: compact) -->
+    <div class="flex items-center justify-between gap-3 mb-2.5 md:mb-7">
         <div>
-            <h1 class="text-[22px] md:text-2xl font-extrabold tracking-tight text-slate-900">Customer Report</h1>
-            <p class="text-[13px] text-slate-500 mt-1">Customer-wise revenue, payments and outstanding overview</p>
+            <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900">Customer Report</h1>
+            <p class="hidden md:block text-[13px] text-slate-500 mt-1">Customer-wise revenue, payments and outstanding overview</p>
         </div>
         <details class="export-menu relative md:hidden shrink-0">
             <summary class="app-chip h-10 pr-3">
@@ -200,7 +200,7 @@
     <!-- FILTER CARD -->
     <div class="app-surface overflow-hidden mb-4 md:mb-6">
         <details id="filter-details" class="filter-card">
-            <summary class="md:hidden flex items-center justify-between px-4 py-3.5 cursor-pointer">
+            <summary class="md:hidden flex items-center justify-between px-4 py-2.5 cursor-pointer">
                 <span class="inline-flex items-center gap-2.5 text-sm font-bold text-slate-800">
                     <span class="w-8 h-8 rounded-full bg-[#d5ebe6] text-[#115248] flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
@@ -262,8 +262,8 @@
         </details>
     </div>
 
-    <!-- MOBILE SEARCH: always visible -->
-    <div class="md:hidden mb-4">
+    <!-- MOBILE SEARCH: always visible (compact) -->
+    <div class="md:hidden mb-2.5">
         <form method="get" class="relative">
             <input type="hidden" name="from_date" value="{{ from_date }}">
             <input type="hidden" name="to_date" value="{{ to_date }}">
@@ -290,7 +290,7 @@
     <div class="app-surface overflow-hidden">
 
         <!-- NAME SORT: A→Z / Z→A (outstanding customers only) -->
-        <div class="flex items-center gap-2 px-4 py-2.5 border-b border-[#f1f5f9] overflow-x-auto">
+        <div class="flex items-center gap-2 px-4 py-2 border-b border-[#f1f5f9] overflow-x-auto">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Name Sort</span>
             <a href="{{ sort_asc_url }}"
                class="app-chip sm shrink-0 {% if selected_sort == 'asc' %}active{% endif %}">A → Z</a>
@@ -523,7 +523,7 @@
         var bar = document.querySelector('.lq-bar');
         var barH = bar ? bar.offsetHeight : 62;
         var top = el.getBoundingClientRect().top;
-        var gap = 14; // box aur tabbar ke beech hamesha itna sa gap
+        var gap = 10; // box aur tabbar ke beech hamesha itna sa gap
         var h = window.innerHeight - top - barH - 12 - gap;
         el.style.maxHeight = Math.max(h, 180) + 'px';
     };
