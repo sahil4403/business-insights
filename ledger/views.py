@@ -460,13 +460,13 @@ def customer_statement(request, customer_id):
         dues_line = "Account Cleared ✅"
 
     whatsapp_text = (
-        f"Namaste {customer.name} ji 🙏\n"
+        f"Hello {customer.name} ji 👋\n"
         f"*Statement of Account* ({period_label})\n"
         f"Total Billed: ₹{total_sales:,.0f}\n"
         f"Total Received: ₹{total_received:,.0f}\n"
         f"{dues_line}\n"
         f"(Statement PDF attached hai 📎)\n"
-        f"Dhanyavaad! 🙏"
+        f"Thank You"
     )
 
     context = {
