@@ -774,6 +774,18 @@
                 if (e.defaultPrevented) return;
                 show();
             }, true);
+
+            // NAVBAR: tab button chhuste hi TURANT overlay
+            document.addEventListener('pointerdown', function (e) {
+                var l = e.target && e.target.closest ? e.target.closest('.lq-link') : null;
+                if (!l) return;
+                var a = l;
+                if (a.origin !== location.origin) return;
+                if (a.pathname === location.pathname &&
+                    a.search === location.search) return;
+                show();
+                setTimeout(hide, 1500); // no-nav failsafe
+            }, true);
         })();
     </script>
     <script src="{% static 'js/liquid-tabbar.js' %}?v=20260824cf"></script>
