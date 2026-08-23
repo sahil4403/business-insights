@@ -162,3 +162,23 @@ thead tr.bg-white {
 @media (prefers-reduced-motion: reduce) {
     #swipe-under { transition: none; }
 }
+
+/* ---------- 13. SCROLL FLICKER FIX (floating bars) ---------- */
+/* Heavy blur + scroll = layer flicker on mobile GPUs.
+   Blur halta + solidness badha + layer promote karke fix kiya. */
+.lq-bar, .lq-action, .lq-nav, #scroll-topbar {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    isolation: isolate;
+}
+.lq-bar {
+    background: rgba(255, 255, 255, .84) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
+    backdrop-filter: blur(14px) saturate(150%) !important;
+}
+.lq-action,
+#scroll-topbar {
+    background: rgba(255, 255, 255, .86) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+    backdrop-filter: blur(12px) saturate(140%) !important;
+}
