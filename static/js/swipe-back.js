@@ -1,21 +1,20 @@
 /**
- * SWIPE-BACK GESTURE (Instagram/iOS style)
- * Left edge se right slide -> glass Back bubble follow karta hai ->
- * release par pichla page (browsing history wala hi order: trip detail
- * -> statement -> customers -> ...) smooth view-transition ke saath.
+ * SWIPE GESTURES — Instagram/iOS style, DONO sides se:
+ *   • Left edge se RIGHT slide  -> BACK  (pichla page)
+ *   • Right edge se LEFT slide  -> FORWARD (agle page, agar history me ho)
+ * Glass bubble finger follow karta hai; release par snap + navigate.
  */
 (function () {
-    var EDGE = 28;            // kitne px andar se start ho gesture
-    var TRIGGER = 0.32;       // 32% slide par back navigate hoga
-    var MAXSHIFT = 26;        // page ka max visual shift (px)
+    var EDGE = 56;        // dono taraf ka touch zone (pehle 28 tha)
+    var TRIGGER = 0.30;   // 30% slide par navigate
 
     var startX = 0, startY = 0;
     var tracking = false, dragging = false, navigated = false;
+    var side = null;      // 'left' | 'right'
     var ui = null, dimEl = null, pillEl = null;
 
     function allowedTarget(t) {
         if (!t || !t.closest) return false;
-        // Inputs, links, buttons aur horizontally-scrollable areas me gesture off
         if (t.closest('input, textarea, select, button, a, [contenteditable="true"]')) return false;
         if (t.closest('.overflow-x-auto, .app-tabs, .lq-bar, .lq-action, [data-noswipe]')) return false;
         return true;
@@ -35,19 +34,26 @@
         document.body.appendChild(ui);
     }
 
-    function progress(dx) {
+    function rawProgress(dx) {
         var span = window.innerWidth * 0.35;
-        var p = Math.min(Math.max(dx / span, 0), 1);
-        return p;
+        return Math.min(Math.max(dx / span, 0), 1);
     }
 
-    function paint(p) {
+    function paint(dx) {
         ui.classList.add('on');
+        var p = Math.abs(rawProgress(dx));
         dimEl.style.opacity = (p * 0.9).toFixed(2);
-        // Pill left edge se finger ke saath slide
-        var x = -34 + p * 120;
-        pillEl.style.transform = 'translate(' + x.toFixed(1) + 'px, -50%) scale(' +
-            (0.85 + p * 0.3).toFixed(2) + ')';
+
+        var shift = -34 + p * 120;
+        var scale = (0.85 + p * 0.3).toFixed(2);
+        if (side === 'left') {
+            pillEl.style.transform =
+                'translate(' + shift.toFixed(1) + 'px, -50%) scale(' + scale + ')';
+        } else {
+            // Right side: mirror (bubble right edge se slide-in, arrow flip)
+            pillEl.style.transform =
+                'translate(' + (-shift.toFixed(1)) + 'px, -50%) scale(' + scale + ') scaleX(-1)';
+        }
         pillEl.style.opacity = Math.min(p * 2.2, 1).toFixed(2);
     }
 
@@ -62,11 +68,15 @@
         }, 190);
     }
 
-    function goBack() {
+    function navigate() {
         navigated = true;
-        if (history.length > 1) history.back();
-        else window.location.href = '/';
-        // Naye page par fresh gesture ke liye flag reset (bfcache safe)
+        if (side === 'right' && history.length > 0) {
+            history.forward();
+        } else if (history.length > 1) {
+            history.back();
+        } else {
+            window.location.href = '/';
+        }
         window.addEventListener('pageshow', function () { navigated = false; }, { once: true });
     }
 
@@ -75,7 +85,11 @@
         var t = e.target;
         if (!allowedTarget(t)) return;
         var touch = e.touches[0];
-        if (touch.clientX > EDGE) return;
+        var w = window.innerWidth;
+        side = null;
+        if (touch.clientX <= EDGE) side = 'left';
+        else if (touch.clientX >= w - EDGE) side = 'right';
+        if (!side) return;
         startX = touch.clientX;
         startY = touch.clientY;
         tracking = true;
@@ -83,20 +97,21 @@
     }, { passive: true });
 
     document.addEventListener('touchmove', function (e) {
-        if (!tracking || navigated) return;
+        if (!tracking || navigated || !side) return;
         var touch = e.touches[0];
         var dx = touch.clientX - startX;
         var dy = touch.clientY - startY;
 
+        // Har side ke liye "aage" ki direction alag hai
+        var forwardDx = side === 'left' ? dx : -dx;
         if (!dragging) {
-            if (dx <= 6) return;
-            // Zyada vertical ho toh cancel (scroll priority)
+            if (forwardDx <= 6) return;
             if (Math.abs(dy) > Math.abs(dx) * 1.2) { tracking = false; return; }
-            if (history.length <= 1) { tracking = false; return; }
             dragging = true;
             ensureUI();
+            pillEl.classList.toggle('from-right', side === 'right');
         }
-        paint(progress(dx));
+        paint(forwardDx);
         if (e.cancelable) e.preventDefault();
     }, { passive: false });
 
@@ -106,13 +121,13 @@
         if (!dragging || navigated) { dragging = false; return; }
         dragging = false;
         var dx = e.changedTouches[0].clientX - startX;
-        var p = progress(dx);
-        if (p >= TRIGGER) {
+        var forwardDx = side === 'left' ? dx : -dx;
+        if (rawProgress(forwardDx) >= TRIGGER) {
             reset(true);
-            goBack();
+            navigate();
         } else {
             reset(false);
-            ui.classList.remove('on');
+            if (ui) ui.classList.remove('on');
         }
     });
 

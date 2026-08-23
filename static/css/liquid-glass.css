@@ -243,3 +243,9 @@ details > summary {
 @media (prefers-reduced-motion: reduce) {
     #swipeback-ui .sb-dim { transition: none; }
 }
+
+/* Right-side swipe: bubble right edge se, arrow flip */
+#swipeback-ui .sb-pill.from-right {
+    left: auto;
+    right: 0;
+}
