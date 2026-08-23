@@ -524,7 +524,10 @@
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
             min-height: 45vh;
-            max-height: calc(100vh - 240px);
+            /* 280px = upar ka header/filter area (~200px) + tab bar ki
+               jagah (~80px) — box tab bar ke bilkul upar rukta hai */
+            max-height: calc(100vh - 280px);
+            max-height: calc(100dvh - 280px);
         }
         @media (min-width: 768px) { .cr-scroll-space { max-height: 70vh; min-height: 40vh; } }
         .lq-bar {
