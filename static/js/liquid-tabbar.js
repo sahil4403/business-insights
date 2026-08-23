@@ -191,13 +191,21 @@
             links.forEach(function (l, idx) { l.classList.toggle('lq-hover', idx === i); });
             goToSlot(i);
         });
-        // Native click allow karein — pointerup already handle karta hai navigation
-        // lekin direct click (jaise keyboard ya tap se) ko block na karein
+        // Allow native clicks on links — pointerup handles swipe navigation
+        // but we must not block normal click events (keyboard, touch-tap, etc.)
+        // that users expect to work immediately.
         bar.addEventListener('click', function (e) {
-            // Sirf pointer events ke liye preventDefault, normal clicks allow karein
+            var link = e.target.closest('.lq-link');
+            if (link) {
+                // For links: let the click happen naturally, don't preventDefault
+                // pointerup will also handle navigation on release — no conflict
+                e.stopPropagation(); // only stop bubbling, not the click action
+                return;
+            }
+            // For non-link touches/clicks within the bar, prevent default
+            // to avoid interfering with pointer drag interactions
             if (e.pointerType === 'mouse' || e.pointerType === 'touch') {
                 e.preventDefault();
-                e.stopPropagation();
             }
         }, true);
     }
