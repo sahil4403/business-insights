@@ -134,8 +134,9 @@
             var i = nearestIndex(localX(e));
             endDragVisualsOnly(i);
 
-            // HAR case me navigate — tap ho ya slide (iOS-safe)
-            goToTab(i);
+            // SIRF real slide par JS navigation — chhota tap = native click
+            // handle karega. Pehle dono fire ho rahe the (double-nav = gitter).
+            if (moved > 10) goToTab(i);
         }
 
         function endDragVisualsOnly(i) {
@@ -191,23 +192,9 @@
             links.forEach(function (l, idx) { l.classList.toggle('lq-hover', idx === i); });
             goToSlot(i);
         });
-        // Allow native clicks on links — pointerup handles swipe navigation
-        // but we must not block normal click events (keyboard, touch-tap, etc.)
-        // that users expect to work immediately.
-        bar.addEventListener('click', function (e) {
-            var link = e.target.closest('.lq-link');
-            if (link) {
-                // For links: let the click happen naturally, don't preventDefault
-                // pointerup will also handle navigation on release — no conflict
-                e.stopPropagation(); // only stop bubbling, not the click action
-                return;
-            }
-            // For non-link touches/clicks within the bar, prevent default
-            // to avoid interfering with pointer drag interactions
-            if (e.pointerType === 'mouse' || e.pointerType === 'touch') {
-                e.preventDefault();
-            }
-        }, true);
+        // Native clicks ko bilkul free chhone do — tap par <a> khud navigate
+        // karta hai. Slide-release par upar wala pointerup handler navigate
+        // karega (us case me click fire hi nahi hota).
     }
 
     if (document.readyState === 'loading') {
