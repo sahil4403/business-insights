@@ -158,5 +158,27 @@ nav.lq-bar {
     nav.lq-bar { display: none !important; }
 }
 
+/* ---------- 14. iOS LIQUID GLASS MAGNIFY ----------
+   Blob jis tab par hota hai (hover/drag/active) uska icon
+   spring ke saath halka bada dikhta hai — iPhone jaisa feel */
+.lq-link svg {
+    transform-origin: center bottom;
+}
+.lq-bar .lq-link svg {
+    transition: transform .24s cubic-bezier(.34,1.56,.64,1);
+}
+.lq-link.lq-hover svg,
+.lq-link.active svg {
+    transform: scale(1.3) translateY(-1px);
+}
+.lq-link.lq-hover span,
+.lq-link.active span {
+    transform: scale(1.06);
+    display: inline-block;
+}
+.lq-link span {
+    transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+}
+
 /* ---------- 13. Chip hover states ---------- */
 .app-chip:hover { background: #e2e8f0 !important; }
