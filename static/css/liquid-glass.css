@@ -1,10 +1,10 @@
 /* ============================================================
-   LIQUID GLASS THEME — poore website ke liye
-   Glass sirf tabhi dikhta hai jab peeche depth ho, isliye
-   body par soft ambient color-blobs bhi diye hain.
+   LIQUID GLASS THEME v2 — performance-safe
+   Blur sirf chhote floating elements par (tabbar/navbar/FAB).
+   Bade cards par halka translucency (bina blur) — fast + clean.
    ============================================================ */
 
-/* ---------- 1. AMBIENT BACKGROUND DEPTH ---------- */
+/* ---------- 1. AMBIENT BACKGROUND ---------- */
 html::before {
     content: "";
     position: fixed;
@@ -12,33 +12,27 @@ html::before {
     z-index: -1;
     pointer-events: none;
     background:
-        radial-gradient(620px 420px at 88% -5%, rgba(42, 179, 155, .20), transparent 62%),
-        radial-gradient(720px 520px at -12% 28%, rgba(96, 165, 250, .16), transparent 62%),
-        radial-gradient(520px 420px at 52% 112%, rgba(192, 132, 252, .13), transparent 60%),
-        linear-gradient(180deg, #f3f8f7 0%, #edf1f6 100%);
+        radial-gradient(620px 420px at 88% -5%, rgba(42, 179, 155, .18), transparent 62%),
+        radial-gradient(720px 520px at -12% 28%, rgba(96, 165, 250, .14), transparent 62%),
+        linear-gradient(180deg, #f3f8f7 0%, #eef2f6 100%);
 }
 body {
     background: transparent !important;
 }
 
-/* ---------- 2. GLASS SURFACES (cards) ---------- */
+/* ---------- 2. CARDS — soft translucent (NO blur = fast) ---------- */
 .app-surface,
 .export-sheet {
-    background: rgba(255, 255, 255, .60) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
-    backdrop-filter: blur(18px) saturate(160%) !important;
-    border: 1px solid rgba(255, 255, 255, .68) !important;
+    background: rgba(255, 255, 255, .80) !important;
+    border: 1px solid rgba(255, 255, 255, .75) !important;
     box-shadow:
-        0 10px 30px -14px rgba(15, 23, 42, .22),
-        inset 0 1px 0 rgba(255, 255, 255, .78) !important;
-}
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .app-surface, .export-sheet { background: rgba(255, 255, 255, .96) !important; }
+        0 8px 26px -16px rgba(15, 23, 42, .25),
+        inset 0 1px 0 rgba(255, 255, 255, .85) !important;
 }
 
-/* ---------- 3. DESKTOP NAVBAR (floating glass bar) ---------- */
+/* ---------- 3. DESKTOP NAVBAR — real glass (chhota area) ---------- */
 .lq-nav {
-    background: rgba(255, 255, 255, .58) !important;
+    background: rgba(255, 255, 255, .60) !important;
     -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
     backdrop-filter: blur(20px) saturate(170%) !important;
     border-bottom: 1px solid rgba(255, 255, 255, .65) !important;
@@ -47,213 +41,103 @@ body {
         inset 0 1px 0 rgba(255, 255, 255, .8) !important;
 }
 
-/* ---------- 4. CHIPS / GHOST BUTTONS ---------- */
-.app-chip:not(.active),
-.btn-ghost {
-    background: rgba(255, 255, 255, .55);
-    -webkit-backdrop-filter: blur(10px) saturate(150%);
-    backdrop-filter: blur(10px) saturate(150%);
-    border-color: rgba(255, 255, 255, .7);
-}
-.app-chip.active {
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6),
-                0 2px 8px -2px rgba(22, 102, 90, .35);
-}
-
-/* ---------- 5. INPUTS readable on glass ---------- */
-.input,
-input[type="text"], input[type="number"], input[type="date"],
-input[type="search"], select, textarea {
-    background-color: rgba(255, 255, 255, .82) !important;
-}
-
-/* ---------- 6. TABLE HEADERS halka glass ---------- */
-thead.sticky tr,
-thead tr.bg-white {
-    background: rgba(255, 255, 255, .72) !important;
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-}
-
-/* ---------- 7. MOBILE SCROLL TOPBAR consistency ---------- */
-#scroll-topbar {
-    background: rgba(255, 255, 255, .62) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
-    backdrop-filter: blur(20px) saturate(170%) !important;
-}
-
-/* ---------- 8. FLOATING ACTION BAR (trip detail etc.) ---------- */
-.lq-action {
-    border-radius: 22px;
-    background: rgba(255, 255, 255, .60) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
-    backdrop-filter: blur(20px) saturate(170%) !important;
-    border: 1px solid rgba(255, 255, 255, .7) !important;
-    box-shadow:
-        0 8px 28px -10px rgba(15, 23, 42, .28),
-        inset 0 1px 0 rgba(255, 255, 255, .85) !important;
-}
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .lq-action { background: rgba(255, 255, 255, .96) !important; }
-}
-
-/* ---------- 9. BUTTONS · CHIPS · TOGGLES — liquid smooth ---------- */
-
-/* Sab interactive elements par silky transitions */
-.btn,
-.app-chip,
-.app-fab,
-.app-stat,
-details > summary {
-    transition:
-        background-color .18s ease,
-        color .18s ease,
-        border-color .18s ease,
-        box-shadow .18s ease,
-        transform .15s ease !important;
-}
-
-/* CHIPS — frosted glass (inactive) */
+/* ---------- 4. CHIPS — light glass, smooth press ---------- */
 .app-chip {
-    background: rgba(255, 255, 255, .55);
-    -webkit-backdrop-filter: blur(12px) saturate(150%);
-    backdrop-filter: blur(12px) saturate(150%);
-    border: 1px solid rgba(255, 255, 255, .7);
-}
-/* Colored variants thode aur solid rakho (readability) */
-.app-chip.primary, .app-chip.blue, .app-chip.amber,
-.app-chip.indigo, .app-chip.lilac, .app-chip.green, .app-chip.danger {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+    background: rgba(255, 255, 255, .60);
+    border: 1px solid rgba(255, 255, 255, .75);
+    transition: background-color .16s ease, color .16s ease,
+                border-color .16s ease, box-shadow .16s ease,
+                transform .12s ease !important;
 }
 .app-chip.primary { background: #16665a !important; color: #fff !important; }
+.app-chip.blue   { background: #eff6ff !important; color: #1d4ed8 !important; }
+.app-chip.amber  { background: #fffbeb !important; color: #b45309 !important; }
+.app-chip.indigo { background: #eef2ff !important; color: #4338ca !important; }
+.app-chip.green  { background: #ecfdf5 !important; color: #047857 !important; }
+.app-chip.danger { background: #fef2f2 !important; color: #b91c1c !important; }
 
-/* ACTIVE chip — brand glass pill */
 .app-chip.active {
     background: linear-gradient(160deg,
-        rgba(22, 102, 90, .20),
-        rgba(22, 102, 90, .07) 55%,
-        rgba(255, 255, 255, .40)) !important;
+        rgba(22, 102, 90, .18),
+        rgba(22, 102, 90, .06) 55%,
+        rgba(255, 255, 255, .45)) !important;
     color: #115248 !important;
     border-color: rgba(22, 102, 90, .30) !important;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, .7),
-        0 2px 10px -3px rgba(22, 102, 90, .40) !important;
+        0 2px 10px -3px rgba(22, 102, 90, .38) !important;
+}
+.app-chip:active { transform: scale(.95); }
+.btn:active      { transform: scale(.97); }
+
+/* ---------- 5. INPUTS — solid white (readability) ---------- */
+.input,
+input[type="text"], input[type="number"], input[type="date"],
+input[type="search"], select, textarea {
+    background-color: #ffffff !important;
 }
 
-/* PRESS feedback — har tap par squish */
-.app-chip:active { transform: scale(.95); }
-.btn:active { transform: scale(.97); }
-.app-fab:active { transform: scale(.93); }
+/* ---------- 6. TABLE HEADS — solid ---------- */
+thead.sticky tr,
+thead tr.bg-white {
+    background: #ffffff !important;
+}
 
-/* FAB — floating glass depth */
+/* ---------- 7. MOBILE SCROLL TOPBAR — glass (chhota) ---------- */
+#scroll-topbar {
+    background: rgba(255, 255, 255, .68) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+    backdrop-filter: blur(18px) saturate(160%) !important;
+}
+
+/* ---------- 8. FLOATING ACTION BAR (trip detail) — glass ---------- */
+.lq-action {
+    border-radius: 22px;
+    background: rgba(255, 255, 255, .66) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+    backdrop-filter: blur(18px) saturate(160%) !important;
+    border: 1px solid rgba(255, 255, 255, .72) !important;
+    box-shadow:
+        0 8px 28px -10px rgba(15, 23, 42, .26),
+        inset 0 1px 0 rgba(255, 255, 255, .85) !important;
+}
+
+/* ---------- 9. STATEMENT ACTION BUTTONS — brand glass ---------- */
+.btn.btn-ghost {
+    background: rgba(255, 255, 255, .62) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(140%) !important;
+    backdrop-filter: blur(10px) saturate(140%) !important;
+    border: 1px solid rgba(255, 255, 255, .72) !important;
+    color: #334155 !important;
+}
+.btn.btn-primary {
+    background: linear-gradient(160deg,
+        rgba(23, 112, 99, .94),
+        rgba(17, 82, 72, .86)) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+    backdrop-filter: blur(12px) saturate(140%) !important;
+    border: 1px solid rgba(255, 255, 255, .35) !important;
+    color: #fff !important;
+    box-shadow:
+        0 6px 18px -8px rgba(22, 102, 90, .6),
+        inset 0 1px 0 rgba(255, 255, 255, .28) !important;
+}
 .app-fab {
+    background: linear-gradient(160deg,
+        rgba(23, 112, 99, .95),
+        rgba(17, 82, 72, .88)) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+    backdrop-filter: blur(14px) saturate(140%) !important;
+    border: 1px solid rgba(255, 255, 255, .35) !important;
     box-shadow: 0 12px 28px -10px rgba(22, 102, 90, .55),
                 inset 0 1px 0 rgba(255, 255, 255, .25) !important;
 }
 
-/* CUSTOM DATE TOGGLE — open state highlight */
-#filter-details > summary { border-radius: 10px; }
-#filter-details[open] > summary {
-    background: rgba(22, 102, 90, .06);
-    color: #115248;
-}
-
-/* SUMMARY CARDS hover lift (desktop) */
-@media (hover: hover) {
-    .app-surface a[class*="rounded"] {
-        transition: transform .16s ease, box-shadow .16s ease,
-                    background-color .16s ease, border-color .16s ease;
-    }
-    .app-surface a[class*="rounded"]:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .25);
-    }
-}
-
-/* ---------- 10. STATEMENT HEADER BUTTONS + FAB — brand glass ---------- */
-/* (base.html inline styles baad me load hote hain, isliye !important zaroori) */
-.btn.btn-ghost {
-    background: rgba(255, 255, 255, .55) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
-    backdrop-filter: blur(12px) saturate(150%) !important;
-    border: 1px solid rgba(255, 255, 255, .7) !important;
-    color: #334155 !important;
-}
-
-.btn.btn-primary {
-    background: linear-gradient(160deg,
-        rgba(23, 112, 99, .92),
-        rgba(17, 82, 72, .82)) !important;
-    -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
-    backdrop-filter: blur(14px) saturate(140%) !important;
-    border: 1px solid rgba(255, 255, 255, .35) !important;
-    color: #fff !important;
-    box-shadow:
-        0 6px 18px -8px rgba(22, 102, 90, .65),
-        inset 0 1px 0 rgba(255, 255, 255, .28) !important;
-}
-.btn.btn-primary:hover {
-    background: linear-gradient(160deg,
-        rgba(17, 82, 72, .96),
-        rgba(13, 66, 58, .90)) !important;
-}
-
-.app-fab {
-    background: linear-gradient(160deg,
-        rgba(23, 112, 99, .94),
-        rgba(17, 82, 72, .86)) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
-    backdrop-filter: blur(16px) saturate(150%) !important;
-    border: 1px solid rgba(255, 255, 255, .35) !important;
-}
-
-/* ---------- 11. SWIPE-BACK GESTURE UI ---------- */
-#swipeback-ui {
-    position: fixed; inset: 0; z-index: 9998;
-    pointer-events: none;
-    display: none;
-}
-#swipeback-ui.on { display: block; }
-#swipeback-ui .sb-dim {
-    position: absolute; inset: 0;
-    background: rgba(15, 23, 42, .32);
-    opacity: 0;
-    transition: opacity .12s linear;
-}
-#swipeback-ui .sb-pill {
-    position: absolute;
-    top: 50%; left: 0;
-    width: 56px; height: 56px;
-    transform: translate(-34px, -50%) scale(.85);
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .65);
-    -webkit-backdrop-filter: blur(18px) saturate(170%);
-    backdrop-filter: blur(18px) saturate(170%);
-    border: 1px solid rgba(255, 255, 255, .78);
-    box-shadow:
-        0 12px 34px -10px rgba(15, 23, 42, .38),
-        inset 0 1px 0 rgba(255, 255, 255, .85);
-    opacity: 0;
-    transition: opacity .15s ease;
-    will-change: transform, opacity;
-}
-#swipeback-ui .sb-pill svg { width: 22px; height: 22px; color: #115248; }
-@media (prefers-reduced-motion: reduce) {
-    #swipeback-ui .sb-dim { transition: none; }
-}
-
-/* Right-side swipe: bubble right edge se, arrow flip */
-#swipeback-ui .sb-pill.from-right {
-    left: auto;
-    right: 0;
-}
-
-/* ---------- 12. LIVE PAGE-SLIDE UNDERLAY ---------- */
+/* ---------- 10. SHELL + SWIPE UNDERLAY ---------- */
 #app-shell {
     position: relative;
     z-index: 1;
+    overflow-x: clip;
 }
 #swipe-under {
     position: fixed; inset: 0; z-index: 0;
@@ -268,7 +152,7 @@ details > summary {
     transform: translate(-50%, -50%);
     display: flex; flex-direction: column;
     align-items: center; gap: 10px;
-    color: rgba(22, 102, 90, .35);
+    color: rgba(22, 102, 90, .32);
 }
 #swipe-under .su-brand svg { width: 64px; height: 64px; }
 #swipe-under .su-brand span {
