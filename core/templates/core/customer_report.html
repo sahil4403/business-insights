@@ -108,6 +108,29 @@
         @media (min-width:768px){ .app-fab{ position:static; height:2.75rem; box-shadow:none; } }
     </style>
     <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=20260824cf">
+    <style>
+        /* NAV LOADING OVERLAY — center spinner + blur + clicks block */
+        #nav-overlay {
+            position: fixed; inset: 0; z-index: 2147483000;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(245,247,250,.42);
+            -webkit-backdrop-filter: blur(7px) saturate(120%);
+            backdrop-filter: blur(7px) saturate(120%);
+            opacity: 0; pointer-events: none;
+            transition: opacity .18s ease;
+        }
+        #nav-overlay.on { opacity: 1; pointer-events: auto; }
+        .nav-spin {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 4px solid rgba(22,102,90,.16);
+            border-top-color: #16665a;
+            animation: navspin .8s linear infinite;
+        }
+        @keyframes navspin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            #nav-overlay { transition: none; }
+        }
+    </style>
 </head>
 
 <body class="bg-[#f5f7fa] text-slate-800 font-sans min-h-screen antialiased">
@@ -713,6 +736,46 @@
         })();
     </script>
 
+    <script>
+        // NAV LOADING OVERLAY: internal link/form par spinner+blur,
+        // load hote hi hat jata hai. Exports/download/_blank skip.
+        (function () {
+            var ov = document.createElement('div');
+            ov.id = 'nav-overlay';
+            ov.innerHTML = '<div class="nav-spin"></div>';
+            document.body.appendChild(ov);
+
+            var safety = 0;
+            function show() {
+                clearTimeout(safety);
+                ov.classList.add('on');
+                safety = setTimeout(hide, 8000); // failsafe
+            }
+            function hide() { clearTimeout(safety); ov.classList.remove('on'); }
+
+            window.addEventListener('load', hide);
+            window.addEventListener('pageshow', hide);
+
+            document.addEventListener('click', function (e) {
+                var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+                if (!a) return;
+                var href = a.getAttribute('href') || '';
+                if (!href || href.charAt(0) === '#') return;
+                if (a.target === '_blank' || a.hasAttribute('download')) return;
+                if (a.origin !== location.origin) return;
+                if (a.dataset.noLoader === '1') return;
+                if (/([?&])export=/.test(href)) return;
+                if (a.pathname === location.pathname &&
+                    a.search === location.search) return;
+                show();
+            }, true);
+
+            document.addEventListener('submit', function (e) {
+                if (e.defaultPrevented) return;
+                show();
+            }, true);
+        })();
+    </script>
     <script src="{% static 'js/liquid-tabbar.js' %}?v=20260824cf"></script>
 </body>
 </html>
