@@ -142,5 +142,21 @@ thead tr.bg-white {
     border-bottom: 1px solid #eef1f6 !important;
 }
 
+/* ---------- 12b. TABBAR POSITION — BULLETPROOF FIXED BOTTOM ----------
+   Har page par toolbar hamesha viewport ke bottom par chipka rahe,
+   content ke end mein kabhi na jaye (customer/trips pages fix). */
+nav.lq-bar {
+    position: fixed !important;
+    top: auto !important;
+    right: auto !important;
+    left: 50% !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+    transform: translateX(-50%) !important;
+    z-index: 90 !important;
+}
+@media (min-width: 768px) {
+    nav.lq-bar { display: none !important; }
+}
+
 /* ---------- 13. Chip hover states ---------- */
 .app-chip:hover { background: #e2e8f0 !important; }
