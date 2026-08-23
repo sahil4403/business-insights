@@ -539,18 +539,14 @@
 
     <!-- MOBILE BOTTOM NAV · LIQUID GLASS (same as base.html) -->
     <style>
-        /* INNER BOX SCROLL: list card ke andar scroll hoti hai,
-           page upar-neeche nahi hilta (pehle jaisa app feel) */
+        /* INNER BOX SCROLL: list card ke andar scroll hoti hai.
+           Mobile par exact height JS set karta hai (tabbar ke upar). */
         .cr-scroll-space {
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
-            min-height: 45vh;
-            /* JS neeche exact height set karta hai — ye sirf fallback */
-            max-height: calc(100vh - 350px);
-            max-height: calc(100dvh - 350px);
         }
-        @media (min-width: 768px) { .cr-scroll-space { max-height: 70vh; min-height: 40vh; } }
+        @media (min-width: 768px) { .cr-scroll-space { max-height: 70vh; } }
         .lq-bar {
             position: fixed; left: 50%; transform: translateX(-50%);
             bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
