@@ -57,6 +57,10 @@
 {% endblock %}
 
 {% block content %}
+    /* MOBILE FIT: koi horizontal overflow nahi */
+    html, body { overflow-x: hidden; }
+    #trip-form { max-width: 100%; }
+
 
 <!-- HEADER -->
 <div class="mb-4 md:mb-8">
@@ -83,7 +87,7 @@
     <!-- TRIP INFORMATION -->
     <div class="app-surface p-4 md:p-6">
         <h2 class="form-section-title">Trip Information</h2>
-        <div class="grid grid-cols-2 gap-4 md:gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
 
             <div class="min-w-0">
                 <label class="label" for="{{ form.trip_date.id_for_label }}">Trip Date *</label>
@@ -136,7 +140,7 @@
     <!-- VEHICLE & MATERIAL -->
     <div class="app-surface p-4 md:p-6">
         <h2 class="form-section-title">Vehicle & Material</h2>
-        <div class="grid grid-cols-2 gap-4 md:gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
 
             <div class="min-w-0">
                 <label class="label" for="{{ form.vehicle_category.id_for_label }}">Vehicle Type</label>
@@ -167,7 +171,7 @@
     <!-- JCB HOUR METER & BHATTA READING -->
     <div class="rounded-2xl border border-orange-100 bg-orange-50 p-4 md:p-6" id="jcb_reading_section">
         <h2 class="text-orange-700 font-bold text-base flex items-center gap-2 mb-3" style="color: #c2410c;">🏗️ JCB Hour Meter & Driver Bhatta</h2>
-        <div class="grid grid-cols-2 gap-4 md:gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
 
             <div class="min-w-0">
                 <label class="label" for="{{ form.start_reading.id_for_label }}" style="color: #9a3412;">Start Reading (Decimal)</label>
@@ -233,7 +237,7 @@
     <!-- QUANTITY & RATE -->
     <div class="app-surface p-4 md:p-6">
         <h2 class="form-section-title">Quantity & Rate</h2>
-        <div class="grid grid-cols-2 gap-4 md:gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
 
             <div class="min-w-0">
                 <label class="label" for="{{ form.quantity.id_for_label }}">Quantity</label>
@@ -261,7 +265,7 @@
     <!-- NOTES -->
     <div class="app-surface p-4 md:p-6">
         <h2 class="form-section-title">Additional Information</h2>
-        <div class="grid grid-cols-2 gap-4 md:gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
 
             <div class="min-w-0 col-span-2">
                 <label class="label" for="{{ form.notes.id_for_label }}">Notes</label>
