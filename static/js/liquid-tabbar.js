@@ -111,34 +111,27 @@
             links.forEach(function (l) { l.classList.remove('lq-hover'); });
         }
 
-        bar.addEventListener('pointerdown', function (e) {
-            if (e.pointerType === 'mouse' && e.button !== 0) return;
-            dragging = true;
-            moved = 0;
-            startClientX = e.clientX;
-            prevTargetX = null;
-            try { bar.setPointerCapture(e.pointerId); } catch (err) {}
-        });
+        // NOTE: setPointerCapture use NAHI karte — wo click ko bar par
+        // re-target kar deta hai aur andar ke <a> links mar jaate hain.
+        var activePid = null;
 
-        bar.addEventListener('pointermove', function (e) {
-            if (!dragging && e.pointerType !== 'mouse') return;
-            if (e.pointerType === 'mouse' && !dragging) {
-                // Hover preview (desktop)
-                var i = nearestIndex(localX(e));
-                links.forEach(function (l, idx) { l.classList.toggle('lq-hover', idx === i); });
-                goToSlot(i);
-                return;
-            }
+        function onWindowMove(e) {
+            if (e.pointerId !== activePid) return;
             var lx = localX(e);
             moved = Math.max(moved, Math.abs(e.clientX - startClientX));
-            // Continuous liquid follow: blob center chases finger
             var half = pos.w / 2;
             target.x = Math.max(reducedPad, Math.min(lx - half, bar.offsetWidth - pos.w - reducedPad));
             links.forEach(function (l, idx) {
                 var cx = l.offsetLeft + l.offsetWidth / 2;
                 l.classList.toggle('lq-hover', Math.abs(cx - lx) < l.offsetWidth / 2);
             });
-        });
+        }
+        function onWindowUp(e) {
+            if (e.pointerId !== activePid) return;
+            window.removeEventListener('pointermove', onWindowMove);
+            activePid = null;
+            endDrag(e);
+        }
 
         function endDrag(e) {
             if (!dragging) return;
@@ -149,25 +142,44 @@
             cur = i;
             goToSlot(i);
 
-            // Update active styling instantly (page will navigate anyway)
             links.forEach(function (l, idx) { l.classList.toggle('active', idx === cur); });
 
-            // Agar finger slide karke doosre tab par chhoda -> wahan jao
-            if (changed && moved > 10) {
+            // Finger slide karke doosre tab par chhoda -> wahan navigate
+            if (changed && moved > 10 && i !== activeIndex()) {
                 var href = links[i].getAttribute('href');
                 setTimeout(function () { window.location.href = href; }, 130);
             }
         }
-        bar.addEventListener('pointerup', endDrag);
-        bar.addEventListener('pointercancel', function () {
+
+        bar.addEventListener('pointerdown', function (e) {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            dragging = true;
+            moved = 0;
+            startClientX = e.clientX;
+            prevTargetX = null;
+            activePid = e.pointerId;
+            window.addEventListener('pointermove', onWindowMove);
+        });
+
+        window.addEventListener('pointerup', onWindowUp);
+        window.addEventListener('pointercancel', function (e) {
+            if (e.pointerId !== activePid) { return; }
+            window.removeEventListener('pointermove', onWindowMove);
+            activePid = null;
             dragging = false;
             clearHovers();
             cur = activeIndex();
-            if (cur < 0) cur = 0;
-            goToSlot(cur);
         });
 
-        // Drag ke baad synthetic click rokо (warna purane tab par chala jayega)
+        bar.addEventListener('pointermove', function (e) {
+            if (activePid !== null) return; // drag chal raha hai — window handler dekh raha hai
+            if (e.pointerType !== 'mouse') return;
+            // Hover preview (desktop)
+            var i = nearestIndex(localX(e));
+            links.forEach(function (l, idx) { l.classList.toggle('lq-hover', idx === i); });
+            goToSlot(i);
+        });
+        // Drag ke baad synthetic click roko (warna purane tab par chala jayega)
         bar.addEventListener('click', function (e) {
             if (moved > 10) {
                 e.preventDefault();

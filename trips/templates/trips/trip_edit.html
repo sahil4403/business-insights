@@ -113,7 +113,7 @@
                 {% endfor %}
             </div>
 
-            <div class="min-w-0 col-span-2">
+            <div class="min-w-0 sm:col-span-2">
                 <label class="label" for="{{ form.transaction_type.id_for_label }}">Trip Type / Category *</label>
                 {{ form.transaction_type }}
                 {% for error in form.transaction_type.errors %}
@@ -121,7 +121,7 @@
                 {% endfor %}
             </div>
 
-            <div class="min-w-0 col-span-2 flex flex-col" id="customer_form_group">
+            <div class="min-w-0 sm:col-span-2 flex flex-col" id="customer_form_group">
                 <div class="flex items-center justify-between w-full">
                     <label class="label" for="{{ form.customer.id_for_label }}" style="margin: 0;">Customer *</label>
                     <button type="button" onclick="promptSaveAndViewStatement()" class="bg-transparent border-0 text-brand-500 text-[13px] font-semibold cursor-pointer flex items-center gap-1 p-2" style="color: #16665a;">
@@ -134,7 +134,7 @@
                 {% endfor %}
             </div>
 
-            <div class="min-w-0 col-span-2">
+            <div class="min-w-0 sm:col-span-2">
                 <label class="label" for="{{ form.destination.id_for_label }}">Destination</label>
                 {{ form.destination }}
                 {% for error in form.destination.errors %}
@@ -163,7 +163,7 @@
                 {% endfor %}
             </div>
 
-            <div class="min-w-0 col-span-2">
+            <div class="min-w-0 sm:col-span-2">
                 <label class="label" for="{{ form.vehicle.id_for_label }}">Vehicle No. (Optional)</label>
                 {{ form.vehicle }}
                 <div class="help-text">Select type first — vehicle numbers of that type will show below.</div>
@@ -275,7 +275,7 @@
         <h2 class="form-section-title">Additional Information</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
 
-            <div class="min-w-0 col-span-2">
+            <div class="min-w-0 sm:col-span-2">
                 <label class="label" for="{{ form.notes.id_for_label }}">Notes</label>
                 {{ form.notes }}
                 {% for error in form.notes.errors %}
