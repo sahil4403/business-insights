@@ -132,11 +132,18 @@
             activePid = null;
 
             var i = nearestIndex(localX(e));
+            var prev = cur;
             endDragVisualsOnly(i);
 
-            // SIRF real slide par JS navigation — chhota tap = native click
-            // handle karega. Pehle dono fire ho rahe the (double-nav = gitter).
-            if (moved > 10) goToTab(i);
+            // Same tab par chhota tap = kuch mat karo (reload gitter)
+            if (!moved || moved <= 10) { if (i === prev) return; }
+
+            if (samePage(links[i].getAttribute('href'))) {
+                // wahi page — sirf blob snap, navigate nahi
+                return;
+            }
+            suppressClick = true;
+            goToTab(i);
         }
 
         function endDragVisualsOnly(i) {
@@ -161,8 +168,25 @@
 
         function goToTab(i) {
             var href = links[i].getAttribute('href');
-            setTimeout(function () { window.location.href = href; }, moved > 10 ? 120 : 25);
+            // Blob ka spring animation dikhne do, phir navigate
+            setTimeout(function () { window.location.href = href; }, moved > 10 ? 130 : 100);
         }
+
+        function samePage(href) {
+            try {
+                var u = new URL(href, location.href);
+                return u.origin === location.origin &&
+                       u.pathname === location.pathname &&
+                       u.search === location.search;
+            } catch (_) { return false; }
+        }
+
+        // Jab JS khud navigate kare (blob animation ke saath) to native
+        // click ko ek baar rok do — warna instant nav + animated nav dono
+        // fire honge = gitter. Agar pointer events fail ho jayein
+        // (pointercancel), ye flag set nahi hota aur native click hi
+        // reliably navigate kar deta hai — tab kabhi dead nahi hota.
+        var suppressClick = false;
 
         bar.addEventListener('pointerdown', function (e) {
             if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -180,6 +204,7 @@
             window.removeEventListener('pointermove', onWindowMove);
             activePid = null;
             dragging = false;
+            suppressClick = false; // pointer cancel -> native click fallback
             clearHovers();
             cur = activeIndex();
         });
@@ -192,9 +217,14 @@
             links.forEach(function (l, idx) { l.classList.toggle('lq-hover', idx === i); });
             goToSlot(i);
         });
-        // Native clicks ko bilkul free chhone do — tap par <a> khud navigate
-        // karta hai. Slide-release par upar wala pointerup handler navigate
-        // karega (us case me click fire hi nahi hota).
+        // Click handler: sirf tab rokta hai jo JS khud handle kar raha hai
+        // (blob animation ke saath). Baaki case me native click free hai.
+        bar.addEventListener('click', function (e) {
+            if (!suppressClick) return; // fallback: native nav allowed
+            suppressClick = false;
+            e.preventDefault();
+            e.stopPropagation();
+        }, true);
     }
 
     if (document.readyState === 'loading') {
