@@ -444,7 +444,7 @@ def customer_statement(request, customer_id):
 
     is_admin_user = request.user.is_authenticated and request.user.is_superuser
 
-    # WhatsApp share text (used by the share button on the statement page)
+    # WhatsApp share text — summary + selected period ke saare records
     if from_date and to_date:
         period_label = f"{from_date.strftime('%d %b %Y')} - {to_date.strftime('%d %b %Y')}"
     elif from_date:
@@ -454,16 +454,46 @@ def customer_statement(request, customer_id):
     else:
         period_label = "All time"
 
+    # Record lines (WhatsApp ke liye compact format)
+    MAX_RECORDS = 60
+    record_lines = []
+    for idx, txn in enumerate(transactions[:MAX_RECORDS], 1):
+        d = txn['date'].strftime('%d %b')
+        t_type = txn['type']
+        if t_type == 'PAYMENT':
+            line = f"{idx}. {d} · 💰 Payment Received: -₹{txn['credit']:,.0f}"
+        elif t_type == 'PAYMENT_PAID':
+            line = f"{idx}. {d} · 💸 Paid to Party: +₹{txn['debit']:,.0f}"
+        elif t_type == 'CONTRA':
+            line = f"{idx}. {d} · Contra Settle: -₹{txn['credit']:,.0f}"
+        elif t_type in ('VENDOR_SUPPLY', 'INWARD'):
+            line = f"{idx}. {d} · 📥 Inward Supply: -₹{txn['credit']:,.0f}"
+        else:
+            desc = str(txn.get('description') or '').strip()
+            line = f"{idx}. {d} · 🚚 {desc}: ₹{txn['debit']:,.0f}"
+        record_lines.append(line)
+
+    records_block = "\n".join(record_lines)
+    extra_note = ""
+    if len(transactions) > MAX_RECORDS:
+        extra_note = f"\n…+{len(transactions) - MAX_RECORDS} aur records (PDF me poori list)"
+
     if closing_balance > 0:
-        dues_line = f"*Pending: \u20B9{closing_balance:,.0f}*"
+        dues_line = f"*Pending: ₹{closing_balance:,.0f}*"
     else:
-        dues_line = "Account Cleared \u2705"
+        dues_line = "Account Cleared ✅"
+
+    whatsapp_header = (
+        f"Namaste {customer.name} ji 🙏\n"
+        f"*Statement of Account* ({period_label})"
+    )
+    if records_block:
+        whatsapp_header += f"\n\n📋 *Records:*\n{records_block}{extra_note}"
 
     whatsapp_text = (
-        f"Namaste {customer.name} ji 🙏\n"
-        f"Aapka Account Statement ({period_label}):\n"
-        f"Total Billed: \u20B9{total_sales:,.0f}\n"
-        f"Total Received: \u20B9{total_received:,.0f}\n"
+        whatsapp_header + "\n\n"
+        f"Total Billed: ₹{total_sales:,.0f}\n"
+        f"Total Received: ₹{total_received:,.0f}\n"
         f"{dues_line}\n"
         f"Dhanyavaad! 🙏"
     )
