@@ -150,7 +150,9 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        # Non-manifest storage: missing collectstatic must never 500 the site.
+        # WhiteNoise still compresses; un-hashed files get short cache (fresh in ~60s).
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
