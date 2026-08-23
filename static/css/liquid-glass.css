@@ -81,3 +81,18 @@ thead tr.bg-white {
     -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
     backdrop-filter: blur(20px) saturate(170%) !important;
 }
+
+/* ---------- 8. FLOATING ACTION BAR (trip detail etc.) ---------- */
+.lq-action {
+    border-radius: 22px;
+    background: rgba(255, 255, 255, .60) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
+    backdrop-filter: blur(20px) saturate(170%) !important;
+    border: 1px solid rgba(255, 255, 255, .7) !important;
+    box-shadow:
+        0 8px 28px -10px rgba(15, 23, 42, .28),
+        inset 0 1px 0 rgba(255, 255, 255, .85) !important;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .lq-action { background: rgba(255, 255, 255, .96) !important; }
+}
