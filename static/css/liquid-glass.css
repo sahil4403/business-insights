@@ -207,3 +207,39 @@ details > summary {
     backdrop-filter: blur(16px) saturate(150%) !important;
     border: 1px solid rgba(255, 255, 255, .35) !important;
 }
+
+/* ---------- 11. SWIPE-BACK GESTURE UI ---------- */
+#swipeback-ui {
+    position: fixed; inset: 0; z-index: 9998;
+    pointer-events: none;
+    display: none;
+}
+#swipeback-ui.on { display: block; }
+#swipeback-ui .sb-dim {
+    position: absolute; inset: 0;
+    background: rgba(15, 23, 42, .32);
+    opacity: 0;
+    transition: opacity .12s linear;
+}
+#swipeback-ui .sb-pill {
+    position: absolute;
+    top: 50%; left: 0;
+    width: 56px; height: 56px;
+    transform: translate(-34px, -50%) scale(.85);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .65);
+    -webkit-backdrop-filter: blur(18px) saturate(170%);
+    backdrop-filter: blur(18px) saturate(170%);
+    border: 1px solid rgba(255, 255, 255, .78);
+    box-shadow:
+        0 12px 34px -10px rgba(15, 23, 42, .38),
+        inset 0 1px 0 rgba(255, 255, 255, .85);
+    opacity: 0;
+    transition: opacity .15s ease;
+    will-change: transform, opacity;
+}
+#swipeback-ui .sb-pill svg { width: 22px; height: 22px; color: #115248; }
+@media (prefers-reduced-motion: reduce) {
+    #swipeback-ui .sb-dim { transition: none; }
+}
