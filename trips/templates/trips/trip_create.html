@@ -499,14 +499,17 @@ document.addEventListener("DOMContentLoaded", function() {
                 return false;
             }
 
-            if (!isJcbActive() && materialSelect && materialSelect.value
+            const isVendorSupply = transTypeSelect && transTypeSelect.value === "VENDOR_SUPPLY";
+
+            // Vendor Supply: vendor ka apna vehicle/driver hota hai — dono optional
+            if (!isVendorSupply && !isJcbActive() && materialSelect && materialSelect.value
                 && vehicleSelect && !vehicleSelect.value) {
                 e.preventDefault();
                 markInvalid(vehicleSelect);
                 return false;
             }
 
-            if (!isInternal && !isJcbActive() && vehicleSelect && vehicleSelect.value) {
+            if (!isInternal && !isVendorSupply && !isJcbActive() && vehicleSelect && vehicleSelect.value) {
                 const driverCheckboxes = document.querySelectorAll(".driver-checkbox");
                 let hasDriver = false;
                 driverCheckboxes.forEach(cb => { if (cb.checked) hasDriver = true; });
