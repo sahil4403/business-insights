@@ -58,8 +58,9 @@
 
 {% block content %}
     <style>
-        /* MOBILE FIT: koi horizontal overflow nahi */
-        html, body { overflow-x: hidden; }
+        /* MOBILE FIT: koi horizontal overflow nahi
+           (clip use kiya — hidden sticky navbar tod deta hai) */
+        body { overflow-x: clip; }
         #trip-form { max-width: 100%; }
     </style>
 
