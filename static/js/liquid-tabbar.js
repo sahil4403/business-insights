@@ -191,11 +191,14 @@
             links.forEach(function (l, idx) { l.classList.toggle('lq-hover', idx === i); });
             goToSlot(i);
         });
-        // Native click ko poora block — navigation sirf POINTERUP se hota hai
-        // (iOS/Android dono par 100% reliable, koi interference possible nahi)
+        // Native click allow karein — pointerup already handle karta hai navigation
+        // lekin direct click (jaise keyboard ya tap se) ko block na karein
         bar.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
+            // Sirf pointer events ke liye preventDefault, normal clicks allow karein
+            if (e.pointerType === 'mouse' || e.pointerType === 'touch') {
+                e.preventDefault();
+                e.stopPropagation();
+            }
         }, true);
     }
 
