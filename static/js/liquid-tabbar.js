@@ -179,13 +179,25 @@
             links.forEach(function (l, idx) { l.classList.toggle('lq-hover', idx === i); });
             goToSlot(i);
         });
-        // Drag ke baad synthetic click roko (warna purane tab par chala jayega)
+        // CLICK GUARANTEE: bar ke andar link tap -> hamesha navigate.
+        // (drag me accidental click block; normal tap par koi bhi doosri
+        //  script preventDefault kare toh bhi hum khud navigate karte hain)
         bar.addEventListener('click', function (e) {
-            if (moved > 10) {
+            var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+            if (!a) return;
+            var href = a.getAttribute('href');
+
+            if (moved > 10) {           // ye drag tha, tap nahi
                 e.preventDefault();
                 e.stopPropagation();
                 moved = 0;
+                return;
             }
+
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof start === 'function') start();
+            setTimeout(function () { window.location.href = href; }, 40);
         }, true);
     }
 
