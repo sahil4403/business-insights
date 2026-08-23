@@ -325,7 +325,7 @@
             {% endif %}
         </div>
 
-        <!-- RESULTS: flows with the page (no inner freeze-pane scrolling) -->
+        <!-- RESULTS: inner box scrolling (list card ke andar scroll) -->
         <div>
 
             <!-- FREEZE PANEL (desktop only) -->
@@ -517,10 +517,16 @@
 
     <!-- MOBILE BOTTOM NAV · LIQUID GLASS (same as base.html) -->
     <style>
-        /* Guarantee enough scroll room so the whole header+filter+search
-           section can travel past the top even with very few customers. */
-        .cr-scroll-space { min-height: 70vh; }
-        @media (min-width: 768px) { .cr-scroll-space { min-height: 85vh; } }
+        /* INNER BOX SCROLL: list card ke andar scroll hoti hai,
+           page upar-neeche nahi hilta (pehle jaisa app feel) */
+        .cr-scroll-space {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            min-height: 45vh;
+            max-height: calc(100vh - 270px);
+        }
+        @media (min-width: 768px) { .cr-scroll-space { max-height: 66vh; min-height: 40vh; } }
         .lq-bar {
             position: fixed; left: 50%; transform: translateX(-50%);
             bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
