@@ -28,6 +28,9 @@
         <p class="text-xs text-slate-500 mt-0.5">{{ payments|length }} record{{ payments|length|pluralize }}</p>
     </div>
     <div class="flex items-center gap-2">
+        <!-- Mobile: Add Payment (safe position — header ke andar) -->
+        <a href="{% url 'core:payment_report_add' %}?next={% url 'core:payment_report' %}"
+           class="md:hidden app-chip active h-9 px-3.5 no-underline whitespace-nowrap">＋ Add Payment</a>
         <!-- Mobile export bottom sheet -->
         <details class="export-menu relative md:hidden">
             <summary class="app-chip bg-white border border-slate-200 h-9">Export ▾</summary>
@@ -222,10 +225,8 @@
 
 </div>
 
-<!-- MOBILE FLOATING ADD BUTTON -->
-<a href="{% url 'core:payment_report_add' %}?next={% url 'core:payment_report' %}"
-   class="app-fab md:hidden"><span>＋</span> Add Payment</a>
-
+<!-- MOBILE FLOATING ADD BUTTON — hataya (list se overlap ho raha tha),
+     ab header ke andar safe position par hai -->
 {% endblock %}
 
 {% block scripts %}
