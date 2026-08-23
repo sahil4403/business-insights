@@ -164,10 +164,47 @@
         .nav-link.active { background: #eef7f5; color: var(--brand-dark); }
         .nav-link.active .icon { color: var(--brand); }
 
-        .tabbar-link { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0.55rem 0 0.45rem; font-size: 10px; font-weight: 600; color: #94a3b8; text-decoration: none; position: relative; transition: color .15s ease; -webkit-tap-highlight-color: transparent; }
-        .tabbar-link:active { background: #f8fafc; }
-        .tabbar-link.active { color: var(--brand); }
-        .tabbar-link.active::before { content: ""; position: absolute; top: 0; width: 2rem; height: 3px; border-radius: 0 0 4px 4px; background: var(--brand); }
+        /* LIQUID GLASS TABBAR (iPhone-style floating frosted pill) */
+        .lq-bar {
+            position: fixed; left: 50%; transform: translateX(-50%);
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+            width: min(calc(100% - 20px), 430px);
+            display: grid; grid-template-columns: repeat(5, 1fr);
+            padding: 6px;
+            border-radius: 26px;
+            background: rgba(255, 255, 255, .55);
+            -webkit-backdrop-filter: blur(22px) saturate(180%);
+            backdrop-filter: blur(22px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, .7);
+            box-shadow:
+                0 10px 34px -8px rgba(15, 23, 42, .25),
+                0 2px 8px rgba(15, 23, 42, .06),
+                inset 0 1.5px 0 rgba(255, 255, 255, .95),
+                inset 0 -1px 1px rgba(15, 23, 42, .05);
+        }
+        @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+            .lq-bar { background: rgba(255, 255, 255, .97); }
+        }
+        .lq-link {
+            position: relative; z-index: 1;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 2px; padding: 7px 0 5px;
+            font-size: 9.5px; font-weight: 700; color: #64748b; text-decoration: none;
+            border-radius: 20px;
+            transition: color .18s ease; -webkit-tap-highlight-color: transparent;
+        }
+        .lq-link svg { width: 21px; height: 21px; transition: transform .18s ease; }
+        .lq-link:active svg { transform: scale(.86); }
+        .lq-link.active { color: var(--brand-dark); }
+        .lq-link.active::before {
+            content: ""; position: absolute; inset: 3px 5px 2px; border-radius: 19px; z-index: -1;
+            background: linear-gradient(160deg, rgba(22, 102, 90, .18), rgba(22, 102, 90, .06) 55%, rgba(255, 255, 255, .35));
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .9),
+                inset 0 0 0 1px rgba(22, 102, 90, .22),
+                0 2px 6px -2px rgba(22, 102, 90, .3);
+        }
+        @media (min-width: 768px) { .lq-bar { display: none; } }
 
         /* ---------- MOTION (progressive enhancement) ---------- */
         .has-js[data-anim-pending] [data-animate] { opacity: 0; }
@@ -270,25 +307,28 @@
 
     </div>
 
-    <!-- MOBILE BOTTOM NAV -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(15,23,42,0.04)]">
-        <div class="grid grid-cols-5 max-w-lg mx-auto">
-            <a href="{% url 'core:dashboard' %}" data-navlink class="tabbar-link">
-                <svg class="icon-md" aria-hidden="true"><use href="#i-home"/></svg>Home
-            </a>
-            <a href="{% url 'core:customer_report' %}" data-navlink class="tabbar-link">
-                <svg class="icon-md" aria-hidden="true"><use href="#i-users"/></svg>Customers
-            </a>
-            <a href="{% url 'trips:list' %}" data-navlink class="tabbar-link">
-                <svg class="icon-md" aria-hidden="true"><use href="#i-truck"/></svg>Trips
-            </a>
-            <a href="{% url 'expenses:list' %}" data-navlink class="tabbar-link">
-                <svg class="icon-md" aria-hidden="true"><use href="#i-receipt"/></svg>Expenses
-            </a>
-            <a href="{% url 'core:payment_report' %}" data-navlink class="tabbar-link">
-                <svg class="icon-md" aria-hidden="true"><use href="#i-wallet"/></svg>Payments
-            </a>
-        </div>
+    <!-- MOBILE BOTTOM NAV · LIQUID GLASS -->
+    <nav class="lq-bar md:hidden" aria-label="Main navigation">
+        <a href="{% url 'core:dashboard' %}" data-navlink class="lq-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'core:customer_report' %}" data-navlink class="lq-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Customers</span>
+        </a>
+        <a href="{% url 'trips:list' %}" data-navlink class="lq-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+            <span>Trips</span>
+        </a>
+        <a href="{% url 'expenses:list' %}" data-navlink class="lq-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg>
+            <span>Expenses</span>
+        </a>
+        <a href="{% url 'core:payment_report' %}" data-navlink class="lq-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            <span>Payments</span>
+        </a>
     </nav>
 
     {% block scripts %}{% endblock %}
