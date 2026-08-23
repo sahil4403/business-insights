@@ -170,3 +170,40 @@ details > summary {
         box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .25);
     }
 }
+
+/* ---------- 10. STATEMENT HEADER BUTTONS + FAB — brand glass ---------- */
+/* (base.html inline styles baad me load hote hain, isliye !important zaroori) */
+.btn.btn-ghost {
+    background: rgba(255, 255, 255, .55) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
+    backdrop-filter: blur(12px) saturate(150%) !important;
+    border: 1px solid rgba(255, 255, 255, .7) !important;
+    color: #334155 !important;
+}
+
+.btn.btn-primary {
+    background: linear-gradient(160deg,
+        rgba(23, 112, 99, .92),
+        rgba(17, 82, 72, .82)) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+    backdrop-filter: blur(14px) saturate(140%) !important;
+    border: 1px solid rgba(255, 255, 255, .35) !important;
+    color: #fff !important;
+    box-shadow:
+        0 6px 18px -8px rgba(22, 102, 90, .65),
+        inset 0 1px 0 rgba(255, 255, 255, .28) !important;
+}
+.btn.btn-primary:hover {
+    background: linear-gradient(160deg,
+        rgba(17, 82, 72, .96),
+        rgba(13, 66, 58, .90)) !important;
+}
+
+.app-fab {
+    background: linear-gradient(160deg,
+        rgba(23, 112, 99, .94),
+        rgba(17, 82, 72, .86)) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
+    backdrop-filter: blur(16px) saturate(150%) !important;
+    border: 1px solid rgba(255, 255, 255, .35) !important;
+}
