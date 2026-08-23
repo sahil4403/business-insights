@@ -130,7 +130,20 @@
             if (e.pointerId !== activePid) return;
             window.removeEventListener('pointermove', onWindowMove);
             activePid = null;
-            endDrag(e);
+
+            var i = nearestIndex(localX(e));
+            endDragVisualsOnly(i);
+
+            // HAR case me navigate — tap ho ya slide (iOS-safe)
+            goToTab(i);
+        }
+
+        function endDragVisualsOnly(i) {
+            clearHovers();
+            var changed = i !== cur;
+            cur = i;
+            goToSlot(i);
+            links.forEach(function (l, idx) { l.classList.toggle('active', idx === cur); });
         }
 
         function endDrag(e) {
@@ -143,12 +156,11 @@
             goToSlot(i);
 
             links.forEach(function (l, idx) { l.classList.toggle('active', idx === cur); });
+        }
 
-            // Finger slide karke doosre tab par chhoda -> wahan navigate
-            if (changed && moved > 10 && i !== activeIndex()) {
-                var href = links[i].getAttribute('href');
-                setTimeout(function () { window.location.href = href; }, 130);
-            }
+        function goToTab(i) {
+            var href = links[i].getAttribute('href');
+            setTimeout(function () { window.location.href = href; }, moved > 10 ? 120 : 25);
         }
 
         bar.addEventListener('pointerdown', function (e) {
@@ -179,25 +191,11 @@
             links.forEach(function (l, idx) { l.classList.toggle('lq-hover', idx === i); });
             goToSlot(i);
         });
-        // CLICK GUARANTEE: bar ke andar link tap -> hamesha navigate.
-        // (drag me accidental click block; normal tap par koi bhi doosri
-        //  script preventDefault kare toh bhi hum khud navigate karte hain)
+        // Native click ko poora block — navigation sirf POINTERUP se hota hai
+        // (iOS/Android dono par 100% reliable, koi interference possible nahi)
         bar.addEventListener('click', function (e) {
-            var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
-            if (!a) return;
-            var href = a.getAttribute('href');
-
-            if (moved > 10) {           // ye drag tha, tap nahi
-                e.preventDefault();
-                e.stopPropagation();
-                moved = 0;
-                return;
-            }
-
             e.preventDefault();
             e.stopPropagation();
-            if (typeof start === 'function') start();
-            setTimeout(function () { window.location.href = href; }, 40);
         }, true);
     }
 
