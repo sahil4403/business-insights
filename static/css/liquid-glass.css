@@ -1,7 +1,6 @@
 /* ============================================================
-   LIQUID GLASS THEME v2 — performance-safe
-   Blur sirf chhote floating elements par (tabbar/navbar/FAB).
-   Bade cards par halka translucency (bina blur) — fast + clean.
+   SIMPLE THEME — glass effects removed for smooth performance
+   All backdrop-filter blur removed, solid backgrounds only.
    ============================================================ */
 
 /* ---------- 1. AMBIENT BACKGROUND ---------- */
@@ -20,31 +19,29 @@ body {
     background: transparent !important;
 }
 
-/* ---------- 2. CARDS — soft translucent (NO blur = fast) ---------- */
+/* ---------- 2. CARDS — solid translucent (NO blur) ---------- */
 .app-surface,
 .export-sheet {
-    background: rgba(255, 255, 255, .80) !important;
-    border: 1px solid rgba(255, 255, 255, .75) !important;
+    background: #fff !important;
+    border: 1px solid #eef1f6 !important;
     box-shadow:
         0 8px 26px -16px rgba(15, 23, 42, .25),
         inset 0 1px 0 rgba(255, 255, 255, .85) !important;
 }
 
-/* ---------- 3. DESKTOP NAVBAR — real glass (chhota area) ---------- */
+/* ---------- 3. DESKTOP NAVBAR — solid (no glass) ---------- */
 .lq-nav {
-    background: rgba(255, 255, 255, .60) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
-    backdrop-filter: blur(20px) saturate(170%) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, .65) !important;
+    background: #fff !important;
+    border-bottom: 1px solid #eef1f6 !important;
     box-shadow:
         0 6px 24px -12px rgba(15, 23, 42, .18),
         inset 0 1px 0 rgba(255, 255, 255, .8) !important;
 }
 
-/* ---------- 4. CHIPS — light glass, smooth press ---------- */
+/* ---------- 4. CHIPS — solid, smooth press ---------- */
 .app-chip {
-    background: rgba(255, 255, 255, .60);
-    border: 1px solid rgba(255, 255, 255, .75);
+    background: #f1f5f9;
+    border: 1px solid #eef1f9;
     transition: background-color .16s ease, color .16s ease,
                 border-color .16s ease, box-shadow .16s ease,
                 transform .12s ease !important;
@@ -57,12 +54,9 @@ body {
 .app-chip.danger { background: #fef2f2 !important; color: #b91c1c !important; }
 
 .app-chip.active {
-    background: linear-gradient(160deg,
-        rgba(22, 102, 90, .18),
-        rgba(22, 102, 90, .06) 55%,
-        rgba(255, 255, 255, .45)) !important;
+    background: #d5ebe6 !important;
     color: #115248 !important;
-    border-color: rgba(22, 102, 90, .30) !important;
+    border-color: #a7f3c0 !important;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, .7),
         0 2px 10px -3px rgba(22, 102, 90, .38) !important;
@@ -74,63 +68,57 @@ body {
 .input,
 input[type="text"], input[type="number"], input[type="date"],
 input[type="search"], select, textarea {
-    background-color: #ffffff !important;
+    background-color: #fff !important;
 }
 
 /* ---------- 6. TABLE HEADS — solid ---------- */
 thead.sticky tr,
 thead tr.bg-white {
-    background: #ffffff !important;
+    background: #fff !important;
 }
 
-/* ---------- 7. MOBILE SCROLL TOPBAR — glass (chhota) ---------- */
+/* ---------- 7. MOBILE SCROLL TOPBAR — solid (no glass) ---------- */
 #scroll-topbar {
-    background: rgba(255, 255, 255, .68) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
-    backdrop-filter: blur(18px) saturate(160%) !important;
+    background: #fff !important;
+    border-bottom: 1px solid #eef1f6 !important;
 }
 
-/* ---------- 8. FLOATING ACTION BAR (trip detail) — glass ---------- */
+/* ---------- 8. FLOATING ACTION BAR — solid ---------- */
 .lq-action {
     border-radius: 22px;
-    background: rgba(255, 255, 255, .66) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
-    backdrop-filter: blur(18px) saturate(160%) !important;
-    border: 1px solid rgba(255, 255, 255, .72) !important;
+    background: #fff !important;
+    border: 1px solid #eef1f6 !important;
     box-shadow:
         0 8px 28px -10px rgba(15, 23, 42, .26),
         inset 0 1px 0 rgba(255, 255, 255, .85) !important;
 }
 
-/* ---------- 9. STATEMENT ACTION BUTTONS — brand glass ---------- */
+/* ---------- 9. STATEMENT ACTION BUTTONS ---------- */
 .btn.btn-ghost {
-    background: rgba(255, 255, 255, .62) !important;
-    -webkit-backdrop-filter: blur(10px) saturate(140%) !important;
-    backdrop-filter: blur(10px) saturate(140%) !important;
-    border: 1px solid rgba(255, 255, 255, .72) !important;
-    color: #334155 !important;
+    background: #f8fafc !important;
+    border: 1px solid #eef1f9 !important;
+    color: #64748b !important;
+    /* backdrop-filter removed — solid only */
 }
 .btn.btn-primary {
     background: linear-gradient(160deg,
-        rgba(23, 112, 99, .94),
-        rgba(17, 82, 72, .86)) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-    backdrop-filter: blur(12px) saturate(140%) !important;
+        #16665a,
+        #115248) !important;
     border: 1px solid rgba(255, 255, 255, .35) !important;
     color: #fff !important;
     box-shadow:
         0 6px 18px -8px rgba(22, 102, 90, .6),
         inset 0 1px 0 rgba(255, 255, 255, .28) !important;
+    /* backdrop-filter removed */
 }
 .app-fab {
     background: linear-gradient(160deg,
-        rgba(23, 112, 99, .95),
-        rgba(17, 82, 72, .88)) !important;
-    -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
-    backdrop-filter: blur(14px) saturate(140%) !important;
+        #16665a,
+        #115248) !important;
     border: 1px solid rgba(255, 255, 255, .35) !important;
     box-shadow: 0 12px 28px -10px rgba(22, 102, 90, .55),
                 inset 0 1px 0 rgba(255, 255, 255, .25) !important;
+    /* backdrop-filter removed */
 }
 
 /* ---------- 10. SHELL + SWIPE UNDERLAY ---------- */
@@ -140,22 +128,19 @@ thead tr.bg-white {
     overflow-x: clip;
 }
 
-/* ---------- 13. SCROLL FLICKER FIX (floating bars) ---------- */
-/* Heavy blur + scroll = layer flicker on mobile GPUs.
-   Blur halta + solidness badha + layer promote karke fix kiya. */
+/* ---------- 11. SCROLL FLICKER FIX ---------- */
 .lq-bar, .lq-action, .lq-nav, #scroll-topbar {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     isolation: isolate;
 }
+
+/* ---------- 12. MAIN TAB BAR — solid ---------- */
 .lq-bar {
-    background: rgba(255, 255, 255, .84) !important;
-    -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
-    backdrop-filter: blur(14px) saturate(150%) !important;
+    background: #fff !important;
+    /* backdrop-filter removed entirely */
+    border-bottom: 1px solid #eef1f6 !important;
 }
-.lq-action,
-#scroll-topbar {
-    background: rgba(255, 255, 255, .86) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-    backdrop-filter: blur(12px) saturate(140%) !important;
-}
+
+/* ---------- 13. Chip hover states ---------- */
+.app-chip:hover { background: #e2e8f0 !important; }
