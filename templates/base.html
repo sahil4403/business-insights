@@ -297,7 +297,7 @@
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-8 pb-36 md:pb-10">
+    <div id="app-shell">
 
         <!-- TOASTS -->
         {% if messages %}
@@ -315,6 +315,8 @@
         {% block content %}{% endblock %}
 
     </div>
+
+    </div><!-- /#app-shell -->
 
     <!-- MOBILE BOTTOM NAV · LIQUID GLASS -->
     <nav class="lq-bar md:hidden" aria-label="Main navigation">
