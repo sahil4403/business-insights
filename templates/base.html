@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@500;600;700&display=swap">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
-    <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=20260824">
+    <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=20260824b">
     <style>
         /* NATIVE-APP FEEL */
         @media (prefers-reduced-motion: no-preference) {
@@ -345,9 +345,21 @@
     {% block scripts %}{% endblock %}
 
         <!-- BUILD TAG: deploy verify karne ke liye -->
-    <div id="build-tag" style="position:fixed;bottom:1px;left:3px;z-index:60;font-size:8px;color:#94a3b8;opacity:.55;pointer-events:none;">b0824a</div>
+    <div id="build-tag" style="position:fixed;bottom:1px;left:3px;z-index:60;font-size:8px;color:#94a3b8;opacity:.55;pointer-events:none;">b0824b</div>
+    <script>
+    // JS ERROR REPORTER — phone par error hua toh upar red banner dikhega
+    window.addEventListener('error', function (ev) {
+        var el = document.getElementById('js-err-banner');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'js-err-banner';
+            el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;font-size:11px;padding:6px 10px;font-family:monospace;';
+            document.body.appendChild(el);
+        }
+        el.textContent = 'JS ERROR: ' + ev.message;
+    });</script>
 
-    <script src="{% static 'js/liquid-tabbar.js' %}?v=20260824"></script>
+    <script src="{% static 'js/liquid-tabbar.js' %}?v=20260824b"></script>
     <script src="{% static 'js/vendor-motion.js' %}"></script>
     <script>
         document.documentElement.classList.add('has-js');
