@@ -584,12 +584,13 @@
                     if (shell) shell.style.paddingBottom = '';
                     return;
                 }
-                var topbarH = 56;               // sticky topbar (back + search)
-                // Box itna bada ki full-scroll par bhi last trip navbar ke
-                // UPAR rahe (navbar top se 8px pehle khatam)
-                var h = window.innerHeight - barH - 76;
+                // Topbar ki ASLI height naapo (Back+Search+chips lamba hota hai)
+                var tb = document.getElementById('scroll-topbar');
+                var tbH = tb ? tb.offsetHeight : 56;
+                // Box: topbar ke bilkul neeche SE navbar ke bilkul upar TAK
+                var h = window.innerHeight - tbH - barH - 18;
                 el.style.maxHeight = Math.max(h, 200) + 'px';
-                // Scroll bilkul tab ruke jab box top topbar se mile
+                // Scroll exactly tab ruke jab box top topbar se mile
                 if (shell) shell.style.paddingBottom = (barH + 18) + 'px';
             }
             window.addEventListener('resize', fit);
