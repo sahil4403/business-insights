@@ -373,13 +373,13 @@ $(document).ready(function() {
             }
             
             // Driver mapping by vehicle type
-            var isHyvaHalftonDriver = (driverName.indexOf("dinesh bhaiya") !== -1 ||
-                                       driverName.indexOf("gaju bhaiya") !== -1 ||
-                                       driverName.indexOf("santosh bhaiya") !== -1);
+            var isHyvaHalftonDriver = (driverName.indexOf("dinesh") !== -1 ||
+                                       driverName.indexOf("gaju") !== -1 ||
+                                       driverName.indexOf("santosh") !== -1);
             
-            var isTractorDriver = (driverName.indexOf("shubham bhau") !== -1 ||
-                                   driverName.indexOf("kishan bhau") !== -1 ||
-                                   driverName.indexOf("ankush bhau") !== -1);
+            var isTractorDriver = (driverName.indexOf("shubham") !== -1 ||
+                                   driverName.indexOf("kishan") !== -1 ||
+                                   driverName.indexOf("ankush") !== -1);
             
             var isJcbDriver = (driverName.indexOf("jcb") !== -1); // adjust if needed
             
@@ -808,8 +808,8 @@ $(document).ready(function() {
         const driverSelect = document.getElementById("id_drivers");
         if (!typeSel || !driverSelect) return;
 
-        const tractorOnlyNames = ["ankush bhau", "kishan bhau", "shubham bhau"];
-        const hyvaHalftonNames = ["dinesh bhaiya", "gaju bhaiya", "santosh bhaiya"];
+        const tractorOnlyNames = ["ankush", "kishan", "shubham"];
+        const hyvaHalftonNames = ["dinesh", "gaju", "santosh"];
         const allDriverOptions = Array.from(driverSelect.options);
         const driverRows = document.querySelectorAll(".driver-allocation-row");
 
