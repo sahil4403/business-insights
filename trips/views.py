@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models.deletion import ProtectedError
+from django.http import HttpResponse
 from django.utils import timezone
 from django.db.models.functions import ExtractYear, Coalesce
 from django.db.models import (
@@ -24,8 +25,11 @@ from labour.models import Labour
 from customers.models import Customer
 from core.utils import get_safe_next
 
-@login_required(login_url='/login/')
-def trip_list(request):
+def _filtered_trips(request):
+    """
+    Shared queryset builder — trip_list aur trip_export dono SAME filters use karte hain.
+    Returns (filtered+annotated queryset, filters dict for context/filename).
+    """
     trips = Trip.objects.select_related(
         'customer',
         'vehicle',
@@ -155,6 +159,142 @@ def trip_list(request):
     if to_date:
         trips = trips.filter(trip_date__lte=to_date)
 
+    filters = {
+        'search': search,
+        'selected_trip_status': trip_status,
+        'selected_payment_status': payment_status,
+        'selected_transaction_type': transaction_type,
+        'selected_material': material_id,
+        'selected_vehicle': vehicle_type_code,
+        'selected_destination': destination,
+        'selected_driver': driver_id,
+        'selected_year': year,
+        'selected_month': month,
+        'from_date': from_date,
+        'to_date': to_date,
+        'category': category,
+    }
+    return trips, filters
+
+
+@login_required(login_url='/login/')
+def trip_export(request):
+    """
+    Filtered trips ki Excel (.xlsx) report.
+    Hyva / Tractor / JCB / Halfton — sab category pages aur saare filters
+    (month/year, date range, search, material, driver, payment status etc.)
+    ke saath kaam karta hai. Monthly report ke liye Month+Year filter laga kar Export dabao.
+    """
+    import calendar
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+    from openpyxl.utils import get_column_letter
+
+    trips, filters = _filtered_trips(request)
+    rows = list(trips.order_by('trip_date', 'id'))
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Trips Report'
+
+    headers = [
+        'Trip Code', 'Date', 'Customer', 'Destination', 'Vehicle No.',
+        'Drivers / Labour', 'Material', 'Quantity', 'Rate',
+        'Revenue', 'Received', 'Outstanding',
+        'Trip Status', 'Payment Status',
+    ]
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    status_labels = dict(Trip.TRIP_STATUS_CHOICES)
+    pay_labels = {'UNPAID': 'Unpaid', 'PARTIAL': 'Partial', 'PAID': 'Paid'}
+
+    total_qty = Decimal('0')
+    total_rev = Decimal('0')
+    total_rec = Decimal('0')
+    total_out = Decimal('0')
+
+    for t in rows:
+        qty = t.quantity or Decimal('0')
+        received = t.calculated_received or Decimal('0')
+        outstanding = t.outstanding_amount or Decimal('0')
+        total_qty += qty
+        total_rev += t.total_amount or Decimal('0')
+        total_rec += received
+        total_out += outstanding
+
+        driver_names = [d.name for d in t.drivers.all()]
+
+        ws.append([
+            t.trip_code or '',
+            t.trip_date.strftime('%d-%m-%Y') if t.trip_date else '',
+            t.customer.name if t.customer else (
+                'Internal Stock' if t.transaction_type == 'INTERNAL_STOCK' else ''
+            ),
+            t.destination or '',
+            str(t.vehicle.registration_number) if t.vehicle else '',
+            ', '.join(driver_names) if driver_names else '-',
+            t.material.name if t.material else '',
+            float(qty),
+            float(t.rate or 0),
+            float(t.total_amount or 0),
+            float(received),
+            float(outstanding),
+            status_labels.get(t.trip_status, t.trip_status),
+            pay_labels.get(t.calculated_payment_status, t.calculated_payment_status),
+        ])
+
+    # TOTALS row
+    totals_row = len(rows) + 2
+    ws.append([
+        'TOTAL', '', '', '', '', '', '',
+        float(total_qty), '', float(total_rev), float(total_rec), float(total_out), '', ''
+    ])
+    for cell in ws[totals_row]:
+        cell.font = Font(bold=True)
+
+    # Column widths
+    widths = [15, 12, 24, 18, 14, 26, 18, 10, 10, 13, 13, 14, 12, 14]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    # Filename: category + period aware (e.g. hyva-trips-August-2026-20260825.xlsx)
+    cat = filters.get('category') or 'all'
+    period = ''
+    if filters.get('from_date') or filters.get('to_date'):
+        period = "{0}_to_{1}".format(
+            filters.get('from_date') or 'start',
+            filters.get('to_date') or 'today',
+        )
+    elif filters.get('selected_month') and filters.get('selected_year'):
+        period = "{0}-{1}".format(
+            calendar.month_name[int(filters['selected_month'])],
+            filters['selected_year'],
+        )
+    elif filters.get('selected_year'):
+        period = str(filters['selected_year'])
+
+    stamp = timezone.localdate().strftime('%Y%m%d')
+    filename = "{0}-trips{1}-{2}.xlsx".format(
+        cat,
+        "-{0}".format(period) if period else '',
+        stamp,
+    )
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="{0}"'.format(filename)
+    wb.save(response)
+    return response
+
+
+@login_required(login_url='/login/')
+def trip_list(request):
+    trips, filters = _filtered_trips(request)
+
     materials_list = Material.objects.filter(is_active=True).order_by('name')
 
     vehicles_list = VehicleType.objects.filter(is_active=True).order_by('name')
@@ -207,27 +347,15 @@ def trip_list(request):
     context = {
         'trips': trips_list,
         'summary': summary,
-        'search': search,
-        'selected_trip_status': trip_status,
-        'selected_payment_status': payment_status,
-        'selected_transaction_type': transaction_type,
-        'selected_material': material_id,
         'materials_list': materials_list,
-        'selected_vehicle': vehicle_type_code,
         'vehicles_list': vehicles_list,
         'destinations_list': destinations_list,
-        'selected_destination': destination,
         'drivers_list': drivers_list,
-        'selected_driver': driver_id,
-        'selected_year': year,
-        'selected_month': month,
-        'from_date': from_date,
-        'to_date': to_date,
         'available_years': available_years,
         'month_choices': month_choices,
         'trip_status_choices': Trip.TRIP_STATUS_CHOICES,
         'payment_status_choices': Trip.PAYMENT_STATUS_CHOICES,
-        'category': category,
+        **filters,
     }
 
     return render(

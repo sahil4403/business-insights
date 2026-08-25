@@ -4,6 +4,7 @@ from .views import (
     trip_create,
     trip_delete,
     trip_edit,
+    trip_export,
     trip_list,
     trip_detail,
     trip_link_customer,
@@ -32,6 +33,12 @@ urlpatterns = [
         'create/',
         trip_create,
         name='create_alias',
+    ),
+
+    path(
+        'export/',
+        trip_export,
+        name='export',
     ),
 
     path(
