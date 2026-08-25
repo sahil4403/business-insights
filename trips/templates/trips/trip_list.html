@@ -151,6 +151,12 @@
                 </button>
             </div>
 
+            <!-- QUICK DATE-SORT TOGGLE -->
+            <button type="button" onclick="toggleDateSort()" title="Date order badlo"
+                    class="app-chip shrink-0 whitespace-nowrap {% if selected_sort == 'oldest' %}active{% endif %}">
+                📅 {% if selected_sort == 'oldest' %}<span class="hidden sm:inline">Oldest ↑</span><span class="sm:hidden">↑</span>{% else %}<span class="hidden sm:inline">Newest ↓</span><span class="sm:hidden">↓</span>{% endif %}
+            </button>
+
             <details id="filter-details" class="relative shrink-0">
                 <summary class="app-chip active-soft cursor-pointer">
                     <span id="filter-toggle">⚙ Filters</span>
@@ -303,6 +309,18 @@
                                         {{ label }}
                                     </option>
                                 {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label" for="sort">Date Order</label>
+                            <select id="sort" name="sort" class="input">
+                                <option value="newest" {% if selected_sort != 'oldest' %}selected{% endif %}>
+                                    Newest First (Latest upar)
+                                </option>
+                                <option value="oldest" {% if selected_sort == 'oldest' %}selected{% endif %}>
+                                    Oldest First (Purani upar)
+                                </option>
                             </select>
                         </div>
 
@@ -654,6 +672,16 @@
             const query = buildExportQuery('');
             showNavLoader();
             window.location.href = "{% url 'trips:export' %}?format=csv" + (query ? '&' + query : '');
+        }
+
+        // QUICK DATE-SORT: chip tap -> select flip -> filters apply
+        function toggleDateSort() {
+            const sel = document.getElementById('sort');
+            if (!sel) return;
+            sel.value = (sel.value === 'oldest') ? 'newest' : 'oldest';
+            showNavLoader();
+            const form = document.getElementById('tripFiltersForm');
+            if (form) form.submit();
         }
 
         // ============ EXPORT SUMMARY DROPDOWN — Floating UI powered ============

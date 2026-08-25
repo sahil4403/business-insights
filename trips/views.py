@@ -159,6 +159,15 @@ def _filtered_trips(request):
     if to_date:
         trips = trips.filter(trip_date__lte=to_date)
 
+    # DATE ORDER: newest (default, latest upar) / oldest (purani trips upar)
+    sort = request.GET.get('sort', '').strip().lower()
+    if sort not in ('newest', 'oldest'):
+        sort = 'newest'
+    if sort == 'oldest':
+        trips = trips.order_by('trip_date', 'id')
+    else:
+        trips = trips.order_by('-trip_date', '-id')
+
     filters = {
         'search': search,
         'selected_trip_status': trip_status,
@@ -173,6 +182,7 @@ def _filtered_trips(request):
         'from_date': from_date,
         'to_date': to_date,
         'category': category,
+        'selected_sort': sort,
     }
     return trips, filters
 
@@ -193,7 +203,8 @@ def trip_export(request):
     from openpyxl.utils import get_column_letter
 
     trips, filters = _filtered_trips(request)
-    trips_list = list(trips.order_by('trip_date', 'id'))
+    # Export/preview me bhi wahi date-order jo list par chuna hai
+    trips_list = list(trips)
 
     status_labels = dict(Trip.TRIP_STATUS_CHOICES)
     pay_labels = {'UNPAID': 'Unpaid', 'PARTIAL': 'Partial', 'PAID': 'Paid'}
