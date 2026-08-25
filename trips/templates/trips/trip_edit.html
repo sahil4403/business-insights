@@ -313,7 +313,9 @@
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+{% endblock %}
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}
 <script>
 $(document).ready(function() {
     // Initialize Select2 on customer dropdown
@@ -537,6 +539,7 @@ $(document).ready(function() {
         syncNitin();
     })();
 </script>
+{% endblock %}
 <script>
     const driverRows = document.querySelectorAll(".driver-allocation-row");
     const quantityInput = document.getElementById("id_quantity");
@@ -811,6 +814,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     toggleJcbSectionVisibility();
 </script>
+{% endblock %}
 <script>
     function setupVehicleTypeFilter() {
         const typeSelect = document.getElementById("id_vehicle_category");
@@ -922,6 +926,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (startInput) startInput.addEventListener("input", updateJcbCalculations);
     if (endInput) endInput.addEventListener("input", updateJcbCalculations);
 </script>
+{% endblock %}
 <script>
     function setupVehicleTypeFilter() {
         const typeSelect = document.getElementById("id_vehicle_category");
@@ -1033,3 +1038,4 @@ document.addEventListener("DOMContentLoaded", function() {
     if (startInput) startInput.addEventListener("input", updateJcbCalculations);
     if (endInput) endInput.addEventListener("input", updateJcbCalculations);
 </script>
+{% endblock %}
