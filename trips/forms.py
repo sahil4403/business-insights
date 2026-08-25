@@ -168,19 +168,23 @@ class TripForm(forms.ModelForm):
         target_driver_names = ['Gaju Bhau', 'Dinesh Bhaiya', 'Santosh Bhaiya', 'Ankush Bhau', 'Kishan Bhau', 'Shubham Bhau']
 
         # Nitin Prasad: SIRF Crushed Stone material par Driver Allocation me
-        crushed = Material.objects.filter(name__iexact='crushed stone', is_active=True).first()
-        current_material = None
+        # (naam ka koi bhi variant chale — case/spacing flexible)
+        current_material_name = ''
         if self.is_bound:
-            current_material = self.data.get('material')
+            _mid = self.data.get('material')
+            if _mid:
+                _m = Material.objects.filter(pk=_mid).first()
+                current_material_name = _m.name if _m else ''
         elif self.instance and self.instance.pk and self.instance.material_id:
-            current_material = self.instance.material_id
-        if crushed and current_material and str(current_material) == str(crushed.pk):
+            current_material_name = self.instance.material.name or ''
+
+        include_nitin = 'crushed stone' in (current_material_name or '').lower()
+        if include_nitin:
             target_driver_names = target_driver_names + ['Nitin Prasad']
 
         drivers_qs = Labour.objects.filter(
-            name__in=target_driver_names,
-            is_active=True,
-            status='ACTIVE'
+            Q(name__in=target_driver_names, is_active=True, status='ACTIVE')
+            | (Q(name__iexact='nitin prasad', is_active=True, status='ACTIVE') if include_nitin else Q(pk=None))
         )
 
         if self.instance and self.instance.pk:
@@ -199,7 +203,9 @@ class TripForm(forms.ModelForm):
             if self.instance.drivers.exists():
                 driver_ids = list(self.instance.drivers.values_list('pk', flat=True))
                 drivers_qs = Labour.objects.filter(
-                    Q(name__in=target_driver_names, is_active=True, status='ACTIVE') | Q(pk__in=driver_ids)
+                    Q(name__in=target_driver_names, is_active=True, status='ACTIVE')
+                    | (Q(name__iexact='nitin prasad', is_active=True, status='ACTIVE') if include_nitin else Q(pk=None))
+                    | Q(pk__in=driver_ids)
                 )
 
         self.fields['customer'].queryset = customer_qs.order_by('name')
