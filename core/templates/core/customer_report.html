@@ -563,11 +563,13 @@
     <!-- MOBILE BOTTOM NAV · LIQUID GLASS (same as base.html) -->
     <style>
         /* INNER BOX SCROLL: list card ke andar scroll hoti hai.
-           Mobile par exact height JS set karta hai (tabbar ke upar). */
+           Mobile par exact height JS set karta hai (tabbar ke upar).
+           overscroll-behavior JAAN-BOOJH KE nahi lagaya — taake list
+           ke top par pahunchte hi page scroll automatically chale
+           (header wapas aa jaye, koi stuck nahi). */
         .cr-scroll-space {
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
         }
         @media (min-width: 768px) { .cr-scroll-space { max-height: 70vh; } }
         .lq-bar {

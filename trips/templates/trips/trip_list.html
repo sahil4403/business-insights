@@ -437,7 +437,7 @@
         </div>
 
         <!-- MOBILE TRIP LIST (inner box scrolling) -->
-        <div id="tripMobileScroll" class="md:hidden px-3 max-h-[65vh] overflow-y-auto overscroll-contain">
+        <div id="tripMobileScroll" class="md:hidden px-3 max-h-[65vh] overflow-y-auto">
             {% for trip in trips %}
                 <div class="app-row">
                     <a href="{% url 'trips:detail' trip.id %}" class="flex-1 min-w-0">
