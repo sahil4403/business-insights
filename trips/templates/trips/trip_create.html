@@ -3,6 +3,7 @@
 {% block title %}Add Trip{% endblock %}
 
 {% block head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
     #trip-form input:not([type="checkbox"]):not([type="hidden"]):not(.customer-search-input):not(.driver-count-input),
     #trip-form select {
@@ -307,81 +308,42 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    const customerSelect = document.getElementById("id_customer");
-    if (customerSelect) {
-        // Add search filter input above customerSelect
-        const searchInput = document.createElement("input");
-        searchInput.type = "text";
-        searchInput.id = "customer_quick_filter";
-        searchInput.className = "customer-search-input";
-        searchInput.placeholder = "🔍 Type to filter customer dropdown list...";
-        searchInput.autocomplete = "off";
-        searchInput.style.marginBottom = "8px";
+$(document).ready(function() {
+    // Initialize Select2 on customer dropdown
+    $('#id_customer').select2({
+        placeholder: 'Search Customer...',
+        allowClear: true,
+        width: '100%',
+        minimumInputLength: 1
+    });
 
-        customerSelect.parentNode.insertBefore(searchInput, customerSelect);
+    // Toggle customer field based on transaction type (Internal Stock vs Customer Delivery)
+    var transTypeSelect = document.getElementById("id_transaction_type");
+    var customerGroup = document.getElementById("customer_form_group");
+    var customerSelect = document.getElementById("id_customer");
 
-        const originalOptions = Array.from(customerSelect.options);
-
-        function syncSearchFromSelection() {
-            const sel = customerSelect.options[customerSelect.selectedIndex];
-            searchInput.value = (sel && sel.value) ? sel.text.trim() : "";
-        }
-
-        customerSelect.addEventListener("change", syncSearchFromSelection);
-        syncSearchFromSelection();
-
-        searchInput.addEventListener("input", function() {
-            const query = searchInput.value.trim().toLowerCase();
-            const currentValue = customerSelect.value;
-
-            customerSelect.innerHTML = "";
-            
-            // Include default empty option
-            const blankOpt = originalOptions.find(opt => !opt.value);
-            if (blankOpt) {
-                customerSelect.appendChild(blankOpt.cloneNode(true));
+    function toggleCustomerVisibility() {
+        if (!transTypeSelect || !customerGroup) return;
+        if (transTypeSelect.value === "INTERNAL_STOCK") {
+            customerGroup.style.display = "none";
+            if (customerSelect) {
+                $(customerSelect).val('').trigger('change');
             }
-
-            const matches = originalOptions.filter(opt => opt.value && opt.text.toLowerCase().includes(query));
-            matches.forEach(opt => {
-                const clone = opt.cloneNode(true);
-                if (clone.value === currentValue) {
-                    clone.selected = true;
-                }
-                customerSelect.appendChild(clone);
-            });
-
-            if (matches.length === 1) {
-                customerSelect.value = matches[0].value;
-                searchInput.value = matches[0].text.trim();
-            }
-        });
-
-        // Toggle customer field based on transaction type (Internal Stock vs Customer Delivery)
-        const transTypeSelect = document.getElementById("id_transaction_type");
-        const customerGroup = document.getElementById("customer_form_group");
-
-        function toggleCustomerVisibility() {
-            if (!transTypeSelect || !customerGroup) return;
-            if (transTypeSelect.value === "INTERNAL_STOCK") {
-                customerGroup.style.display = "none";
-                customerSelect.value = "";
-                searchInput.value = "";
-            } else {
-                customerGroup.style.display = "flex";
-            }
-        }
-
-        if (transTypeSelect) {
-            transTypeSelect.addEventListener("change", toggleCustomerVisibility);
-            toggleCustomerVisibility();
+        } else {
+            customerGroup.style.display = "flex";
         }
     }
 
+    if (transTypeSelect) {
+        transTypeSelect.addEventListener("change", toggleCustomerVisibility);
+        toggleCustomerVisibility();
+    }
+
     // Driver trip allocation checkbox & sync handler
-    const driversSelect = document.getElementById("id_drivers");
+    var driversSelect = document.getElementById("id_drivers");
 
     // NITIN PRASAD: sirf Crushed Stone material par Driver Allocation me
     (function () {
@@ -403,16 +365,7 @@ document.addEventListener("DOMContentLoaded", function() {
         matSel.addEventListener("change", syncNitin);
         syncNitin();
     })();
-    const driverRows = document.querySelectorAll(".driver-allocation-row");
-    const quantityInput = document.getElementById("id_quantity");
-
-    function syncDriverTripCountSum() {
-        if (!driverRows || driverRows.length === 0 || !quantityInput) return;
-        
-        let totalDriverTrips = 0;
-        let hasDriverAllocation = false;
-
-        driverRows.forEach(row => {
+</script>
             const chk = row.querySelector(".driver-checkbox");
             const countInput = row.querySelector(".driver-count-input");
             if (chk && chk.checked && countInput) {

@@ -312,99 +312,40 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    const customerSelect = document.getElementById("id_customer");
-    if (customerSelect) {
-        const searchInput = document.createElement("input");
-        searchInput.type = "text";
-        searchInput.id = "customer_quick_filter";
-        searchInput.className = "customer-search-input";
-        searchInput.placeholder = "🔍 Type to filter customer dropdown list...";
-        searchInput.autocomplete = "off";
-        searchInput.style.marginBottom = "8px";
+$(document).ready(function() {
+    // Initialize Select2 on customer dropdown
+    $('#id_customer').select2({
+        placeholder: 'Search Customer...',
+        allowClear: true,
+        width: '100%',
+        minimumInputLength: 1
+    });
 
-        customerSelect.parentNode.insertBefore(searchInput, customerSelect);
+    // Toggle customer field based on transaction type (Internal Stock vs Customer Delivery)
+    var transTypeSelect = document.getElementById("id_transaction_type");
+    var customerGroup = document.getElementById("customer_form_group");
+    var customerSelect = document.getElementById("id_customer");
 
-        const originalOptions = Array.from(customerSelect.options);
-
-        function syncSearchFromSelection() {
-            const sel = customerSelect.options[customerSelect.selectedIndex];
-            searchInput.value = (sel && sel.value) ? sel.text.trim() : "";
-        }
-
-        customerSelect.addEventListener("change", syncSearchFromSelection);
-        syncSearchFromSelection();
-
-        searchInput.addEventListener("input", function() {
-            const query = searchInput.value.trim().toLowerCase();
-            const currentValue = customerSelect.value;
-
-            customerSelect.innerHTML = "";
-            
-            const blankOpt = originalOptions.find(opt => !opt.value);
-            if (blankOpt) {
-                customerSelect.appendChild(blankOpt.cloneNode(true));
+    function toggleCustomerVisibility() {
+        if (!transTypeSelect || !customerGroup) return;
+        if (transTypeSelect.value === "INTERNAL_STOCK") {
+            customerGroup.style.display = "none";
+            if (customerSelect) {
+                $(customerSelect).val('').trigger('change');
             }
-
-            const matches = originalOptions.filter(opt => opt.value && opt.text.toLowerCase().includes(query));
-            matches.forEach(opt => {
-                const clone = opt.cloneNode(true);
-                if (clone.value === currentValue) {
-                    clone.selected = true;
-                }
-                customerSelect.appendChild(clone);
-            });
-
-            if (matches.length === 1) {
-                customerSelect.value = matches[0].value;
-                searchInput.value = matches[0].text.trim();
-            }
-        });
-
-        const transTypeSelect = document.getElementById("id_transaction_type");
-        const customerGroup = document.getElementById("customer_form_group");
-
-        function toggleCustomerVisibility() {
-            if (!transTypeSelect || !customerGroup) return;
-            if (transTypeSelect.value === "INTERNAL_STOCK") {
-                customerGroup.style.display = "none";
-                customerSelect.value = "";
-                searchInput.value = "";
-            } else {
-                customerGroup.style.display = "flex";
-            }
-        }
-
-        if (transTypeSelect) {
-            transTypeSelect.addEventListener("change", toggleCustomerVisibility);
-            toggleCustomerVisibility();
+        } else {
+            customerGroup.style.display = "flex";
         }
     }
 
-    // Driver trip allocation checkbox & sync handler
-    const driversSelect = document.getElementById("id_drivers");
-
-    // NITIN PRASAD: sirf Crushed Stone material par Driver Allocation me
-    (function () {
-        var matSel = document.getElementById("id_material");
-        var drvSel = document.getElementById("id_drivers");
-        if (!matSel || !drvSel) return;
-        function syncNitin() {
-            var matText = matSel.selectedIndex >= 0
-                ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
-            var isCrushed = matText.indexOf("crushed stone") !== -1;
-            Array.prototype.forEach.call(drvSel.options, function (o) {
-                if (o.text.trim().toLowerCase().indexOf("nitin prasad") !== -1) {
-                    o.hidden = !isCrushed;
-                    o.disabled = !isCrushed;
-                    if (!isCrushed) o.selected = false;
-                }
-            });
-        }
-        matSel.addEventListener("change", syncNitin);
-        syncNitin();
-    })();
+    if (transTypeSelect) {
+        transTypeSelect.addEventListener("change", toggleCustomerVisibility);
+        toggleCustomerVisibility();
+    }
+</script>
     const driverRows = document.querySelectorAll(".driver-allocation-row");
     const quantityInput = document.getElementById("id_quantity");
     const initialCounts = {{ trip.driver_trip_counts|default:"{}"|safe }};
