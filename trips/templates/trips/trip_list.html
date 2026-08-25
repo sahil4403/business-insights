@@ -566,18 +566,20 @@
             if (!el) return;
             function fit() {
                 var shell = document.getElementById('app-shell');
+                var bar = document.querySelector('.lq-bar');
+                var barH = bar ? bar.offsetHeight : 62;
                 if (window.innerWidth >= 768) {
                     el.style.maxHeight = '';
                     if (shell) shell.style.paddingBottom = '';
                     return;
                 }
-                var topbarH = 56;   // sticky topbar (back + search)
-                var gap = 10;       // box aur tabbar ke beech
-                var h = window.innerHeight - topbarH - gap;
+                var topbarH = 56;               // sticky topbar (back + search)
+                // Box itna bada ki full-scroll par bhi last trip navbar ke
+                // UPAR rahe (navbar top se 8px pehle khatam)
+                var h = window.innerHeight - barH - 76;
                 el.style.maxHeight = Math.max(h, 200) + 'px';
-                // Neeche ka faltu space hatao — scroll yahin khatam hoga
-                // jahan box top topbar se milta hai
-                if (shell) shell.style.paddingBottom = '14px';
+                // Scroll bilkul tab ruke jab box top topbar se mile
+                if (shell) shell.style.paddingBottom = (barH + 18) + 'px';
             }
             window.addEventListener('resize', fit);
             window.addEventListener('load', fit);
