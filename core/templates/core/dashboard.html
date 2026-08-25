@@ -66,35 +66,6 @@
     </div>
 </div>
 
-{% if from_date or to_date %}
-
-    <!-- KPI STATS -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 md:mb-6" data-animate>
-        <div class="app-stat" style="--stat-accent:#16665a;">
-            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-trend-up"/></svg>Total Revenue</span>
-            <span class="val num text-brand-600">₹{{ total_revenue|floatformat:0 }}</span>
-            <span class="block text-[11px] text-slate-500 mt-1">{{ total_trips }} trips</span>
-        </div>
-
-        <div class="app-stat" style="--stat-accent:#059669;">
-            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-check-circle"/></svg>Total Received</span>
-            <span class="val num text-emerald-600">₹{{ total_received|floatformat:0 }}</span>
-            <span class="block text-[11px] font-semibold text-emerald-600 mt-1">{{ collection_percentage|floatformat:0 }}% recvd</span>
-        </div>
-
-        <div class="app-stat" style="--stat-accent:#dc2626;">
-            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-clock"/></svg>Total Pending</span>
-            <span class="val num text-red-600">₹{{ total_outstanding|floatformat:0 }}</span>
-            <span class="block text-[11px] font-semibold text-red-600 mt-1">{{ outstanding_percentage|floatformat:0 }}% pend</span>
-        </div>
-
-        <div class="app-stat" style="--stat-accent:#d97706;">
-            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-chart"/></svg>Net Profit</span>
-            <span class="val num {% if net_profit >= 0 %}text-brand-600{% else %}text-red-600{% endif %}">₹{{ net_profit|floatformat:0 }}</span>
-            <span class="block text-[11px] text-slate-500 mt-1">Margin: {{ profit_margin|floatformat:0 }}%</span>
-        </div>
-    </div>
-
     <!-- TRIP RECORDS -->
     <div class="app-surface overflow-clip mb-6 md:mb-8" data-animate>
 
@@ -133,6 +104,36 @@
                                             <span class="px-1.5 py-0.5 bg-sky-100 text-sky-700 rounded text-[10px] font-semibold">{{ item.driver.name }}{% if item.count %} ({{ item.count }}){% endif %}</span>
                                         {% endfor %}
                                     </div>
+
+{% if from_date or to_date %}
+
+    <!-- KPI STATS -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 md:mb-6" data-animate>
+        <div class="app-stat" style="--stat-accent:#16665a;">
+            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-trend-up"/></svg>Total Revenue</span>
+            <span class="val num text-brand-600">₹{{ total_revenue|floatformat:0 }}</span>
+            <span class="block text-[11px] text-slate-500 mt-1">{{ total_trips }} trips</span>
+        </div>
+
+        <div class="app-stat" style="--stat-accent:#059669;">
+            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-check-circle"/></svg>Total Received</span>
+            <span class="val num text-emerald-600">₹{{ total_received|floatformat:0 }}</span>
+            <span class="block text-[11px] font-semibold text-emerald-600 mt-1">{{ collection_percentage|floatformat:0 }}% recvd</span>
+        </div>
+
+        <div class="app-stat" style="--stat-accent:#dc2626;">
+            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-clock"/></svg>Total Pending</span>
+            <span class="val num text-red-600">₹{{ total_outstanding|floatformat:0 }}</span>
+            <span class="block text-[11px] font-semibold text-red-600 mt-1">{{ outstanding_percentage|floatformat:0 }}% pend</span>
+        </div>
+
+        <div class="app-stat" style="--stat-accent:#d97706;">
+            <span class="lbl"><svg class="icon-sm" aria-hidden="true"><use href="#i-chart"/></svg>Net Profit</span>
+            <span class="val num {% if net_profit >= 0 %}text-brand-600{% else %}text-red-600{% endif %}">₹{{ net_profit|floatformat:0 }}</span>
+            <span class="block text-[11px] text-slate-500 mt-1">Margin: {{ profit_margin|floatformat:0 }}%</span>
+        </div>
+    </div>
+
                                 {% endif %}
                             </div>
                             <div class="shrink-0 text-right">
