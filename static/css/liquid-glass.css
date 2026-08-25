@@ -93,32 +93,44 @@ thead tr.bg-white {
         inset 0 1px 0 rgba(255, 255, 255, .85) !important;
 }
 
-/* ---------- 9. STATEMENT ACTION BUTTONS ---------- */
+/* ---------- 9. BUTTONS — GLASS EFFECT ----------
+   Apply / Clear / Add New Trip / New Trip FAB — sab par glass */
 .btn.btn-ghost {
-    background: #f8fafc !important;
-    border: 1px solid #eef1f9 !important;
-    color: #64748b !important;
-    /* backdrop-filter removed — solid only */
+    background: rgba(255, 255, 255, .62) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(140%) !important;
+    backdrop-filter: blur(10px) saturate(140%) !important;
+    border: 1px solid rgba(255, 255, 255, .72) !important;
+    color: #334155 !important;
+}
+.btn.btn-secondary {
+    background: rgba(255, 255, 255, .62) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(140%) !important;
+    backdrop-filter: blur(10px) saturate(140%) !important;
+    border: 1px solid rgba(255, 255, 255, .72) !important;
+    color: #334155 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7) !important;
 }
 .btn.btn-primary {
     background: linear-gradient(160deg,
-        #16665a,
-        #115248) !important;
+        rgba(23, 112, 99, .94),
+        rgba(17, 82, 72, .86)) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+    backdrop-filter: blur(12px) saturate(140%) !important;
     border: 1px solid rgba(255, 255, 255, .35) !important;
     color: #fff !important;
     box-shadow:
         0 6px 18px -8px rgba(22, 102, 90, .6),
         inset 0 1px 0 rgba(255, 255, 255, .28) !important;
-    /* backdrop-filter removed */
 }
 .app-fab {
     background: linear-gradient(160deg,
-        #16665a,
-        #115248) !important;
+        rgba(23, 112, 99, .95),
+        rgba(17, 82, 72, .88)) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+    backdrop-filter: blur(14px) saturate(140%) !important;
     border: 1px solid rgba(255, 255, 255, .35) !important;
     box-shadow: 0 12px 28px -10px rgba(22, 102, 90, .55),
                 inset 0 1px 0 rgba(255, 255, 255, .25) !important;
-    /* backdrop-filter removed */
 }
 
 /* ---------- 10. SHELL + SWIPE UNDERLAY ---------- */
