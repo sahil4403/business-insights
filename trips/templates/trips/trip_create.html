@@ -399,24 +399,57 @@ document.addEventListener("DOMContentLoaded", function() {
         toggleCustomerVisibility();
     }
 
-    // ============ NITIN PRASAD: sirf Crushed Stone ============
+    // ============ NITIN PRASAD DRIVER: Vendor + Nitin(customer) + HYVA + Crushed Stone ============
     var matSel = document.getElementById("id_material");
     var drvSel = document.getElementById("id_drivers");
+    var vehCatSel = document.getElementById("id_vehicle_category");
+    var driverRowsAll = document.querySelectorAll(".driver-allocation-row");
+
+    function nitinVisible() {
+        var transType = transTypeSelect ? transTypeSelect.value : "";
+        var custText = (custSelect && custSelect.selectedIndex >= 0)
+            ? custSelect.options[custSelect.selectedIndex].text.trim().toLowerCase() : "";
+        var vehCat = vehCatSel ? vehCatSel.value.toUpperCase() : "";
+        var matText = (matSel && matSel.selectedIndex >= 0)
+            ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
+        return (transType === 'VENDOR_SUPPLY' &&
+                custText.indexOf('nitin prasad') !== -1 &&
+                vehCat === 'HYVA' &&
+                matText.indexOf('crushed stone') !== -1);
+    }
 
     function syncNitin() {
-        if (!matSel || !drvSel) return;
-        var matText = matSel.selectedIndex >= 0
-            ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
-        var isCrushed = matText.indexOf("crushed stone") !== -1;
+        if (!drvSel) return;
+        var showNitin = nitinVisible();
+
+        // Hidden form select options
         Array.prototype.forEach.call(drvSel.options, function (o) {
-            if (o.text.trim().toLowerCase().indexOf("nitin prasad") !== -1) {
-                o.hidden = !isCrushed;
-                o.disabled = !isCrushed;
-                if (!isCrushed) o.selected = false;
+            if (o.text.trim().toLowerCase().indexOf('nitin prasad') !== -1) {
+                o.hidden = !showNitin;
+                o.disabled = !showNitin;
+                if (!showNitin) o.selected = false;
+            }
+        });
+
+        // Visible allocation rows
+        Array.prototype.forEach.call(driverRowsAll, function (row) {
+            var nm = (row.getAttribute('data-driver-name') || '').trim().toLowerCase();
+            if (nm.indexOf('nitin prasad') !== -1) {
+                row.style.display = showNitin ? 'flex' : 'none';
+                var chk = row.querySelector('.driver-checkbox');
+                if (!showNitin && chk && chk.checked) {
+                    chk.checked = false;
+                    chk.dispatchEvent(new Event('change'));
+                }
             }
         });
     }
-    if (matSel) matSel.addEventListener("change", syncNitin);
+    window.syncNitin = syncNitin; // driver-filter ke baad bhi call hota hai
+
+    if (matSel) matSel.addEventListener('change', syncNitin);
+    if (vehCatSel) vehCatSel.addEventListener('change', function () { setTimeout(syncNitin, 0); });
+    if (custSelect) custSelect.addEventListener('change', syncNitin);
+    if (transTypeSelect) transTypeSelect.addEventListener('change', function () { setTimeout(syncNitin, 0); });
     syncNitin();
 });
 </script>
@@ -714,6 +747,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     return;
                 }
                 const name = opt.text.trim().toLowerCase();
+                // Nitin Prasad Driver: syncNitin handle karta hai (4-condition rule)
+                if (name.indexOf('nitin prasad') !== -1) return;
                 const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
                 let show;
                 if (want === "tractor") {
@@ -736,6 +771,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
             driverRows.forEach(row => {
                 const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
+                // Nitin Prasad Driver row: syncNitin handle karta hai
+                if (name.indexOf('nitin prasad') !== -1) return;
                 const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
                 const isHyvaHalfton = hyvaHalftonNames.some(n => name.indexOf(n) !== -1);
                 let show;
@@ -757,6 +794,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 }
             });
+
+            // Vehicle filter ke baad Nitin ki visibility re-apply
+            if (window.syncNitin) setTimeout(window.syncNitin, 0);
         }
 
         typeSel.addEventListener("change", filterDrivers);
