@@ -318,8 +318,16 @@
             var tbH = tb ? tb.offsetHeight : 45;
             var frozen = window.scrollY > 90;
 
-            // 1) Bar hamesha topbar ke neeche (kabhi overlap nahi)
-            if (bar) bar.style.top = tbH + 'px';
+            // 1) Bar topbar ke VISUAL bottom se bilkul flush (0px gap) —
+            //    rect.bottom naap ke, fonts/border kuch bhi ho
+            if (bar) {
+                if (tb) {
+                    var r = tb.getBoundingClientRect();
+                    bar.style.top = Math.max(0, r.bottom) + 'px';
+                } else {
+                    bar.style.top = '45px';
+                }
+            }
 
             // 2) FAB: sirf freeze ke baad gayab, top par wapas
             if (fab) fab.classList.toggle('app-hidden', frozen);
