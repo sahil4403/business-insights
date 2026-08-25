@@ -305,52 +305,46 @@
         var box = document.getElementById('dashTripScroll');
         var fab = document.querySelector('.app-fab');
         var shell = document.getElementById('app-shell');
-        var card = bar ? bar.parentElement : null;
         var fbH = bar ? bar.offsetHeight : 57;
 
         function sync() {
             if (window.innerWidth >= 768) {
-                if (bar) { bar.style.position = ''; bar.style.top = ''; bar.style.left = ''; bar.style.width = ''; }
-                if (card) card.style.paddingTop = '';
+                if (bar) bar.style.top = '0px';
                 if (box) box.style.maxHeight = '';
                 if (fab) fab.classList.remove('app-hidden');
                 if (shell) shell.style.paddingBottom = '';
                 return;
             }
+            var tbH = tb ? tb.offsetHeight : 45;
             var frozen = window.scrollY > 90;
+
+            // 1) Bar topbar ke VISUAL bottom se bilkul flush (0px gap)
+            if (bar) {
+                if (tb) {
+                    var r = tb.getBoundingClientRect();
+                    bar.style.top = Math.max(0, r.bottom) + 'px';
+                } else {
+                    bar.style.top = '45px';
+                }
+            }
 
             // 2) FAB: sirf freeze ke baad gayab, top par wapas
             if (fab) fab.classList.toggle('app-hidden', frozen);
 
-            if (frozen) {
-                // 1) FREEZE PANE: bar FIXED — topbar ke bilkul neeche,
-                //    upar ka content (stats) uske NEECHE se guzarta hai
-                if (tb && bar && card) {
-                    var r = tb.getBoundingClientRect();
-                    var cr = card.getBoundingClientRect();
-                    bar.style.position = 'fixed';
-                    bar.style.top = Math.max(0, r.bottom) + 'px';
-                    bar.style.left = cr.left + 'px';
-                    bar.style.width = cr.width + 'px';
-                    bar.style.borderRadius = '0';
-                    card.style.paddingTop = fbH + 'px'; // jump na ho
-                }
-                // 3) Box: frozen me MAX height (navbar se sirf 8px upar)
-                if (box) {
+            // 3) Box: frozen me MAX height (navbar se sirf 8px upar) +
+            //    neeche ka extra page-space hatao taake box navbar tak bhare
+            if (box) {
+                if (!frozen) {
+                    box.style.maxHeight = '';
+                    if (shell) shell.style.paddingBottom = '';
+                } else {
                     var natural = window.innerHeight * 0.75;
                     var nb = document.querySelector('.lq-bar');
                     var nbH = nb ? nb.offsetHeight : 62;
-                    var tbH = tb ? tb.offsetHeight : 45;
                     var avail = window.innerHeight - 12 - nbH - 8 - tbH - fbH;
                     box.style.maxHeight = (avail < natural ? avail : natural) + 'px';
                     if (shell) shell.style.paddingBottom = '14px';
                 }
-            } else {
-                // Normal state: sab natural
-                if (bar) { bar.style.position = ''; bar.style.top = ''; bar.style.left = ''; bar.style.width = ''; bar.style.borderRadius = ''; }
-                if (card) card.style.paddingTop = '';
-                if (box) box.style.maxHeight = '';
-                if (shell) shell.style.paddingBottom = '';
             }
         }
         window.addEventListener('scroll', sync, { passive: true });
