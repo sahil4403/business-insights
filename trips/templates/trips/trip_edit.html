@@ -589,8 +589,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 return false;
             }
 
-            // Vendor Supply: vendor ka apna vehicle/driver hota hai — dono optional
-            if (!isVendorSupply && !isJcbActive() && materialSelect && materialSelect.value
+            // Vendor Supply + Internal Stock: vehicle optional
+            if (!isVendorSupply && !isInternal && !isJcbActive() && materialSelect && materialSelect.value
                 && vehicleSelect && !vehicleSelect.value) {
                 e.preventDefault();
                 markInvalid(vehicleSelect);

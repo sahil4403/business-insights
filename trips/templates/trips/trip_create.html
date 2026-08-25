@@ -577,7 +577,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 return false;
             }
 
-            if (!isJcbActive() && materialSelect && materialSelect.value
+            if (!isInternal && !isJcbActive() && materialSelect && materialSelect.value
                 && vehicleSelect && !vehicleSelect.value) {
 
                 e.preventDefault();

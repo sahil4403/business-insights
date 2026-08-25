@@ -279,10 +279,10 @@ class TripForm(forms.ModelForm):
         if rate is None:
             cleaned_data['rate'] = Decimal('0')
 
-        if material and not vehicle and trans_type != 'VENDOR_SUPPLY':
+        if material and not vehicle and trans_type not in ('VENDOR_SUPPLY', 'INTERNAL_STOCK'):
             self.add_error(
                 'vehicle',
-                'Vehicle is required when Material is selected. (Optional for Vendor Supply)'
+                'Vehicle is required when Material is selected. (Optional for Vendor Supply & Internal Stock)'
             )
 
         if vehicle and not is_jcb and not drivers and trans_type not in ('INTERNAL_STOCK', 'VENDOR_SUPPLY'):

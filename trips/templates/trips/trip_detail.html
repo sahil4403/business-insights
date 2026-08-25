@@ -72,7 +72,7 @@
                     🔗 Link Customer (Create Outward)
                 </a>
             {% endif %}
-            <a href="{% url 'trips:edit' trip.id %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="app-chip">
+            <a href="{% url 'trips:edit' trip.id %}?next={{ back_url|urlencode }}" class="app-chip">
                 Edit Trip
             </a>
             <a href="{{ back_url }}" class="app-chip">
@@ -389,7 +389,7 @@
                 Statement
             </a>
         {% endif %}
-        <a href="{% url 'trips:edit' trip.id %}"
+        <a href="{% url 'trips:edit' trip.id %}?next={{ back_url|urlencode }}"
            class="flex-1 h-11 rounded-xl border border-slate-200/70 bg-slate-50/80 text-slate-700 font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2">
             Edit
         </a>
