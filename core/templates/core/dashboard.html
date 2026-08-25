@@ -89,7 +89,7 @@
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center justify-between gap-2">
                                     <span class="text-[14px] font-bold text-slate-900 truncate">
-                                        {% if trip.transaction_type == 'INTERNAL_STOCK' %}<span class="inline-flex items-center gap-1 text-slate-500"><svg class="icon-sm" aria-hidden="true"><use href="#i-box"/></svg>Internal Stock</span>{% else %}{{ trip.customer.name }}{% endif %}
+                                        {% if trip.transaction_type == 'INTERNAL_STOCK' %}<span class="inline-flex items-center gap-1 text-slate-500"><svg class="icon-sm" aria-hidden="true"><use href="#i-box"/></svg>Internal Stock</span>{% elif trip.transaction_type == 'VENDOR_SUPPLY' %}<span class="inline-flex items-center gap-1 text-amber-700"><svg class="icon-sm" aria-hidden="true"><use href="#i-download"/></svg>Inward Sale</span>{% else %}{{ trip.customer.name }}{% endif %}
                                     </span>
                                     <span class="shrink-0 text-[11px] font-semibold text-slate-400">{{ trip.trip_date|date:"d-M-Y" }}</span>
                                 </div>
@@ -111,6 +111,8 @@
                                 <div class="text-[15px] font-bold num text-brand-600 whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</div>
                                 {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                     <span class="badge badge-neutral mt-1">Internal</span>
+                                {% elif trip.transaction_type == 'VENDOR_SUPPLY' %}
+                                    <span class="badge badge-neutral mt-1">Inward</span>
                                 {% elif trip.calculated_payment_status == 'PAID' %}
                                     <span class="badge badge-paid mt-1">Paid</span>
                                 {% elif trip.calculated_payment_status == 'PARTIAL' %}
@@ -153,6 +155,8 @@
                                 <td class="px-4 py-3 font-semibold text-slate-800">
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                         <span class="inline-flex items-center gap-1 text-slate-400 italic"><svg class="icon-sm" aria-hidden="true"><use href="#i-box"/></svg>Internal Stock</span>
+                                    {% elif trip.transaction_type == 'VENDOR_SUPPLY' %}
+                                        <span class="inline-flex items-center gap-1 text-amber-700 italic"><svg class="icon-sm" aria-hidden="true"><use href="#i-download"/></svg>Inward Sale</span>
                                     {% else %}
                                         {{ trip.customer.name }}
                                     {% endif %}
@@ -181,6 +185,8 @@
                                 <td class="px-4 py-3">
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                         <span class="text-slate-400 italic">—</span>
+                                    {% elif trip.transaction_type == 'VENDOR_SUPPLY' %}
+                                        <span class="badge badge-neutral">Inward</span>
                                     {% elif trip.calculated_payment_status == 'PAID' %}
                                         <span class="badge badge-paid">Paid</span>
                                     {% elif trip.calculated_payment_status == 'PARTIAL' %}
