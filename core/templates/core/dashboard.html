@@ -32,6 +32,11 @@
             {% endif %}
         </div>
         <div class="md:hidden flex items-center gap-2 shrink-0">
+            {% if user.is_superuser %}
+            <a href="/staff/" class="h-10 w-10 rounded-xl bg-brand-50 text-brand-600 border border-brand-100 flex items-center justify-center transition active:scale-[0.95]" title="Staff" aria-label="Staff">
+                <svg class="icon-md" aria-hidden="true"><use href="#i-users"/></svg>
+            </a>
+            {% endif %}
             <a href="{% url 'core:admin_reauth' %}" target="_blank" class="h-10 w-10 rounded-xl bg-slate-800 text-white flex items-center justify-center transition active:scale-[0.95]" title="Admin" aria-label="Admin">
                 <svg class="icon-md" aria-hidden="true"><use href="#i-settings"/></svg>
             </a>
