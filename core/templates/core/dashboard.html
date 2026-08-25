@@ -66,6 +66,7 @@
     </div>
 </div>
 
+    {% if from_date or to_date %}
     <!-- TRIP RECORDS -->
     <div class="app-surface overflow-clip mb-6 md:mb-8" data-animate>
 
@@ -207,6 +208,7 @@
         </div>
 
     </div>
+    {% endif %}
 
 {% if from_date or to_date %}
 
