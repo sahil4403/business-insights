@@ -186,6 +186,22 @@ class TripForm(forms.ModelForm):
             | Q(name__icontains='nitin prasad', is_active=True, status='ACTIVE')
         )
 
+        # Edit mode: Vehicle Type dropdown ko trip ke actual category par set karo,
+        # warna edit page par hamesha HYVA dikhta hai aur driver filter galat chalta hai.
+        if self.instance and self.instance.pk and self.instance.vehicle_id:
+            vt_code = ''
+            vt = getattr(self.instance.vehicle, 'vehicle_type', None)
+            if vt is not None:
+                vt_code = (getattr(vt, 'code', '') or getattr(vt, 'name', '') or '').upper()
+            if not vt_code:
+                txt = str(self.instance.vehicle).upper()
+                for key in ('JCB', 'TRACTOR', 'HALFTON', 'HYVA'):
+                    if key in txt:
+                        vt_code = key
+                        break
+            if vt_code in ('HYVA', 'TRACTOR', 'HALFTON', 'JCB'):
+                self.fields['vehicle_category'].initial = vt_code
+
         if self.instance and self.instance.pk:
             if self.instance.customer_id:
                 customer_qs = Customer.objects.filter(

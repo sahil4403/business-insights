@@ -3,6 +3,7 @@
 {% block title %}Edit {{ trip.trip_code }}{% endblock %}
 
 {% block head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
     #trip-form input:not([type="checkbox"]):not([type="hidden"]):not(.customer-search-input):not(.driver-count-input),
     #trip-form select {
@@ -20,7 +21,7 @@
     }
     #trip-form textarea {
         width: 100%;
-        min-height: 6rem;
+        min-height: 4.5rem;
         padding: 0.65rem 0.75rem;
         border-radius: 0.75rem;
         border: 1px solid #cbd5e1;
@@ -66,10 +67,10 @@
 
 
 <!-- HEADER -->
-    <div class="mb-4 md:mb-8">
-        <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-                <h1 class="text-xl md:text-3xl font-bold text-slate-900">Edit Trip</h1>
+<div class="mb-4 md:mb-8">
+    <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+            <h1 class="text-xl md:text-3xl font-bold text-slate-900">Edit Trip</h1>
             <p class="text-sm text-slate-500 mt-1">Update trip information and save your changes.</p>
         </div>
         <span class="app-chip shrink-0 mt-1">{{ trip.trip_code }}</span>
@@ -86,7 +87,7 @@
 
     {% csrf_token %}
 
-    {% if form.errors %}
+    {% if form.non_field_errors %}
         <div class="non-field-errors">
             {{ form.non_field_errors }}
         </div>
@@ -123,12 +124,17 @@
 
             <div class="min-w-0 sm:col-span-2 flex flex-col" id="customer_form_group">
                 <div class="flex items-center justify-between w-full">
-                    <label class="label" for="{{ form.customer.id_for_label }}" style="margin: 0;">Customer *</label>
+                    <label class="label" for="customer_typeahead" style="margin: 0;">Customer *</label>
                     <button type="button" onclick="promptSaveAndViewStatement()" class="bg-transparent border-0 text-brand-500 text-[13px] font-semibold cursor-pointer flex items-center gap-1 p-2" style="color: #16665a;">
                         📄 View Customer Statement
                     </button>
                 </div>
-                {{ form.customer }}
+                <div class="relative">
+                    <input type="text" id="customer_typeahead" class="input w-full" placeholder="🔍 Type customer name..."
+                           autocomplete="off" style="width:100%; height:2.75rem; padding:0 0.75rem; border:1px solid #cbd5e1; border-radius:0.75rem; background:#fff; font-size:16px;">
+                    <div id="customer_typeahead_list" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:50; max-height:240px; overflow-y:auto; background:#fff; border:1px solid #e2e8f0; border-radius:0.75rem; box-shadow:0 10px 25px rgba(15,23,42,.12);"></div>
+                </div>
+                <div style="display:none;">{{ form.customer }}</div>
                 {% for error in form.customer.errors %}
                     <div class="error">{{ error }}</div>
                 {% endfor %}
@@ -213,7 +219,7 @@
         <h2 class="form-section-title">Drivers / Labour & Trip Allocation</h2>
 
         <p class="text-[13px] text-slate-500 mb-3">
-            Check the drivers assigned to this trip and enter how many trips/loads each completed (e.g., Driver 1: 3 Trips, Driver 2: 2 Trips). Driver is required for customer trips — optional for JCB, Internal Stock and Vendor Supply.
+            Check the drivers assigned to this trip and enter how many trips/loads each completed (e.g., Driver 1: 3 Trips, Driver 2: 2 Trips). Quantity auto-sum ho jaata hai. Driver is required for customer trips — optional for JCB, Internal Stock and Vendor Supply.
         </p>
 
         <!-- Hidden standard select field for Django form submit -->
@@ -223,7 +229,7 @@
 
         <div id="driver_allocation_box" class="flex flex-col gap-2 sm:gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200">
             {% for driver in form.fields.drivers.queryset %}
-                <div class="driver-allocation-row flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 rounded-xl bg-white border border-slate-200" data-driver-name="{{ driver.name }}">
+                <div class="driver-allocation-row flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-2.5 rounded-xl bg-white border border-slate-200" data-driver-name="{{ driver.name }}">
                     <label class="flex items-center gap-2.5 text-sm font-semibold text-slate-800 cursor-pointer" style="margin: 0;">
                         <input type="checkbox" class="driver-checkbox h-5 w-5 shrink-0 cursor-pointer" data-driver-id="{{ driver.id }}" style="accent-color: #16665a;">
                         {{ driver.name }}
@@ -312,187 +318,84 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-{% endblock %}
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-{% endblock %}
 <script>
-$(document).ready(function() {
-    // Initialize Select2 on customer dropdown
-    $('#id_customer').select2({
-        placeholder: 'Search Customer...',
-        allowClear: true,
-        width: '100%',
-        minimumInputLength: 1
-    });
+// ============ CUSTOMER TYPE-AHEAD (type -> suggestions -> click select) ============
+(function () {
+    var custSelect = document.getElementById('id_customer');
+    var searchInput = document.getElementById('customer_typeahead');
+    var sugBox = document.getElementById('customer_typeahead_list');
+    if (!custSelect || !searchInput || !sugBox) return;
 
-    // =============================================
-    // DRIVER FILTERING LOGIC BASED ON VEHICLE TYPE & MATERIAL
-    // =============================================
-    function updateDriverVisibility() {
-        var vehicleCatSelect = document.getElementById("id_vehicle_category");
-        var materialSelect = document.getElementById("id_material");
-        var drvSel = document.getElementById("id_drivers");
-        
-        if (!drvSel) return;
-        
-        // Get selected vehicle category
-        var vehicleCatSelect = document.getElementById("id_vehicle_category");
-        var vehicleCat = vehicleCatSelect ? vehicleCatSelect.value.toUpperCase() : "";
-        // Also check vehicle select for JCB
-        var vehicleSelect = document.getElementById("id_vehicle");
-        var vehText = vehicleSelect && vehicleSelect.selectedIndex >= 0 
-            ? vehicleSelect.options[vehicleSelect.selectedIndex].text.toUpperCase() : "";
-        
-        // Get selected material
-        var matText = "";
-        var materialSelect = document.getElementById("id_material");
-        if (materialSelect && materialSelect.selectedIndex >= 0) {
-            matText = materialSelect.options[materialSelect.selectedIndex].text.trim().toLowerCase();
-        }
-        
-        var isCrushed = matText.indexOf("crushed stone") !== -1;
-        var isJcbMaterial = matText.indexOf("jcb") !== -1;
-        var isJcbVehicle = vehText.includes("JCB");
-        var isJcb = isJcbMaterial || isJcbVehicle;
-        
-        var vehicleCat = vehicleCatSelect ? vehicleCatSelect.value.toUpperCase() : "";
-        var isHyvaOrHalfton = vehicleCat === "HYVA" || vehicleCat === "HALFTON";
-        var isTractor = vehicleCat === "TRACTOR";
-        var isJcb = isJcbMaterial || isJcbVehicle;
-        
-        Array.prototype.forEach.call(drvSel.options, function (o) {
-            if (!o.value) return; // skip empty option
-            
-            var driverName = o.text.trim().toLowerCase();
-            var show = true;
-            var disabled = false;
-            
-            // Nitin Prasad: only for Crushed Stone
-            if (driverName.indexOf("nitin prasad") !== -1) {
-                var showNitin = driverName.indexOf("nitin prasad") !== -1;
-                var show = showNitin && (matText.indexOf("crushed stone") !== -1);
-                o.hidden = !show;
-                o.disabled = !show;
-                if (!show) o.selected = false;
-                return;
-            }
-            
-            // Driver mapping by vehicle type
-            var isHyvaHalftonDriver = (driverName.indexOf("dinesh") !== -1 ||
-                                       driverName.indexOf("gaju") !== -1 ||
-                                       driverName.indexOf("santosh") !== -1);
-            
-            var isTractorDriver = (driverName.indexOf("shubham") !== -1 ||
-                                   driverName.indexOf("kishan") !== -1 ||
-                                   driverName.indexOf("ankush") !== -1);
-            
-            var isJcbDriver = (driverName.indexOf("jcb") !== -1); // adjust if needed
-            
-            // Determine vehicle context
-            var isHyvaOrHalftonCtx = isHyvaOrHalfton;
-            var isTractorCtx = isTractor;
-            var isJcbCtx = isJcb;
-            
-            // Apply filtering logic
-            if (isHyvaOrHalftonCtx) {
-                // HYVA/HALFTON: Only Dinesh, Gaju, Santosh
-                show = isHyvaHalftonDriver;
-            } else if (isTractorCtx) {
-                // TRACTOR: Only Shubham, Kishan, Ankush
-                show = isTractorDriver;
-            } else if (isJcbCtx) {
-                // JCB: Show all or specific JCB drivers
-                show = true; // Or filter for JCB drivers if needed
-            } else {
-                // Default: show all except Nitin (handled above)
-                show = true;
-            }
-            
-            o.hidden = !show;
-            o.disabled = !show;
-            if (!show) o.selected = false;
-        });
+    var allOptions = Array.prototype.filter.call(custSelect.options, function (o) { return o.value; });
+
+    // Edit mode: pehle se selected customer ka naam dikhao
+    if (custSelect.value) {
+        var sel = custSelect.options[custSelect.selectedIndex];
+        if (sel) searchInput.value = sel.text;
     }
 
-    // Trigger initial sync
-    function syncAll() {
-        // Trigger material change to update Nitin Prasad visibility
-        var matSel = document.getElementById("id_material");
-        if (matSel) {
-            var event = new Event('change');
-            matSel.dispatchEvent(event);
-        }
+    function setSelected(value, text) {
+        custSelect.value = value;
+        searchInput.value = text;
+        sugBox.style.display = 'none';
+        custSelect.dispatchEvent(new Event('change'));
     }
-    
-    // Listen for changes
-    var matSel = document.getElementById("id_material");
-    var vehCatSel = document.getElementById("id_vehicle_category");
-    var vehSel = document.getElementById("id_vehicle");
-    
-    if (matSel) matSel.addEventListener("change", syncAll);
-    if (vehCatSel) vehCatSel.addEventListener("change", syncAll);
-    if (vehSel) vehSel.addEventListener("change", syncAll);
-    
-    // Initial sync
-    syncAll();
 
-    // =============================================
-    // JCB SECTION VISIBILITY
-    // =============================================
-    function toggleJcbSection() {
-        var matSel = document.getElementById("id_material");
-        var vehSel = document.getElementById("id_vehicle");
-        var jcbSection = document.getElementById("jcb_reading_section");
-        
-        if (!jcbSection) return;
-        
-        var isJcb = false;
-        
-        if (matSel && matSel.selectedIndex >= 0) {
-            var matText = matSel.options[matSel.selectedIndex].text.trim().toLowerCase();
-            if (matText.indexOf("jcb") !== -1) isJcb = true;
-        }
-        
-        if (vehSel && vehSel.selectedIndex >= 0) {
-            var vehText = vehSel.options[vehSel.selectedIndex].text.toUpperCase();
-            if (vehText.includes("JCB")) isJcb = true;
-        }
-        
-        if (isJcb) {
-            jcbSection.style.display = "block";
+    function renderSuggestions(q) {
+        q = (q || '').trim().toLowerCase();
+        sugBox.innerHTML = '';
+        var matches = allOptions.filter(function (o) {
+            return o.text.toLowerCase().indexOf(q) !== -1;
+        }).slice(0, 8);
+
+        if (!matches.length) {
+            sugBox.innerHTML = '<div style="padding:10px 14px; font-size:13px; color:#94a3b8;">Koi customer nahi mila</div>';
         } else {
-            jcbSection.style.display = "none";
-            // Reset JCB fields when hidden
-            var jcbInputs = jcbSection.querySelectorAll("input, select");
-            jcbInputs.forEach(function(input) {
-                if (input.type !== "hidden") input.value = "";
+            matches.forEach(function (o) {
+                var div = document.createElement('div');
+                div.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:14px; font-weight:600; color:#0f172a; border-bottom:1px solid #f1f5f9;';
+                div.textContent = o.text;
+                div.addEventListener('mouseenter', function () { div.style.background = '#f0fdf9'; });
+                div.addEventListener('mouseleave', function () { div.style.background = '#fff'; });
+                div.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    setSelected(o.value, o.text);
+                });
+                sugBox.appendChild(div);
             });
         }
+        sugBox.style.display = 'block';
     }
-    
-    // Listen for material/vehicle changes
-    var matSel = document.getElementById("id_material");
-    var vehSel = document.getElementById("id_vehicle");
-    if (matSel) matSel.addEventListener("change", toggleJcbSection);
-    if (vehSel) vehSel.addEventListener("change", toggleJcbSection);
-    // Initial check
-    toggleJcbSection();
 
-    // =============================================
-    // CUSTOMER FIELD VISIBILITY (INTERNAL_STOCK vs CUSTOMER_DELIVERY)
-    // =============================================
+    searchInput.addEventListener('input', function () { renderSuggestions(this.value); });
+    searchInput.addEventListener('focus', function () {
+        if (custSelect.value) {
+            var selOpt = custSelect.options[custSelect.selectedIndex];
+            if (selOpt) searchInput.value = selOpt.text;
+        }
+        renderSuggestions(searchInput.value);
+    });
+    document.addEventListener('click', function (e) {
+        if (e.target !== searchInput && !sugBox.contains(e.target)) sugBox.style.display = 'none';
+    });
+})();
+
+// ============ CUSTOMER VISIBILITY (INTERNAL_STOCK hide) + NITIN RULE ============
+document.addEventListener("DOMContentLoaded", function() {
     var transTypeSelect = document.getElementById("id_transaction_type");
     var customerGroup = document.getElementById("customer_form_group");
-    var customerSelect = document.getElementById("id_customer");
+    var custSelect = document.getElementById("id_customer");
+    var searchInput = document.getElementById("customer_typeahead");
+    var matSel = document.getElementById("id_material");
+    var drvSel = document.getElementById("id_drivers");
+    var vehCatSel = document.getElementById("id_vehicle_category");
 
     function toggleCustomerVisibility() {
         if (!transTypeSelect || !customerGroup) return;
         if (transTypeSelect.value === "INTERNAL_STOCK") {
             customerGroup.style.display = "none";
-            if (customerSelect) {
-                $(customerSelect).val('').trigger('change');
-            }
+            if (custSelect) custSelect.value = "";
+            if (searchInput) searchInput.value = "";
         } else {
             customerGroup.style.display = "flex";
         }
@@ -503,54 +406,66 @@ $(document).ready(function() {
         toggleCustomerVisibility();
     }
 
-    // =============================================
-    // Initialize Select2 on customer dropdown
-    // =============================================
-    $('#id_customer').select2({
-        placeholder: 'Search Customer...',
-        allowClear: true,
-        width: '100%',
-        minimumInputLength: 1
-    });
+    // NITIN PRASAD DRIVER: Vendor + Nitin(customer) + HYVA + Crushed Stone
+    var driverRowsAll = document.querySelectorAll(".driver-allocation-row");
 
-    // =============================================
-    // DRIVER ALLOCATION CHECKBOX & SYNC HANDLER
-    // =============================================
-    var driversSelect = document.getElementById("id_drivers");
+    function nitinVisible() {
+        var transType = transTypeSelect ? transTypeSelect.value : "";
+        var custText = (custSelect && custSelect.selectedIndex >= 0)
+            ? custSelect.options[custSelect.selectedIndex].text.trim().toLowerCase() : "";
+        var vehCat = vehCatSel ? vehCatSel.value.toUpperCase() : "";
+        var matText = (matSel && matSel.selectedIndex >= 0)
+            ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
+        return (transType === 'VENDOR_SUPPLY' &&
+                custText.indexOf('nitin prasad') !== -1 &&
+                vehCat === 'HYVA' &&
+                matText.indexOf('crushed stone') !== -1);
+    }
 
-    // NITIN PRASAD: sirf Crushed Stone material par Driver Allocation me
-    (function () {
-        var matSel = document.getElementById("id_material");
-        var drvSel = document.getElementById("id_drivers");
-        if (!matSel || !drvSel) return;
-        function syncNitin() {
-            var matText = matSel.selectedIndex >= 0
-                ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
-            var isCrushed = matText.indexOf("crushed stone") !== -1;
-            Array.prototype.forEach.call(drvSel.options, function (o) {
-                if (o.text.trim().toLowerCase().indexOf("nitin prasad") !== -1) {
-                    o.hidden = !isCrushed;
-                    o.disabled = !isCrushed;
-                    if (!isCrushed) o.selected = false;
+    function syncNitin() {
+        if (!drvSel) return;
+        var showNitin = nitinVisible();
+
+        Array.prototype.forEach.call(drvSel.options, function (o) {
+            if (o.text.trim().toLowerCase().indexOf('nitin prasad') !== -1) {
+                o.hidden = !showNitin;
+                o.disabled = !showNitin;
+                if (!showNitin) o.selected = false;
+            }
+        });
+
+        Array.prototype.forEach.call(driverRowsAll, function (row) {
+            var nm = (row.getAttribute('data-driver-name') || '').trim().toLowerCase();
+            if (nm.indexOf('nitin prasad') !== -1) {
+                row.style.display = showNitin ? 'flex' : 'none';
+                var chk = row.querySelector('.driver-checkbox');
+                if (!showNitin && chk && chk.checked) {
+                    chk.checked = false;
+                    chk.dispatchEvent(new Event('change'));
                 }
-            });
-        }
-        matSel.addEventListener("change", syncNitin);
-        syncNitin();
-    })();
+            }
+        });
+    }
+    window.syncNitin = syncNitin;
+
+    if (matSel) matSel.addEventListener('change', syncNitin);
+    if (vehCatSel) vehCatSel.addEventListener('change', function () { setTimeout(syncNitin, 0); });
+    if (custSelect) custSelect.addEventListener('change', syncNitin);
+    if (transTypeSelect) transTypeSelect.addEventListener('change', function () { setTimeout(syncNitin, 0); });
+    syncNitin();
+});
 </script>
-{% endblock %}
 <script>
+    const driversSelect = document.getElementById("id_drivers");
     const driverRows = document.querySelectorAll(".driver-allocation-row");
     const quantityInput = document.getElementById("id_quantity");
     const initialCounts = {{ trip.driver_trip_counts|default:"{}"|safe }};
 
+    // ===== QUANTITY AUTO-SUM: Dinesh Bhaiya 1 + Gaju Bhau 1 => Quantity = 2 =====
     function syncDriverTripCountSum() {
         if (!driverRows || driverRows.length === 0 || !quantityInput) return;
-        
         let totalDriverTrips = 0;
         let hasDriverAllocation = false;
-
         driverRows.forEach(row => {
             const chk = row.querySelector(".driver-checkbox");
             const countInput = row.querySelector(".driver-count-input");
@@ -562,7 +477,6 @@ $(document).ready(function() {
                 }
             }
         });
-
         if (hasDriverAllocation) {
             quantityInput.value = totalDriverTrips;
             quantityInput.style.backgroundColor = "#ecfdf5";
@@ -591,12 +505,13 @@ $(document).ready(function() {
             const countInput = row.querySelector(".driver-count-input");
             const driverId = chk.dataset.driverId;
 
-            // Set initial count value if exists
+            // Pehle se saved driver count restore karo
             const existingCount = initialCounts[driverId] || initialCounts[String(driverId)];
-            if (existingCount) {
+            if (existingCount !== undefined && existingCount !== null && existingCount !== "") {
                 countInput.value = existingCount;
             }
 
+            // Pehle se selected driver checkbox tick karo
             const opt = Array.from(driversSelect.options).find(o => o.value === driverId);
             if (opt && opt.selected) {
                 chk.checked = true;
@@ -624,7 +539,9 @@ $(document).ready(function() {
             }
         });
 
-        }
+        // Load par bhi sum calculate karo
+        syncDriverTripCountSum();
+    }
 
     // SUBMIT VALIDATION — required fields, scroll + highlight
     function markInvalid(input) {
@@ -635,7 +552,7 @@ $(document).ready(function() {
         input.addEventListener("change", () => input.classList.remove("field-error"), { once: true });
     }
 
-    const tripForm = document.querySelector("form");
+    const tripForm = document.querySelector("#trip-form");
     if (tripForm) {
         tripForm.addEventListener("submit", function(e) {
             syncDriversSelect();
@@ -663,14 +580,14 @@ $(document).ready(function() {
             }
 
             const isInternal = transTypeSelect && transTypeSelect.value === "INTERNAL_STOCK";
+            const isVendorSupply = transTypeSelect && transTypeSelect.value === "VENDOR_SUPPLY";
+
             if (!isInternal && customerGroup && customerGroup.style.display !== "none"
                 && customerSelect && !customerSelect.value) {
                 e.preventDefault();
                 markInvalid(customerSelect);
                 return false;
             }
-
-            const isVendorSupply = transTypeSelect && transTypeSelect.value === "VENDOR_SUPPLY";
 
             // Vendor Supply: vendor ka apna vehicle/driver hota hai — dono optional
             if (!isVendorSupply && !isJcbActive() && materialSelect && materialSelect.value
@@ -703,124 +620,110 @@ $(document).ready(function() {
             }
         });
     }
-});
 
-function promptSaveAndViewStatement() {
-    const customerSelect = document.getElementById("id_customer");
-    if (!customerSelect || !customerSelect.value) {
-        alert("Please select a customer first to view their statement.");
-        return;
+    function promptSaveAndViewStatement() {
+        const customerSelect = document.getElementById("id_customer");
+        if (!customerSelect || !customerSelect.value) {
+            alert("Please select a customer first to view their statement.");
+            return;
+        }
+        const modal = document.getElementById("statement_confirm_modal");
+        if (modal) modal.style.display = "flex";
     }
-    const modal = document.getElementById("statement_confirm_modal");
-    if (modal) modal.style.display = "flex";
-}
 
-function closeStatementModal() {
-    const modal = document.getElementById("statement_confirm_modal");
-    if (modal) modal.style.display = "none";
-}
+    function closeStatementModal() {
+        const modal = document.getElementById("statement_confirm_modal");
+        if (modal) modal.style.display = "none";
+    }
 
-function confirmSaveAndViewStatement(shouldSave) {
-    const customerSelect = document.getElementById("id_customer");
-    const customerId = customerSelect ? customerSelect.value : "";
-    if (!customerId) return;
+    function confirmSaveAndViewStatement(shouldSave) {
+        const customerSelect = document.getElementById("id_customer");
+        const customerId = customerSelect ? customerSelect.value : "";
+        if (!customerId) return;
 
-    if (shouldSave) {
-        const form = customerSelect.closest("form");
-        if (form) {
-            let hiddenInput = document.getElementById("save_and_view_statement_input");
-            if (!hiddenInput) {
-                hiddenInput = document.createElement("input");
-                hiddenInput.type = "hidden";
-                hiddenInput.id = "save_and_view_statement_input";
-                hiddenInput.name = "save_and_view_statement";
-                form.appendChild(hiddenInput);
+        if (shouldSave) {
+            const form = customerSelect.closest("form");
+            if (form) {
+                let hiddenInput = document.getElementById("save_and_view_statement_input");
+                if (!hiddenInput) {
+                    hiddenInput = document.createElement("input");
+                    hiddenInput.type = "hidden";
+                    hiddenInput.id = "save_and_view_statement_input";
+                    hiddenInput.name = "save_and_view_statement";
+                    form.appendChild(hiddenInput);
+                }
+                hiddenInput.value = "1";
+                form.submit();
             }
-            hiddenInput.value = "1";
-            form.submit();
-        }
-    } else {
-        window.location.href = `/ledger/customer/${customerId}/`;
-    }
-}
-
-function toggleJcbSectionVisibility() {
-    const jcbSection = document.getElementById("jcb_reading_section");
-    const materialGroup = document.getElementById("material_form_group");
-    const vehicleSelect = document.getElementById("id_vehicle");
-    if (!jcbSection) return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const categoryParam = (urlParams.get("category") || "").toLowerCase();
-
-    let isJcb = (categoryParam === "jcb");
-
-    const vehicleCatSelect = document.getElementById("id_vehicle_category");
-    if (!isJcb && vehicleCatSelect && (vehicleCatSelect.value || "").toUpperCase() === "JCB") {
-        isJcb = true;
-    }
-
-    if (!isJcb && vehicleSelect && vehicleSelect.selectedIndex >= 0) {
-        const selectedText = vehicleSelect.options[vehicleSelect.selectedIndex].text.toUpperCase();
-        if (selectedText.includes("JCB")) {
-            isJcb = true;
+        } else {
+            window.location.href = `/ledger/customer/${customerId}/`;
         }
     }
-
-    if (isJcb) {
-        jcbSection.style.display = "block";
-        if (materialGroup) {
-            materialGroup.style.display = "none";
-        }
-        const driverBhattaInput = document.getElementById("id_driver_bhatta");
-        if (driverBhattaInput && (!driverBhattaInput.value || driverBhattaInput.value === "0.00" || driverBhattaInput.value === "0")) {
-            driverBhattaInput.value = "200.00";
-        }
-    } else {
-        jcbSection.style.display = "none";
-        if (materialGroup) {
-            materialGroup.style.display = "flex";
-        }
-        const driverBhattaInput = document.getElementById("id_driver_bhatta");
-        if (driverBhattaInput) {
-            driverBhattaInput.value = "0.00";
-        }
-    }
-}
-
-function updateJcbCalculations() {
-    const startInput = document.getElementById("id_start_reading");
-    const endInput = document.getElementById("id_end_reading");
-    const totalHoursInput = document.getElementById("id_total_hours");
-    const quantityInput = document.getElementById("id_quantity");
-
-    if (startInput && endInput && totalHoursInput) {
-        const startVal = parseFloat(startInput.value);
-        const endVal = parseFloat(endInput.value);
-        if (!isNaN(startVal) && !isNaN(endVal) && endVal >= startVal) {
-            const hrs = (endVal - startVal).toFixed(2);
-            totalHoursInput.value = parseFloat(hrs);
-            if (quantityInput) {
-                quantityInput.value = parseFloat(hrs);
-            }
-        }
-    }
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-    const vehicleSelect = document.getElementById("id_vehicle");
-    if (vehicleSelect) {
-        vehicleSelect.addEventListener("change", toggleJcbSectionVisibility);
-    }
-    toggleJcbSectionVisibility();
 </script>
-{% endblock %}
 <script>
+    // ============ JCB SECTION VISIBILITY ============
+    function toggleJcbSectionVisibility() {
+        const jcbSection = document.getElementById("jcb_reading_section");
+        const materialGroup = document.getElementById("material_form_group");
+        const vehicleSelectEl = document.getElementById("id_vehicle");
+        const vehicleCatSelectEl = document.getElementById("id_vehicle_category");
+        if (!jcbSection) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryParam = (urlParams.get("category") || "").toLowerCase();
+        let isJcb = (categoryParam === "jcb");
+
+        if (!isJcb && vehicleCatSelectEl && (vehicleCatSelectEl.value || "").toUpperCase() === "JCB") isJcb = true;
+        if (!isJcb && vehicleSelectEl && vehicleSelectEl.selectedIndex >= 0) {
+            const selectedText = vehicleSelectEl.options[vehicleSelectEl.selectedIndex].text.toUpperCase();
+            if (selectedText.includes("JCB")) isJcb = true;
+        }
+        if (!isJcb && materialGroup) {
+            const matSelEl = document.getElementById("id_material");
+            if (matSelEl && matSelEl.selectedIndex >= 0) {
+                const matText = matSelEl.options[matSelEl.selectedIndex].text.toUpperCase();
+                if (matText.includes("JCB")) isJcb = true;
+            }
+        }
+
+        if (isJcb) {
+            jcbSection.style.display = "block";
+            if (materialGroup) materialGroup.style.display = "none";
+            const driverBhattaInput = document.getElementById("id_driver_bhatta");
+            if (driverBhattaInput && (!driverBhattaInput.value || driverBhattaInput.value === "0.00" || driverBhattaInput.value === "0")) {
+                driverBhattaInput.value = "200.00";
+            }
+        } else {
+            jcbSection.style.display = "none";
+            if (materialGroup) materialGroup.style.display = "flex";
+        }
+    }
+
+    // ============ JCB CALCULATIONS ============
+    function updateJcbCalculations() {
+        const startInput = document.getElementById("id_start_reading");
+        const endInput = document.getElementById("id_end_reading");
+        const totalHoursInput = document.getElementById("id_total_hours");
+        const qtyInput = document.getElementById("id_quantity");
+
+        if (startInput && endInput && totalHoursInput) {
+            const startVal = parseFloat(startInput.value);
+            const endVal = parseFloat(endInput.value);
+            if (!isNaN(startVal) && !isNaN(endVal) && endVal >= startVal) {
+                const hrs = (endVal - startVal).toFixed(2);
+                totalHoursInput.value = parseFloat(hrs);
+                if (qtyInput) qtyInput.value = parseFloat(hrs);
+            }
+        }
+    }
+
+    // ============ VEHICLE TYPE FILTER ============
     function setupVehicleTypeFilter() {
         const typeSelect = document.getElementById("id_vehicle_category");
-        if (!typeSelect || !vehicleSelect) return;
+        const vehicleSelectEl = document.getElementById("id_vehicle");
+        if (!typeSelect || !vehicleSelectEl) return;
 
-        const originalOptions = Array.from(vehicleSelect.options);
+        const originalOptions = Array.from(vehicleSelectEl.options);
         const blankOption = originalOptions.find(o => !o.value);
 
         function vehicleTypeOf(opt) {
@@ -831,24 +734,25 @@ document.addEventListener("DOMContentLoaded", function() {
 
         function filterVehicles() {
             const want = (typeSelect.value || "").toLowerCase();
-            const current = vehicleSelect.value;
-            vehicleSelect.innerHTML = "";
-            if (blankOption) vehicleSelect.appendChild(blankOption.cloneNode(true));
+            const current = vehicleSelectEl.value;
+            vehicleSelectEl.innerHTML = "";
+            if (blankOption) vehicleSelectEl.appendChild(blankOption.cloneNode(true));
             originalOptions.forEach(opt => {
                 if (!opt.value) return;
                 if (!want || vehicleTypeOf(opt) === want) {
                     const clone = opt.cloneNode(true);
                     if (clone.value === current) clone.selected = true;
-                    vehicleSelect.appendChild(clone);
-                });
+                    vehicleSelectEl.appendChild(clone);
+                }
             });
-            if (want && vehicleSelect.value !== current) {
-                vehicleSelect.value = "";
-            }
+            if (want && vehicleSelectEl.value !== current) vehicleSelectEl.value = "";
             toggleJcbSectionVisibility();
         }
+
         typeSelect.addEventListener("change", filterVehicles);
-        const current = vehicleSelect.value;
+
+        // Edit mode: saved vehicle ke hisaab se category auto-select
+        const current = vehicleSelectEl.value;
         if (current) {
             const selOpt = originalOptions.find(o => o.value === current);
             if (selOpt) {
@@ -859,19 +763,20 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
                 }
             }
-            filterVehicles();
         }
+        filterVehicles();
     }
-    setupVehicleTypeFilter();
 
+    // ============ DRIVER FILTER (HYVA/HALFTON vs TRACTOR) ============
     function setupDriverFilter() {
         const typeSel = document.getElementById("id_vehicle_category");
         const driverSelect = document.getElementById("id_drivers");
         if (!typeSel || !driverSelect) return;
 
         const tractorOnlyNames = ["ankush", "kishan", "shubham"];
+        const hyvaHalftonNames = ["dinesh", "gaju", "santosh"];
         const allDriverOptions = Array.from(driverSelect.options);
-        const driverRows = document.querySelectorAll(".driver-allocation-row");
+        const rows = document.querySelectorAll(".driver-allocation-row");
 
         function filterDrivers() {
             const want = (typeSel.value || "").toLowerCase();
@@ -885,8 +790,17 @@ document.addEventListener("DOMContentLoaded", function() {
                     return;
                 }
                 const name = opt.text.trim().toLowerCase();
+                // Nitin Prasad Driver row: syncNitin handle karta hai
+                if (name.indexOf('nitin prasad') !== -1) return;
                 const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
-                const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
+                let show;
+                if (want === "tractor") {
+                    show = isTractorOnly;
+                } else if (want === "hyva" || want === "halfton") {
+                    show = hyvaHalftonNames.some(n => name.indexOf(n) !== -1);
+                } else {
+                    show = true;
+                }
                 if (show) {
                     const clone = opt.cloneNode(true);
                     if (clone.value === current) {
@@ -896,13 +810,21 @@ document.addEventListener("DOMContentLoaded", function() {
                     driverSelect.appendChild(clone);
                 }
             });
-            if (current && !keptCurrent) {
-                driverSelect.value = "";
-            }
-            driverRows.forEach(row => {
+            if (current && !keptCurrent) driverSelect.value = "";
+
+            rows.forEach(row => {
                 const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
+                if (name.indexOf('nitin prasad') !== -1) return;
                 const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
-                const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
+                const isHyvaHalfton = hyvaHalftonNames.some(n => name.indexOf(n) !== -1);
+                let show;
+                if (want === "tractor") {
+                    show = isTractorOnly;
+                } else if (want === "hyva" || want === "halfton") {
+                    show = isHyvaHalfton;
+                } else {
+                    show = true;
+                }
                 if (show) {
                     row.style.display = "flex";
                 } else {
@@ -914,128 +836,26 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 }
             });
+
+            // Vehicle filter ke baad Nitin ki visibility re-apply
+            if (window.syncNitin) setTimeout(window.syncNitin, 0);
         }
 
         typeSel.addEventListener("change", filterDrivers);
         filterDrivers();
     }
-    setupDriverFilter();
 
-    const startInput = document.getElementById("id_start_reading");
-    const endInput = document.getElementById("id_end_reading");
-    if (startInput) startInput.addEventListener("input", updateJcbCalculations);
-    if (endInput) endInput.addEventListener("input", updateJcbCalculations);
-</script>
-{% endblock %}
-<script>
-    function setupVehicleTypeFilter() {
-        const typeSelect = document.getElementById("id_vehicle_category");
-        if (!typeSelect || !vehicleSelect) return;
-
-        const originalOptions = Array.from(vehicleSelect.options);
-        const blankOption = originalOptions.find(o => !o.value);
-
-        function vehicleTypeOf(opt) {
-            const txt = opt.text;
-            const idx = txt.lastIndexOf(" - ");
-            return idx >= 0 ? txt.substring(idx + 3).trim().toLowerCase() : "";
-        }
-
-        function filterVehicles() {
-            const want = (typeSelect.value || "").toLowerCase();
-            const current = vehicleSelect.value;
-            vehicleSelect.innerHTML = "";
-            if (blankOption) vehicleSelect.appendChild(blankOption.cloneNode(true));
-            originalOptions.forEach(opt => {
-                if (!opt.value) return;
-                if (!want || vehicleTypeOf(opt) === want) {
-                    const clone = opt.cloneNode(true);
-                    if (clone.value === current) clone.selected = true;
-                    vehicleSelect.appendChild(clone);
-                });
-            }
-            if (want && vehicleSelect.value !== current) {
-                vehicleSelect.value = "";
-            }
-            toggleJcbSectionVisibility();
-        }
-        typeSelect.addEventListener("change", filterVehicles);
-        const current = vehicleSelect.value;
-        if (current) {
-            const selOpt = originalOptions.find(o => o.value === current);
-            if (selOpt) {
-                const t = vehicleTypeOf(selOpt);
-                if (t) {
-                    Array.from(typeSelect.options).forEach(opt => {
-                        if (opt.value.toLowerCase() === t) opt.selected = true;
-                    });
-                }
-            }
-            filterVehicles();
-        }
-    }
-    setupVehicleTypeFilter();
-
-    function setupDriverFilter() {
-        const typeSel = document.getElementById("id_vehicle_category");
-        const driverSelect = document.getElementById("id_drivers");
-        if (!typeSel || !driverSelect) return;
-
-        const tractorOnlyNames = ["ankush", "kishan", "shubham"];
-        const allDriverOptions = Array.from(driverSelect.options);
-        const driverRows = document.querySelectorAll(".driver-allocation-row");
-
-        function filterDrivers() {
-            const want = (typeSel.value || "").toLowerCase();
-            const current = driverSelect.value;
-            let keptCurrent = false;
-
-            driverSelect.innerHTML = "";
-            allDriverOptions.forEach(opt => {
-                if (!opt.value) {
-                    driverSelect.appendChild(opt.cloneNode(true));
-                    return;
-                }
-                const name = opt.text.trim().toLowerCase();
-                const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
-                const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
-                if (show) {
-                    const clone = opt.cloneNode(true);
-                    if (clone.value === current) {
-                        clone.selected = true;
-                        keptCurrent = true;
-                    }
-                    driverSelect.appendChild(clone);
-                }
-            });
-            if (current && !keptCurrent) {
-                driverSelect.value = "";
-            }
-            driverRows.forEach(row => {
-                const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
-                const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
-                const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
-                if (show) {
-                    row.style.display = "flex";
-                } else {
-                    row.style.display = "none";
-                    const chk = row.querySelector(".driver-checkbox");
-                    if (chk && chk.checked) {
-                        chk.checked = false;
-                        chk.dispatchEvent(new Event("change"));
-                    }
-                }
-            });
-        }
-
-        typeSel.addEventListener("change", filterDrivers);
-        filterDrivers();
-    }
-    setupDriverFilter();
-
-    const startInput = document.getElementById("id_start_reading");
-    const endInput = document.getElementById("id_end_reading");
-    if (startInput) startInput.addEventListener("input", updateJcbCalculations);
-    if (endInput) endInput.addEventListener("input", updateJcbCalculations);
+    // ============ INIT ============
+    document.addEventListener("DOMContentLoaded", function() {
+        const vehicleSelectEl = document.getElementById("id_vehicle");
+        if (vehicleSelectEl) vehicleSelectEl.addEventListener("change", toggleJcbSectionVisibility);
+        toggleJcbSectionVisibility();
+        setupVehicleTypeFilter();
+        setupDriverFilter();
+        const startInput = document.getElementById("id_start_reading");
+        const endInput = document.getElementById("id_end_reading");
+        if (startInput) startInput.addEventListener("input", updateJcbCalculations);
+        if (endInput) endInput.addEventListener("input", updateJcbCalculations);
+    });
 </script>
 {% endblock %}
