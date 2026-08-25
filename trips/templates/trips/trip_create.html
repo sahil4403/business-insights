@@ -825,12 +825,12 @@ $(document).ready(function() {
                     return;
                 }
                 const name = opt.text.trim().toLowerCase();
-                const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
+                const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
                 let show;
                 if (want === "tractor") {
                     show = isTractorOnly;
                 } else if (want === "hyva" || want === "halfton") {
-                    show = hyvaHalftonNames.indexOf(name) !== -1;
+                    show = hyvaHalftonNames.some(n => name.indexOf(n) !== -1);
                 } else {
                     show = true;
                 }
@@ -847,8 +847,8 @@ $(document).ready(function() {
 
             driverRows.forEach(row => {
                 const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
-                const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
-                const isHyvaHalfton = hyvaHalftonNames.indexOf(name) !== -1;
+                const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
+                const isHyvaHalfton = hyvaHalftonNames.some(n => name.indexOf(n) !== -1);
                 let show;
                 if (want === "tractor") {
                     show = isTractorOnly;

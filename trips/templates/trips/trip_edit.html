@@ -885,7 +885,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     return;
                 }
                 const name = opt.text.trim().toLowerCase();
-                const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
+                const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
                 const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
                 if (show) {
                     const clone = opt.cloneNode(true);
@@ -901,7 +901,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             driverRows.forEach(row => {
                 const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
-                const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
+                const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
                 const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
                 if (show) {
                     row.style.display = "flex";
@@ -997,7 +997,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     return;
                 }
                 const name = opt.text.trim().toLowerCase();
-                const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
+                const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
                 const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
                 if (show) {
                     const clone = opt.cloneNode(true);
@@ -1013,7 +1013,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             driverRows.forEach(row => {
                 const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
-                const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
+                const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
                 const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
                 if (show) {
                     row.style.display = "flex";
