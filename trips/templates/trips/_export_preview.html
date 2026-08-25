@@ -1,0 +1,68 @@
+{# Export Preview fragment — liquid-glass modal ke andar inject hota hai #}
+<div class="flex-1 overflow-auto overscroll-contain" id="exportPreviewScroll">
+    <table class="w-full min-w-[1050px] text-xs">
+        <thead class="sticky top-0 z-10">
+            <tr class="bg-white/85 backdrop-blur text-left">
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Trip</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Customer</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Destination</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Vehicle</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Drivers / Labour</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Material</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Qty</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Rate</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Revenue</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Received</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Outstanding</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Payment</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100/80">
+            {% for r in rows %}
+                <tr class="hover:bg-brand-50/40 transition">
+                    <td class="px-2.5 py-2 whitespace-nowrap font-bold text-brand-600">{{ r.code }}</td>
+                    <td class="px-2.5 py-2 whitespace-nowrap">{{ r.date }}</td>
+                    <td class="px-2.5 py-2">{{ r.customer|default:"—" }}</td>
+                    <td class="px-2.5 py-2">{{ r.destination|default:"—" }}</td>
+                    <td class="px-2.5 py-2 whitespace-nowrap">{{ r.vehicle|default:"—" }}</td>
+                    <td class="px-2.5 py-2">{{ r.drivers }}</td>
+                    <td class="px-2.5 py-2">{{ r.material|default:"—" }}</td>
+                    <td class="px-2.5 py-2 text-right tabular-nums font-semibold">{{ r.quantity|floatformat:"-2" }}</td>
+                    <td class="px-2.5 py-2 text-right tabular-nums">{{ r.rate|floatformat:2 }}</td>
+                    <td class="px-2.5 py-2 text-right tabular-nums font-semibold whitespace-nowrap">₹{{ r.revenue|floatformat:2 }}</td>
+                    <td class="px-2.5 py-2 text-right tabular-nums whitespace-nowrap text-emerald-700">₹{{ r.received|floatformat:2 }}</td>
+                    <td class="px-2.5 py-2 text-right tabular-nums whitespace-nowrap {% if r.outstanding > 0 %}text-red-600{% endif %}">₹{{ r.outstanding|floatformat:2 }}</td>
+                    <td class="px-2.5 py-2 whitespace-nowrap text-slate-600">{{ r.status }}</td>
+                    <td class="px-2.5 py-2 whitespace-nowrap {% if r.payment == 'Unpaid' %}text-red-700 font-bold{% elif r.payment == 'Partial' %}text-orange-700 font-bold{% elif r.payment == 'Paid' %}text-emerald-700 font-bold{% else %}text-slate-400 italic{% endif %}">{{ r.payment }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="14" class="px-4 py-12 text-center text-slate-500 text-sm font-semibold">
+                        📭 Current filters se koi trip match nahi hui.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- SUMMARY + DOWNLOAD BAR -->
+<div class="shrink-0 border-t border-white/60 bg-gradient-to-r from-brand-50/70 via-white/60 to-brand-50/70 px-4 py-3">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] font-semibold text-slate-600">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/70 border border-white/80 px-2.5 py-1 shadow-sm">
+                🧾 <strong>{{ count }}</strong> Trips
+            </span>
+            <span>📦 Qty: <strong class="tabular-nums">{{ totals.qty|floatformat:"-2" }}</strong></span>
+            <span>💰 Revenue: <strong class="tabular-nums text-brand-600">₹{{ totals.revenue|floatformat:2 }}</strong></span>
+            <span class="text-emerald-700">✅ Received: <strong class="tabular-nums">₹{{ totals.received|floatformat:2 }}</strong></span>
+            <span class="{% if totals.outstanding > 0 %}text-red-600{% endif %}">⏳ Outstanding: <strong class="tabular-nums">₹{{ totals.outstanding|floatformat:2 }}</strong></span>
+        </div>
+        <button type="button" onclick="downloadExport('{{ querystring|escapejs }}')"
+                class="lq-glass-btn lq-glass-btn-primary w-full sm:w-auto justify-center">
+            ⬇️ Download Excel ({{ filename }})
+        </button>
+    </div>
+</div>

@@ -180,10 +180,11 @@ def _filtered_trips(request):
 @login_required(login_url='/login/')
 def trip_export(request):
     """
-    Filtered trips ki Excel (.xlsx) report.
+    Filtered trips ki Excel (.xlsx) report + Liquid Glass Preview.
     Hyva / Tractor / JCB / Halfton — sab category pages aur saare filters
     (month/year, date range, search, material, driver, payment status etc.)
     ke saath kaam karta hai. Monthly report ke liye Month+Year filter laga kar Export dabao.
+    ?preview=1 par HTML preview fragment return hota hai (modal me dikhta hai).
     """
     import calendar
 
@@ -192,21 +193,7 @@ def trip_export(request):
     from openpyxl.utils import get_column_letter
 
     trips, filters = _filtered_trips(request)
-    rows = list(trips.order_by('trip_date', 'id'))
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = 'Trips Report'
-
-    headers = [
-        'Trip Code', 'Date', 'Customer', 'Destination', 'Vehicle No.',
-        'Drivers / Labour', 'Material', 'Quantity', 'Rate',
-        'Revenue', 'Received', 'Outstanding',
-        'Trip Status', 'Payment Status',
-    ]
-    ws.append(headers)
-    for cell in ws[1]:
-        cell.font = Font(bold=True)
+    trips_list = list(trips.order_by('trip_date', 'id'))
 
     status_labels = dict(Trip.TRIP_STATUS_CHOICES)
     pay_labels = {'UNPAID': 'Unpaid', 'PARTIAL': 'Partial', 'PAID': 'Paid'}
@@ -215,8 +202,9 @@ def trip_export(request):
     total_rev = Decimal('0')
     total_rec = Decimal('0')
     total_out = Decimal('0')
+    table_rows = []
 
-    for t in rows:
+    for t in trips_list:
         qty = t.quantity or Decimal('0')
         received = t.calculated_received or Decimal('0')
         outstanding = t.outstanding_amount or Decimal('0')
@@ -227,38 +215,24 @@ def trip_export(request):
 
         driver_names = [d.name for d in t.drivers.all()]
 
-        ws.append([
-            t.trip_code or '',
-            t.trip_date.strftime('%d-%m-%Y') if t.trip_date else '',
-            t.customer.name if t.customer else (
+        table_rows.append({
+            'code': t.trip_code or '',
+            'date': t.trip_date.strftime('%d-%m-%Y') if t.trip_date else '',
+            'customer': t.customer.name if t.customer else (
                 'Internal Stock' if t.transaction_type == 'INTERNAL_STOCK' else ''
             ),
-            t.destination or '',
-            str(t.vehicle.registration_number) if t.vehicle else '',
-            ', '.join(driver_names) if driver_names else '-',
-            t.material.name if t.material else '',
-            float(qty),
-            float(t.rate or 0),
-            float(t.total_amount or 0),
-            float(received),
-            float(outstanding),
-            status_labels.get(t.trip_status, t.trip_status),
-            pay_labels.get(t.calculated_payment_status, t.calculated_payment_status),
-        ])
-
-    # TOTALS row
-    totals_row = len(rows) + 2
-    ws.append([
-        'TOTAL', '', '', '', '', '', '',
-        float(total_qty), '', float(total_rev), float(total_rec), float(total_out), '', ''
-    ])
-    for cell in ws[totals_row]:
-        cell.font = Font(bold=True)
-
-    # Column widths
-    widths = [15, 12, 24, 18, 14, 26, 18, 10, 10, 13, 13, 14, 12, 14]
-    for i, w in enumerate(widths, start=1):
-        ws.column_dimensions[get_column_letter(i)].width = w
+            'destination': t.destination or '',
+            'vehicle': str(t.vehicle.registration_number) if t.vehicle else '',
+            'drivers': ', '.join(driver_names) if driver_names else '-',
+            'material': t.material.name if t.material else '',
+            'quantity': qty,
+            'rate': t.rate or Decimal('0'),
+            'revenue': t.total_amount or Decimal('0'),
+            'received': received,
+            'outstanding': outstanding,
+            'status': status_labels.get(t.trip_status, t.trip_status),
+            'payment': pay_labels.get(t.calculated_payment_status, t.calculated_payment_status),
+        })
 
     # Filename: category + period aware (e.g. hyva-trips-August-2026-20260825.xlsx)
     cat = filters.get('category') or 'all'
@@ -282,6 +256,60 @@ def trip_export(request):
         "-{0}".format(period) if period else '',
         stamp,
     )
+
+    # ---- PREVIEW MODE: HTML fragment for liquid-glass modal ----
+    if request.GET.get('preview') == '1':
+        context = {
+            'rows': table_rows,
+            'count': len(table_rows),
+            'totals': {
+                'qty': total_qty,
+                'revenue': total_rev,
+                'received': total_rec,
+                'outstanding': total_out,
+            },
+            'filename': filename,
+            'querystring': request.GET.urlencode(),
+        }
+        return render(request, 'trips/_export_preview.html', context)
+
+    # ---- EXCEL (.xlsx) DOWNLOAD ----
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Trips Report'
+
+    headers = [
+        'Trip Code', 'Date', 'Customer', 'Destination', 'Vehicle No.',
+        'Drivers / Labour', 'Material', 'Quantity', 'Rate',
+        'Revenue', 'Received', 'Outstanding',
+        'Trip Status', 'Payment Status',
+    ]
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    for r in table_rows:
+        ws.append([
+            r['code'], r['date'], r['customer'], r['destination'], r['vehicle'],
+            r['drivers'], r['material'],
+            float(r['quantity']), float(r['rate']),
+            float(r['revenue']), float(r['received']), float(r['outstanding']),
+            r['status'], r['payment'],
+        ])
+
+    # TOTALS row
+    totals_row = len(table_rows) + 2
+    ws.append([
+        'TOTAL', '', '', '', '', '', '',
+        float(total_qty), '', float(total_rev), float(total_rec), float(total_out), '', ''
+    ])
+    for cell in ws[totals_row]:
+        cell.font = Font(bold=True)
+
+    # Column widths
+    widths = [15, 12, 24, 18, 14, 26, 18, 10, 10, 13, 13, 14, 12, 14]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
 
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
