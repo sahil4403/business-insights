@@ -256,7 +256,17 @@ def trip_create(request):
                         except ValueError:
                             pass
             trip.driver_trip_counts = driver_counts
-            trip.save(update_fields=['driver_trip_counts'])
+
+            # Server-side quantity auto-sum: driver allocations ka total hi quantity hai
+            counts_sum = sum(Decimal(str(v)) for v in driver_counts.values())
+            update_fields = ['driver_trip_counts']
+            if driver_counts and counts_sum > 0 and trip.quantity != counts_sum:
+                trip.quantity = counts_sum.quantize(Decimal('0.01'))
+                update_fields.append('quantity')
+                bhatta = trip.driver_bhatta or Decimal('0.00')
+                trip.total_amount = (trip.quantity * trip.rate) + bhatta
+                update_fields.append('total_amount')
+            trip.save(update_fields=update_fields)
 
             messages.success(request, f"Trip {trip.trip_code} created successfully!")
 
@@ -315,7 +325,19 @@ def trip_edit(request, trip_id):
                         except ValueError:
                             pass
             trip.driver_trip_counts = driver_counts
-            trip.save(update_fields=['driver_trip_counts'])
+
+            # Server-side quantity auto-sum: driver allocations ka total hi quantity hai
+            # (JS fail ho ya user manually badal de — data hamesha consistent rahega)
+            counts_sum = sum(Decimal(str(v)) for v in driver_counts.values())
+            update_fields = ['driver_trip_counts']
+            if driver_counts and counts_sum > 0 and trip.quantity != counts_sum:
+                trip.quantity = counts_sum.quantize(Decimal('0.01'))
+                update_fields.append('quantity')
+                # Quantity change se total_amount bhi update hona chahiye
+                bhatta = trip.driver_bhatta or Decimal('0.00')
+                trip.total_amount = (trip.quantity * trip.rate) + bhatta
+                update_fields.append('total_amount')
+            trip.save(update_fields=update_fields)
 
             messages.success(request, f"Trip {trip.trip_code} updated successfully!")
 
@@ -326,6 +348,10 @@ def trip_edit(request, trip_id):
             nxt = request.POST.get('next') or request.GET.get('next')
             if nxt and nxt.startswith('/') and not nxt.startswith('//'):
                 return redirect(nxt)
+
+            # Default: edited trip ke customer ke statement par bhejo
+            if trip.customer:
+                return redirect('ledger:customer_statement', customer_id=trip.customer.id)
 
             return redirect(
                 'trips:detail',
