@@ -228,7 +228,7 @@
                         <input type="checkbox" class="driver-checkbox h-5 w-5 shrink-0 cursor-pointer" data-driver-id="{{ driver.id }}" style="accent-color: #16665a;">
                         {{ driver.name }}
                     </label>
-                    <div class="driver-count-wrap flex items-center justify-between sm:justify-end gap-2 opacity-40 pointer-events-none transition-opacity duration-200">
+                    <div class="driver-count-wrap flex items-center justify-between sm:justify-end gap-2">
                         <span class="text-[13px] text-slate-500">Trips Done:</span>
                         <input type="number" name="driver_count_{{ driver.id }}" class="driver-count-input w-20 h-10 px-2 rounded-lg border border-slate-300 text-center text-sm font-semibold text-brand-600" data-driver-id="{{ driver.id }}" min="1" step="1" placeholder="e.g. 3">
                         <span class="text-[13px] font-semibold text-slate-600">Trips</span>
