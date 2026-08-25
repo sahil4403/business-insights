@@ -3,6 +3,12 @@
 
 {% block title %}Link Customer - {{ inward.trip_code }}{% endblock %}
 
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block title %}Link Customer - {{ inward.trip_code }}{% endblock %}
+
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-8">
     <!-- Inward Summary Card -->
@@ -44,8 +50,8 @@
 
             <div>
                 <label class="label" for="id_customer">Customer</label>
-                <select name="customer" id="id_customer" class="input" required>
-                    <option value="">Select Customer</option>
+                <select name="customer" id="id_customer" class="input" required style="width: 100%;">
+                    <option value="">Search Customer...</option>
                     {% for c in customers %}
                         <option value="{{ c.id }}">{{ c.name }}</option>
                     {% endfor %}
@@ -71,7 +77,17 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
+    $(document).ready(function() {
+        $('#id_customer').select2({
+            placeholder: 'Search Customer...',
+            allowClear: true,
+            width: '100%',
+            minimumInputLength: 1
+        });
+    });
+
     const rateInput = document.getElementById('id_rate');
     const totalDisplay = document.getElementById('totalDisplay');
     const qty = parseFloat('{{ inward.quantity|floatformat:2 }}') || 1;
