@@ -13,14 +13,6 @@
         <span class="ml-auto shrink-0 text-xs font-bold num text-brand-600">{{ trips|length }} trips</span>
     {% endif %}
 </div>
-<!-- FREEZE PANE ROW 2: Trip Records bar (frozen state me bhi saath me) -->
-<div class="flex items-center justify-between gap-2 px-3 pb-2 border-t border-slate-100">
-    <h3 class="font-bold text-slate-900 text-sm truncate">
-        Trip Records <span class="text-[11px] font-medium text-slate-400">(Filtered Results)</span>
-    </h3>
-    <a href="{% url 'trips:create' %}"
-       class="app-chip active h-8 px-3 no-underline whitespace-nowrap shrink-0">＋ Add Trip</a>
-</div>
 {% endblock %}
 
 {% block content %}
@@ -104,13 +96,15 @@
     </div>
 
     <!-- TRIP RECORDS -->
-    <div class="app-surface overflow-hidden mb-6 md:mb-8" data-animate>
+    <div class="app-surface overflow-clip mb-6 md:mb-8" data-animate>
 
-        <div class="flex items-center justify-between gap-3 px-4 md:px-5 py-4 border-b border-slate-100">
+        <!-- FREEZE PANE: yahi existing bar scroll par topbar ke neeche chipakta hai -->
+        <div class="sticky top-[45px] z-20 flex items-center justify-between gap-3 px-4 md:px-5 py-4 bg-white border-b border-slate-100">
             <h3 class="font-bold text-slate-900 text-base">
                 Trip Records <span class="text-xs font-medium text-slate-400">(Filtered Results)</span>
             </h3>
             <a href="{% url 'trips:create' %}" class="btn btn-primary whitespace-nowrap hidden md:inline-flex"><svg class="icon-sm" aria-hidden="true"><use href="#i-plus"/></svg>Add New Trip</a>
+            <a href="{% url 'trips:create' %}" class="md:hidden app-chip active h-9 px-3.5 no-underline whitespace-nowrap shrink-0">＋ Add Trip</a>
         </div>
 
         <!-- SCROLL + FREEZE PANEL -->
