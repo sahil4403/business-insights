@@ -384,6 +384,27 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Driver trip allocation checkbox & sync handler
     const driversSelect = document.getElementById("id_drivers");
+
+    // NITIN PRASAD: sirf Crushed Stone material par Driver Allocation me
+    (function () {
+        var matSel = document.getElementById("id_material");
+        var drvSel = document.getElementById("id_drivers");
+        if (!matSel || !drvSel) return;
+        function syncNitin() {
+            var matText = matSel.selectedIndex >= 0
+                ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
+            var isCrushed = matText.indexOf("crushed stone") !== -1;
+            Array.prototype.forEach.call(drvSel.options, function (o) {
+                if (o.text.trim().toLowerCase() === "nitin prasad") {
+                    o.hidden = !isCrushed;
+                    o.disabled = !isCrushed;
+                    if (!isCrushed) o.selected = false;
+                }
+            });
+        }
+        matSel.addEventListener("change", syncNitin);
+        syncNitin();
+    })();
     const driverRows = document.querySelectorAll(".driver-allocation-row");
     const quantityInput = document.getElementById("id_quantity");
     const initialCounts = {{ trip.driver_trip_counts|default:"{}"|safe }};
