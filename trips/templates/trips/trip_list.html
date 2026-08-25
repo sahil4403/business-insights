@@ -41,10 +41,6 @@
     <div class="mb-4 md:mb-6">
         <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
-                <a href="{% url 'core:dashboard' %}"
-                   class="hidden md:inline-flex items-center gap-1.5 h-9 px-3 mb-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold active:bg-slate-50 hover:border-slate-400 no-underline">
-                    ← Back
-                </a>
                 <h1 class="text-xl md:text-3xl font-extrabold text-slate-900">
                     {% if category == 'hyva' %}
                         Hyva Trips
@@ -62,8 +58,11 @@
                     Manage {{ category|default:"all" }} trips, revenue and payment status
                 </p>
             </div>
-            <!-- ACTIONS: Liquid Glass "Export Summary" dropdown + Add Trip -->
+            <!-- ACTIONS: Dashboard + Export Summary dropdown + Add Trip -->
             <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'core:dashboard' %}" class="lq-glass-btn" aria-label="Dashboard">
+                    🏠 <span class="hidden sm:inline">Dashboard</span>
+                </a>
                 <div class="relative shrink-0" id="exportMenuWrap">
                     <button type="button" id="exportMenuBtn" class="lq-glass-btn lq-glass-btn-primary"
                             aria-haspopup="true" aria-expanded="false">
