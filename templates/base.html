@@ -480,15 +480,16 @@
             }, { passive: true });
         }
 
-        // Floating action button: FROZEN STATE me poora hide —
-        // topbar (freeze pane) jitni door user top se hai, FAB waise hi
-        // gaya. Wapas top scroll karo to FAB laut aata hai (mobile).
+        // Floating action button: auto-hide while scrolling down, return on scroll up (mobile)
         const fabEl = document.querySelector('.app-fab');
         if (fabEl) {
+            let fabLastY = window.scrollY;
             window.addEventListener('scroll', function () {
                 if (window.innerWidth >= 768) { fabEl.classList.remove('app-hidden'); return; }
-                if (window.scrollY > 90) fabEl.classList.add('app-hidden');
-                else fabEl.classList.remove('app-hidden');
+                const y = window.scrollY;
+                if (y > fabLastY + 6 && y > 140) fabEl.classList.add('app-hidden');
+                else if (y < fabLastY - 6) fabEl.classList.remove('app-hidden');
+                fabLastY = y;
             }, { passive: true });
         }
     </script>
