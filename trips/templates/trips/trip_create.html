@@ -454,28 +454,9 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 <script>
+    const driversSelect = document.getElementById("id_drivers");
     const driverRows = document.querySelectorAll(".driver-allocation-row");
-<script>
-            const chk = row.querySelector(".driver-checkbox");
-            const countInput = row.querySelector(".driver-count-input");
-            if (chk && chk.checked && countInput) {
-                const val = parseFloat(countInput.value) || 0;
-                if (val > 0) {
-                    totalDriverTrips += val;
-                    hasDriverAllocation = true;
-                }
-            }
-        });
-
-        if (hasDriverAllocation) {
-            quantityInput.value = totalDriverTrips;
-            quantityInput.style.backgroundColor = "#ecfdf5";
-            quantityInput.style.borderColor = "#10b981";
-        } else {
-            quantityInput.style.backgroundColor = "";
-            quantityInput.style.borderColor = "";
-        }
-    }
+    const quantityInput = document.getElementById("id_quantity");
 
     if (driversSelect && driverRows.length > 0) {
         function syncDriversSelect() {
