@@ -275,6 +275,18 @@
                         </div>
 
                         <div>
+                            <label class="label" for="from_date">Starting Date</label>
+                            <input type="date" id="from_date" name="from_date" class="input"
+                                   value="{{ from_date }}" placeholder="Se">
+                        </div>
+
+                        <div>
+                            <label class="label" for="to_date">Last Date</label>
+                            <input type="date" id="to_date" name="to_date" class="input"
+                                   value="{{ to_date }}" placeholder="Tak">
+                        </div>
+
+                        <div>
                             <label class="label" for="trip_status">Trip Status</label>
                             <select id="trip_status" name="trip_status" class="input">
                                 <option value="">
@@ -780,7 +792,7 @@
             if (!form || !badge) return;
 
             let count = 0;
-            ['search', 'material', 'vehicle', 'year', 'month', 'trip_status', 'payment_status', 'destination', 'driver'].forEach(function(name) {
+            ['search', 'material', 'vehicle', 'year', 'month', 'trip_status', 'payment_status', 'destination', 'driver', 'from_date', 'to_date'].forEach(function(name) {
                 const el = form.elements[name];
                 if (el && el.value && el.value.trim() !== '') count++;
             });
