@@ -395,7 +395,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
             var isCrushed = matText.indexOf("crushed stone") !== -1;
             Array.prototype.forEach.call(drvSel.options, function (o) {
-                if (o.text.trim().toLowerCase() === "nitin prasad") {
+                if (o.text.trim().toLowerCase().indexOf("nitin prasad") !== -1) {
                     o.hidden = !isCrushed;
                     o.disabled = !isCrushed;
                     if (!isCrushed) o.selected = false;
