@@ -119,12 +119,17 @@
 
             <div class="min-w-0 sm:col-span-2 flex flex-col" id="customer_form_group">
                 <div class="flex items-center justify-between w-full">
-                    <label class="label" for="{{ form.customer.id_for_label }}" style="margin: 0;">Customer *</label>
+                    <label class="label" for="customer_typeahead" style="margin: 0;">Customer *</label>
                     <button type="button" onclick="promptSaveAndViewStatement()" class="bg-transparent border-0 text-brand-500 text-[13px] font-semibold cursor-pointer flex items-center gap-1 p-2" style="color: #16665a;">
                         📄 View Customer Statement
                     </button>
                 </div>
-                {{ form.customer }}
+                <div class="relative">
+                    <input type="text" id="customer_typeahead" class="input w-full" placeholder="🔍 Type customer name..."
+                           autocomplete="off" style="width:100%; height:2.75rem; padding:0 0.75rem; border:1px solid #cbd5e1; border-radius:0.75rem; background:#fff; font-size:16px;">
+                    <div id="customer_typeahead_list" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:50; max-height:240px; overflow-y:auto; background:#fff; border:1px solid #e2e8f0; border-radius:0.75rem; box-shadow:0 10px 25px rgba(15,23,42,.12);"></div>
+                </div>
+                <div style="display:none;">{{ form.customer }}</div>
                 {% for error in form.customer.errors %}
                     <div class="error">{{ error }}</div>
                 {% endfor %}
@@ -308,185 +313,82 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-$(document).ready(function() {
-    // Initialize Select2 on customer dropdown
-    $('#id_customer').select2({
-        placeholder: 'Search Customer...',
-        allowClear: true,
-        width: '100%',
-        minimumInputLength: 1
-    });
+// ============ CUSTOMER TYPE-AHEAD (type -> suggestions -> click select) ============
+(function () {
+    var custSelect = document.getElementById('id_customer');
+    var searchInput = document.getElementById('customer_typeahead');
+    var sugBox = document.getElementById('customer_typeahead_list');
+    if (!custSelect || !searchInput || !sugBox) return;
 
-    // =============================================
-    // DRIVER FILTERING LOGIC BASED ON VEHICLE TYPE & MATERIAL
-    // =============================================
-    function updateDriverVisibility() {
-        var vehicleCatSelect = document.getElementById("id_vehicle_category");
-        var materialSelect = document.getElementById("id_material");
-        var drvSel = document.getElementById("id_drivers");
-        
-        if (!drvSel) return;
-        
-        // Get selected vehicle category
-        var vehicleCatSelect = document.getElementById("id_vehicle_category");
-        var vehicleCat = vehicleCatSelect ? vehicleCatSelect.value.toUpperCase() : "";
-        // Also check vehicle select for JCB
-        var vehicleSelect = document.getElementById("id_vehicle");
-        var vehText = vehicleSelect && vehicleSelect.selectedIndex >= 0 
-            ? vehicleSelect.options[vehicleSelect.selectedIndex].text.toUpperCase() : "";
-        
-        // Get selected material
-        var matText = "";
-        var materialSelect = document.getElementById("id_material");
-        if (materialSelect && materialSelect.selectedIndex >= 0) {
-            matText = materialSelect.options[materialSelect.selectedIndex].text.trim().toLowerCase();
-        }
-        
-        var isCrushed = matText.indexOf("crushed stone") !== -1;
-        var isJcbMaterial = matText.indexOf("jcb") !== -1;
-        var isJcbVehicle = vehText.includes("JCB");
-        var isJcb = isJcbMaterial || isJcbVehicle;
-        
-        var vehicleCat = vehicleCatSelect ? vehicleCatSelect.value.toUpperCase() : "";
-        var isHyvaOrHalfton = vehicleCat === "HYVA" || vehicleCat === "HALFTON";
-        var isTractor = vehicleCat === "TRACTOR";
-        var isJcb = isJcbMaterial || isJcbVehicle;
-        
-        Array.prototype.forEach.call(drvSel.options, function (o) {
-            if (!o.value) return; // skip empty option
-            
-            var driverName = o.text.trim().toLowerCase();
-            var show = true;
-            var disabled = false;
-            
-            // Nitin Prasad: only for Crushed Stone
-            if (driverName.indexOf("nitin prasad") !== -1) {
-                var showNitin = driverName.indexOf("nitin prasad") !== -1;
-                var show = showNitin && (matText.indexOf("crushed stone") !== -1);
-                o.hidden = !show;
-                o.disabled = !show;
-                if (!show) o.selected = false;
-                return;
-            }
-            
-            // Driver mapping by vehicle type
-            var isHyvaHalftonDriver = (driverName.indexOf("dinesh") !== -1 ||
-                                       driverName.indexOf("gaju") !== -1 ||
-                                       driverName.indexOf("santosh") !== -1);
-            
-            var isTractorDriver = (driverName.indexOf("shubham") !== -1 ||
-                                   driverName.indexOf("kishan") !== -1 ||
-                                   driverName.indexOf("ankush") !== -1);
-            
-            var isJcbDriver = (driverName.indexOf("jcb") !== -1); // adjust if needed
-            
-            // Determine vehicle context
-            var isHyvaOrHalftonCtx = isHyvaOrHalfton;
-            var isTractorCtx = isTractor;
-            var isJcbCtx = isJcb;
-            
-            // Apply filtering logic
-            if (isHyvaOrHalftonCtx) {
-                // HYVA/HALFTON: Only Dinesh, Gaju, Santosh
-                show = isHyvaHalftonDriver;
-            } else if (isTractorCtx) {
-                // TRACTOR: Only Shubham, Kishan, Ankush
-                show = isTractorDriver;
-            } else if (isJcbCtx) {
-                // JCB: Show all or specific JCB drivers
-                show = true; // Or filter for JCB drivers if needed
-            } else {
-                // Default: show all except Nitin (handled above)
-                show = true;
-            }
-            
-            o.hidden = !show;
-            o.disabled = !show;
-            if (!show) o.selected = false;
-        });
+    var allOptions = Array.prototype.filter.call(custSelect.options, function (o) { return o.value; });
+
+    function setSelected(value, text) {
+        custSelect.value = value;
+        searchInput.value = text;
+        sugBox.style.display = 'none';
+        // Existing listeners (quickfill, visibility) ko trigger karo
+        custSelect.dispatchEvent(new Event('change'));
     }
 
-    // Trigger initial sync
-    function syncAll() {
-        // Trigger material change to update Nitin Prasad visibility
-        var matSel = document.getElementById("id_material");
-        if (matSel) {
-            var event = new Event('change');
-            matSel.dispatchEvent(event);
-        }
-    }
-    
-    // Listen for changes
-    var matSel = document.getElementById("id_material");
-    var vehCatSel = document.getElementById("id_vehicle_category");
-    var vehSel = document.getElementById("id_vehicle");
-    
-    if (matSel) matSel.addEventListener("change", syncAll);
-    if (vehCatSel) vehCatSel.addEventListener("change", syncAll);
-    if (vehSel) vehSel.addEventListener("change", syncAll);
-    
-    // Initial sync
-    syncAll();
+    function renderSuggestions(q) {
+        q = (q || '').trim().toLowerCase();
+        sugBox.innerHTML = '';
+        var matches = allOptions.filter(function (o) {
+            return o.text.toLowerCase().indexOf(q) !== -1;
+        }).slice(0, 8);
 
-    // =============================================
-    // JCB SECTION VISIBILITY
-    // =============================================
-    function toggleJcbSection() {
-        var matSel = document.getElementById("id_material");
-        var vehSel = document.getElementById("id_vehicle");
-        var jcbSection = document.getElementById("jcb_reading_section");
-        
-        if (!jcbSection) return;
-        
-        var isJcb = false;
-        
-        if (matSel && matSel.selectedIndex >= 0) {
-            var matText = matSel.options[matSel.selectedIndex].text.trim().toLowerCase();
-            if (matText.indexOf("jcb") !== -1) isJcb = true;
-        }
-        
-        if (vehSel && vehSel.selectedIndex >= 0) {
-            var vehText = vehSel.options[vehSel.selectedIndex].text.toUpperCase();
-            if (vehText.includes("JCB")) isJcb = true;
-        }
-        
-        if (isJcb) {
-            jcbSection.style.display = "block";
+        if (!matches.length) {
+            sugBox.innerHTML = '<div style="padding:10px 14px; font-size:13px; color:#94a3b8;">Koi customer nahi mila</div>';
         } else {
-            jcbSection.style.display = "none";
-            // Reset JCB fields when hidden
-            var jcbInputs = jcbSection.querySelectorAll("input, select");
-            jcbInputs.forEach(function(input) {
-                if (input.type !== "hidden") input.value = "";
+            matches.forEach(function (o) {
+                var div = document.createElement('div');
+                div.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:14px; font-weight:600; color:#0f172a; border-bottom:1px solid #f1f5f9;';
+                div.textContent = o.text;
+                div.addEventListener('mouseenter', function () { div.style.background = '#f0fdf9'; });
+                div.addEventListener('mouseleave', function () { div.style.background = '#fff'; });
+                div.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    setSelected(o.value, o.text);
+                });
+                sugBox.appendChild(div);
             });
         }
+        sugBox.style.display = 'block';
     }
-    
-    // Listen for material/vehicle changes
-    var matSel = document.getElementById("id_material");
-    var vehSel = document.getElementById("id_vehicle");
-    if (matSel) matSel.addEventListener("change", toggleJcbSection);
-    if (vehSel) vehSel.addEventListener("change", toggleJcbSection);
-    // Initial check
-    toggleJcbSection();
 
-    // =============================================
-    // CUSTOMER FIELD VISIBILITY (INTERNAL_STOCK vs CUSTOMER_DELIVERY)
-    // =============================================
+    searchInput.addEventListener('input', function () { renderSuggestions(this.value); });
+    searchInput.addEventListener('focus', function () {
+        if (custSelect.value) {
+            var sel = custSelect.options[custSelect.selectedIndex];
+            if (sel) searchInput.value = sel.text;
+        }
+        renderSuggestions(searchInput.value);
+    });
+    document.addEventListener('click', function (e) {
+        if (e.target !== searchInput && !sugBox.contains(e.target)) sugBox.style.display = 'none';
+    });
+
+    // Validation error wapas aane par selected naam dikhao
+    if (custSelect.value) {
+        var sel = custSelect.options[custSelect.selectedIndex];
+        if (sel) searchInput.value = sel.text;
+    }
+})();
+
+// ============ CUSTOMER VISIBILITY (INTERNAL_STOCK hide) ============
+document.addEventListener("DOMContentLoaded", function() {
     var transTypeSelect = document.getElementById("id_transaction_type");
     var customerGroup = document.getElementById("customer_form_group");
-    var customerSelect = document.getElementById("id_customer");
+    var custSelect = document.getElementById("id_customer");
+    var searchInput = document.getElementById("customer_typeahead");
 
     function toggleCustomerVisibility() {
         if (!transTypeSelect || !customerGroup) return;
         if (transTypeSelect.value === "INTERNAL_STOCK") {
             customerGroup.style.display = "none";
-            if (customerSelect) {
-                $(customerSelect).val('').trigger('change');
-            }
+            if (custSelect) custSelect.value = "";
+            if (searchInput) searchInput.value = "";
         } else {
             customerGroup.style.display = "flex";
         }
@@ -497,42 +399,29 @@ $(document).ready(function() {
         toggleCustomerVisibility();
     }
 
-    // =============================================
-    // Initialize Select2 on customer dropdown
-    // =============================================
-    $('#id_customer').select2({
-        placeholder: 'Search Customer...',
-        allowClear: true,
-        width: '100%',
-        minimumInputLength: 1
-    });
+    // ============ NITIN PRASAD: sirf Crushed Stone ============
+    var matSel = document.getElementById("id_material");
+    var drvSel = document.getElementById("id_drivers");
 
-    // =============================================
-    // DRIVER ALLOCATION CHECKBOX & SYNC HANDLER
-    // =============================================
-    var driversSelect = document.getElementById("id_drivers");
-
-    // NITIN PRASAD: sirf Crushed Stone material par Driver Allocation me
-    (function () {
-        var matSel = document.getElementById("id_material");
-        var drvSel = document.getElementById("id_drivers");
+    function syncNitin() {
         if (!matSel || !drvSel) return;
-        function syncNitin() {
-            var matText = matSel.selectedIndex >= 0
-                ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
-            var isCrushed = matText.indexOf("crushed stone") !== -1;
-            Array.prototype.forEach.call(drvSel.options, function (o) {
-                if (o.text.trim().toLowerCase().indexOf("nitin prasad") !== -1) {
-                    o.hidden = !isCrushed;
-                    o.disabled = !isCrushed;
-                    if (!isCrushed) o.selected = false;
-                }
-            });
-        }
-        matSel.addEventListener("change", syncNitin);
-        syncNitin();
-    })();
+        var matText = matSel.selectedIndex >= 0
+            ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
+        var isCrushed = matText.indexOf("crushed stone") !== -1;
+        Array.prototype.forEach.call(drvSel.options, function (o) {
+            if (o.text.trim().toLowerCase().indexOf("nitin prasad") !== -1) {
+                o.hidden = !isCrushed;
+                o.disabled = !isCrushed;
+                if (!isCrushed) o.selected = false;
+            }
+        });
+    }
+    if (matSel) matSel.addEventListener("change", syncNitin);
+    syncNitin();
+});
 </script>
+<script>
+    const driverRows = document.querySelectorAll(".driver-allocation-row");
 <script>
             const chk = row.querySelector(".driver-checkbox");
             const countInput = row.querySelector(".driver-count-input");
