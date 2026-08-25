@@ -458,6 +458,31 @@ document.addEventListener("DOMContentLoaded", function() {
     const driverRows = document.querySelectorAll(".driver-allocation-row");
     const quantityInput = document.getElementById("id_quantity");
 
+    function syncDriverTripCountSum() {
+        if (!driverRows || driverRows.length === 0 || !quantityInput) return;
+        let totalDriverTrips = 0;
+        let hasDriverAllocation = false;
+        driverRows.forEach(row => {
+            const chk = row.querySelector(".driver-checkbox");
+            const countInput = row.querySelector(".driver-count-input");
+            if (chk && chk.checked && countInput) {
+                const val = parseFloat(countInput.value) || 0;
+                if (val > 0) {
+                    totalDriverTrips += val;
+                    hasDriverAllocation = true;
+                }
+            }
+        });
+        if (hasDriverAllocation) {
+            quantityInput.value = totalDriverTrips;
+            quantityInput.style.backgroundColor = "#ecfdf5";
+            quantityInput.style.borderColor = "#10b981";
+        } else {
+            quantityInput.style.backgroundColor = "";
+            quantityInput.style.borderColor = "";
+        }
+    }
+
     if (driversSelect && driverRows.length > 0) {
         function syncDriversSelect() {
             driverRows.forEach(row => {
