@@ -593,6 +593,9 @@
             }
             function hide() { clearTimeout(safety); ov.classList.remove('on'); }
 
+            // Tabbar (liquid-tabbar.js) navigate hote waqt ise call karta hai
+            window.__navLoading = show;
+
             window.addEventListener('load', hide);
             window.addEventListener('pageshow', hide); // bfcache back
 

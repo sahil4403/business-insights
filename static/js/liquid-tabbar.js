@@ -168,6 +168,8 @@
 
         function goToTab(i) {
             var href = links[i].getAttribute('href');
+            // Loading overlay TURANT (slide/tap dono se navigate hote waqt)
+            if (window.__navLoading) window.__navLoading();
             // Blob ka spring animation dikhne do, phir navigate
             setTimeout(function () { window.location.href = href; }, moved > 10 ? 130 : 100);
         }
