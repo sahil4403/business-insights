@@ -6,6 +6,7 @@ from .views import (
     trip_edit,
     trip_list,
     trip_detail,
+    trip_link_customer,
     trip_payment_create,
     trip_payment_edit,
     trip_payment_delete,
@@ -67,6 +68,12 @@ urlpatterns = [
         'payment/<int:payment_id>/delete/',
         trip_payment_delete,
         name='payment_delete',
+    ),
+
+    path(
+        '<int:trip_id>/link-customer/',
+        trip_link_customer,
+        name='link_customer',
     ),
 
     path(

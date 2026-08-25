@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Link Customer - {{ inward.trip_code }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+    <!-- Inward Summary Card -->
+    <div class="app-surface mb-6 p-5">
+        <h2 class="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <svg class="icon-sm text-amber-600" aria-hidden="true"><use href="#i-download"/></svg>
+            Inward Trip: {{ inward.trip_code }}
+        </h2>
+        <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+                <span class="text-slate-500">Material:</span>
+                <span class="font-medium text-slate-900 ml-2">{{ inward.material.name }}</span>
+            </div>
+            <div>
+                <span class="text-slate-500">Qty:</span>
+                <span class="font-medium text-slate-900 ml-2">{{ inward.quantity }} {{ inward.material.unit }}</span>
+            </div>
+            <div>
+                <span class="text-slate-500">Rate:</span>
+                <span class="font-medium text-slate-900 ml-2">₹{{ inward.rate|floatformat:2 }} / {{ inward.material.unit }}</span>
+            </div>
+            <div>
+                <span class="text-slate-500">Total:</span>
+                <span class="font-bold text-slate-900 ml-2 text-brand-600">₹{{ inward.total_amount|floatformat:2 }}</span>
+            </div>
+            <div>
+                <span class="text-slate-500">Date:</span>
+                <span class="font-medium text-slate-900 ml-2">{{ inward.trip_date|date:"d-M-Y" }}</span>
+            </div>
+            <div>
+                <span class="text-slate-500">Driver:</span>
+                <span class="font-medium text-slate-900 ml-2">
+                    {% for d in inward.drivers.all %}
+                        {{ d.name }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}—{% endfor %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Customer Form -->
+    <div class="app-surface p-5">
+        <h3 class="text-lg font-bold text-slate-900 mb-4">Create Outward Trip</h3>
+
+        <form method="post" class="space-y-4" id="linkForm">
+            {% csrf_token %}
+
+            <div>
+                <label class="label" for="id_customer">Customer</label>
+                <select name="customer" id="id_customer" class="input" required>
+                    <option value="">Select Customer</option>
+                    {% for c in customers %}
+                        <option value="{{ c.id }}" {% if inward.customer and c.id == inward.customer.id %}selected{% endif %}>
+                            {{ c.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="label" for="id_rate">Rate per {{ inward.material.unit }} (₹)</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">₹</span>
+                    <input type="number" step="0.01" min="0.01" name="rate" id="id_rate"
+                           value="{{ default_rate|floatformat:2 }}"
+                           class="input pl-8 pr-20" required>
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"
+                          id="totalDisplay">= ₹{{ (default_rate|floatformat:2)|floatformat:2 }}</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Total = Qty ({{ inward.quantity }}) × Rate</p>
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="submit"
+                        class="flex-1 btn btn-primary py-3">
+                    ✅ Create Outward & Open Statement
+                </button>
+                <a href="{% url 'trips:detail' inward.id %}"
+                   class="flex-1 btn btn-secondary py-3 text-center">
+                    ⏭ Skip — Go to Trip Detail
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Live total calculation
+    const rateInput = document.getElementById('id_rate');
+    const totalDisplay = document.getElementById('totalDisplay');
+    const qty = {{ inward.quantity|floatformat:2 }};
+
+    function updateTotal() {
+        const rate = parseFloat(rateInput.value) || 0;
+        const total = (rate * qty).toFixed(2);
+        totalDisplay.textContent = '= ₹' + total;
+    }
+
+    rateInput.addEventListener('input', updateTotal);
+    rateInput.addEventListener('change', updateTotal);
+</script>
+{% endblock %}

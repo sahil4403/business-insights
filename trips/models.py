@@ -116,6 +116,16 @@ class Trip(models.Model):
         blank=True
     )
 
+    # Linked inward trip (for outward trips created from inward)
+    linked_inward_trip = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='linked_outward_trips',
+        help_text='VENDOR_SUPPLY inward trip jisse ye outward bana'
+    )
+
     # JCB Specific Fields
     start_reading = models.DecimalField(
         max_digits=10,

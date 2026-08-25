@@ -67,6 +67,11 @@
                     + Receive Payment
                 </a>
             {% endif %}
+            {% if trip.transaction_type == 'VENDOR_SUPPLY' and not trip.linked_outward_trips.exists %}
+                <a href="{% url 'trips:link_customer' trip.id %}" class="app-chip active">
+                    🔗 Link Customer (Create Outward)
+                </a>
+            {% endif %}
             <a href="{% url 'trips:edit' trip.id %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="app-chip">
                 Edit Trip
             </a>
@@ -74,6 +79,22 @@
                 ← Back
             </a>
         </div>
+
+        <!-- Linked Trips Chips -->
+        {% if trip.linked_inward_trip %}
+        <div class="flex items-center gap-2 flex-wrap mt-3 pb-2">
+            <span class="app-chip bg-slate-100 text-slate-700">
+                📥 Inward: {{ trip.linked_inward_trip.trip_code }} (₹{{ trip.linked_inward_trip.total_amount }})
+            </span>
+        </div>
+        {% endif %}
+        {% for out in trip.linked_outward_trips.all %}
+        <div class="flex items-center gap-2 flex-wrap mt-3 pb-2">
+            <span class="app-chip bg-amber-50 text-amber-700 border border-amber-200">
+                📤 Outward: {{ out.trip_code }} → {{ out.customer.name }} (₹{{ out.total_amount }})
+            </span>
+        </div>
+        {% endfor %}
     </div>
 
     <!-- TRIP INFORMATION -->
