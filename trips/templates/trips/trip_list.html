@@ -558,18 +558,26 @@
     </script>
 
     <script>
-        // TRIP LIST BOX HEIGHT: box hamesha tab-bar ke bilkul upar rahe —
-        // real measurements se (koi empty space / overlap nahi)
+        // TRIP LIST BOX HEIGHT: box itna bada ki page scroll karne par
+        // uska top topbar (back+search) ke bilkul neeche aake ruk jaye —
+        // phir sirf list ke andar scroll hoti hai (payment jaisa feel)
         (function () {
             var el = document.getElementById('tripMobileScroll');
             if (!el) return;
             function fit() {
-                if (window.innerWidth >= 768) { el.style.maxHeight = ''; return; }
-                var bar = document.querySelector('.lq-bar');
-                var barH = bar ? bar.offsetHeight : 62;
-                var top = el.getBoundingClientRect().top;
-                var h = window.innerHeight - top - barH - 12 - 10;
-                el.style.maxHeight = Math.max(h, 160) + 'px';
+                var shell = document.getElementById('app-shell');
+                if (window.innerWidth >= 768) {
+                    el.style.maxHeight = '';
+                    if (shell) shell.style.paddingBottom = '';
+                    return;
+                }
+                var topbarH = 56;   // sticky topbar (back + search)
+                var gap = 10;       // box aur tabbar ke beech
+                var h = window.innerHeight - topbarH - gap;
+                el.style.maxHeight = Math.max(h, 200) + 'px';
+                // Neeche ka faltu space hatao — scroll yahin khatam hoga
+                // jahan box top topbar se milta hai
+                if (shell) shell.style.paddingBottom = '14px';
             }
             window.addEventListener('resize', fit);
             window.addEventListener('load', fit);
