@@ -13,6 +13,14 @@
         <span class="ml-auto shrink-0 text-xs font-bold num text-brand-600">{{ trips|length }} trips</span>
     {% endif %}
 </div>
+<!-- FREEZE PANE ROW 2: Trip Records bar (frozen state me bhi saath me) -->
+<div class="flex items-center justify-between gap-2 px-3 pb-2 border-t border-slate-100">
+    <h3 class="font-bold text-slate-900 text-sm truncate">
+        Trip Records <span class="text-[11px] font-medium text-slate-400">(Filtered Results)</span>
+    </h3>
+    <a href="{% url 'trips:create' %}"
+       class="app-chip active h-8 px-3 no-underline whitespace-nowrap shrink-0">＋ Add Trip</a>
+</div>
 {% endblock %}
 
 {% block content %}
