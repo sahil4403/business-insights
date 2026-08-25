@@ -99,7 +99,7 @@
     <div class="app-surface overflow-clip mb-6 md:mb-8" data-animate>
 
         <!-- FREEZE PANE: yahi existing bar scroll par topbar ke NEECHE chipakta hai (overlap nahi) -->
-        <div class="sticky z-20 flex items-center justify-between gap-3 px-4 md:px-5 py-4 bg-white border-b border-slate-100" style="top:45px;">
+        <div id="tripFreezeBar" class="sticky z-20 flex items-center justify-between gap-3 px-4 md:px-5 py-4 bg-white border-b border-slate-100" style="top:45px;">
             <h3 class="font-bold text-slate-900 text-base">
                 Trip Records <span class="text-xs font-medium text-slate-400">(Filtered Results)</span>
             </h3>
@@ -107,7 +107,7 @@
         </div>
 
         <!-- SCROLL + FREEZE PANEL -->
-        <div class="max-h-[75vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth">
+        <div id="dashTripScroll" class="max-h-[75vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth">
 
             <!-- MOBILE TRIPS LIST -->
             <div class="md:hidden px-3">
@@ -294,6 +294,54 @@
         if (toInput) toInput.value = '';
         window.location.href = "{% url 'core:dashboard' %}";
     }
+
+    // FREEZE STATE SYNC (sirf frozen hone par effects — normal kabhi nahi):
+    // 1) Freeze bar topbar ke bilkul neeche (topbar ki asli height naap ke)
+    // 2) FAB sirf frozen state me hide
+    // 3) Trip box bottom sirf frozen state me navbar se upar rahe
+    (function () {
+        var tb = document.getElementById('scroll-topbar');
+        var bar = document.getElementById('tripFreezeBar');
+        var box = document.getElementById('dashTripScroll');
+        var fab = document.querySelector('.app-fab');
+        var fbH = bar ? bar.offsetHeight : 57;
+
+        function sync() {
+            if (window.innerWidth >= 768) {
+                if (bar) bar.style.top = '0px';
+                if (box) box.style.maxHeight = '';
+                if (fab) fab.classList.remove('app-hidden');
+                return;
+            }
+            var tbH = tb ? tb.offsetHeight : 45;
+            var frozen = window.scrollY > 90;
+
+            // 1) Bar hamesha topbar ke neeche (kabhi overlap nahi)
+            if (bar) bar.style.top = tbH + 'px';
+
+            // 2) FAB: sirf freeze ke baad gayab, top par wapas
+            if (fab) fab.classList.toggle('app-hidden', frozen);
+
+            // 3) Box: sirf frozen state me navbar clear karo, warna natural
+            if (box) {
+                if (!frozen) {
+                    box.style.maxHeight = '';
+                } else {
+                    var natural = window.innerHeight * 0.75;
+                    var nb = document.querySelector('.lq-bar');
+                    var nbH = nb ? nb.offsetHeight : 62;
+                    var avail = window.innerHeight - tbH - fbH - nbH - 20;
+                    box.style.maxHeight = (avail < natural ? avail : natural) + 'px';
+                }
+            }
+        }
+        window.addEventListener('scroll', sync, { passive: true });
+        window.addEventListener('resize', sync);
+        window.addEventListener('load', sync);
+        document.addEventListener('DOMContentLoaded', sync);
+        sync();
+    })();
+
     const filterPanel = document.getElementById('filter-panel');
     const filterToggle = document.getElementById('filter-toggle');
     const hasActiveFilter = {% if from_date or to_date %}true{% else %}false{% endif %};
