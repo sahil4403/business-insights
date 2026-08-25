@@ -86,7 +86,7 @@
 
     {% csrf_token %}
 
-    {% if form.non_field_errors %}
+    {% if form.errors %}
         <div class="non-field-errors">
             {{ form.non_field_errors }}
         </div>
@@ -537,6 +537,18 @@ $(document).ready(function() {
         syncNitin();
     })();
 </script>
+<script>
+    const driverRows = document.querySelectorAll(".driver-allocation-row");
+    const quantityInput = document.getElementById("id_quantity");
+    const initialCounts = {{ trip.driver_trip_counts|default:"{}"|safe }};
+
+    function syncDriverTripCountSum() {
+        if (!driverRows || driverRows.length === 0 || !quantityInput) return;
+        
+        let totalDriverTrips = 0;
+        let hasDriverAllocation = false;
+
+        driverRows.forEach(row => {
             const chk = row.querySelector(".driver-checkbox");
             const countInput = row.querySelector(".driver-count-input");
             if (chk && chk.checked && countInput) {
@@ -782,7 +794,6 @@ function updateJcbCalculations() {
     if (startInput && endInput && totalHoursInput) {
         const startVal = parseFloat(startInput.value);
         const endVal = parseFloat(endInput.value);
-
         if (!isNaN(startVal) && !isNaN(endVal) && endVal >= startVal) {
             const hrs = (endVal - startVal).toFixed(2);
             totalHoursInput.value = parseFloat(hrs);
@@ -799,7 +810,8 @@ document.addEventListener("DOMContentLoaded", function() {
         vehicleSelect.addEventListener("change", toggleJcbSectionVisibility);
     }
     toggleJcbSectionVisibility();
-
+</script>
+<script>
     function setupVehicleTypeFilter() {
         const typeSelect = document.getElementById("id_vehicle_category");
         if (!typeSelect || !vehicleSelect) return;
@@ -824,16 +836,14 @@ document.addEventListener("DOMContentLoaded", function() {
                     const clone = opt.cloneNode(true);
                     if (clone.value === current) clone.selected = true;
                     vehicleSelect.appendChild(clone);
-                }
+                });
             });
             if (want && vehicleSelect.value !== current) {
                 vehicleSelect.value = "";
             }
             toggleJcbSectionVisibility();
         }
-
         typeSelect.addEventListener("change", filterVehicles);
-
         const current = vehicleSelect.value;
         if (current) {
             const selOpt = originalOptions.find(o => o.value === current);
@@ -845,8 +855,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
                 }
             }
+            filterVehicles();
         }
-        filterVehicles();
     }
     setupVehicleTypeFilter();
 
@@ -882,11 +892,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     driverSelect.appendChild(clone);
                 }
             });
-
             if (current && !keptCurrent) {
                 driverSelect.value = "";
             }
-
             driverRows.forEach(row => {
                 const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
                 const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
@@ -913,6 +921,115 @@ document.addEventListener("DOMContentLoaded", function() {
     const endInput = document.getElementById("id_end_reading");
     if (startInput) startInput.addEventListener("input", updateJcbCalculations);
     if (endInput) endInput.addEventListener("input", updateJcbCalculations);
-});
 </script>
-{% endblock %}
+<script>
+    function setupVehicleTypeFilter() {
+        const typeSelect = document.getElementById("id_vehicle_category");
+        if (!typeSelect || !vehicleSelect) return;
+
+        const originalOptions = Array.from(vehicleSelect.options);
+        const blankOption = originalOptions.find(o => !o.value);
+
+        function vehicleTypeOf(opt) {
+            const txt = opt.text;
+            const idx = txt.lastIndexOf(" - ");
+            return idx >= 0 ? txt.substring(idx + 3).trim().toLowerCase() : "";
+        }
+
+        function filterVehicles() {
+            const want = (typeSelect.value || "").toLowerCase();
+            const current = vehicleSelect.value;
+            vehicleSelect.innerHTML = "";
+            if (blankOption) vehicleSelect.appendChild(blankOption.cloneNode(true));
+            originalOptions.forEach(opt => {
+                if (!opt.value) return;
+                if (!want || vehicleTypeOf(opt) === want) {
+                    const clone = opt.cloneNode(true);
+                    if (clone.value === current) clone.selected = true;
+                    vehicleSelect.appendChild(clone);
+                });
+            }
+            if (want && vehicleSelect.value !== current) {
+                vehicleSelect.value = "";
+            }
+            toggleJcbSectionVisibility();
+        }
+        typeSelect.addEventListener("change", filterVehicles);
+        const current = vehicleSelect.value;
+        if (current) {
+            const selOpt = originalOptions.find(o => o.value === current);
+            if (selOpt) {
+                const t = vehicleTypeOf(selOpt);
+                if (t) {
+                    Array.from(typeSelect.options).forEach(opt => {
+                        if (opt.value.toLowerCase() === t) opt.selected = true;
+                    });
+                }
+            }
+            filterVehicles();
+        }
+    }
+    setupVehicleTypeFilter();
+
+    function setupDriverFilter() {
+        const typeSel = document.getElementById("id_vehicle_category");
+        const driverSelect = document.getElementById("id_drivers");
+        if (!typeSel || !driverSelect) return;
+
+        const tractorOnlyNames = ["ankush bhau", "kishan bhau", "shubham bhau"];
+        const allDriverOptions = Array.from(driverSelect.options);
+        const driverRows = document.querySelectorAll(".driver-allocation-row");
+
+        function filterDrivers() {
+            const want = (typeSel.value || "").toLowerCase();
+            const current = driverSelect.value;
+            let keptCurrent = false;
+
+            driverSelect.innerHTML = "";
+            allDriverOptions.forEach(opt => {
+                if (!opt.value) {
+                    driverSelect.appendChild(opt.cloneNode(true));
+                    return;
+                }
+                const name = opt.text.trim().toLowerCase();
+                const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
+                const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
+                if (show) {
+                    const clone = opt.cloneNode(true);
+                    if (clone.value === current) {
+                        clone.selected = true;
+                        keptCurrent = true;
+                    }
+                    driverSelect.appendChild(clone);
+                }
+            });
+            if (current && !keptCurrent) {
+                driverSelect.value = "";
+            }
+            driverRows.forEach(row => {
+                const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
+                const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
+                const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
+                if (show) {
+                    row.style.display = "flex";
+                } else {
+                    row.style.display = "none";
+                    const chk = row.querySelector(".driver-checkbox");
+                    if (chk && chk.checked) {
+                        chk.checked = false;
+                        chk.dispatchEvent(new Event("change"));
+                    }
+                }
+            });
+        }
+
+        typeSel.addEventListener("change", filterDrivers);
+        filterDrivers();
+    }
+    setupDriverFilter();
+
+    const startInput = document.getElementById("id_start_reading");
+    const endInput = document.getElementById("id_end_reading");
+    if (startInput) startInput.addEventListener("input", updateJcbCalculations);
+    if (endInput) endInput.addEventListener("input", updateJcbCalculations);
+</script>
