@@ -533,15 +533,19 @@ def trip_edit(request, trip_id):
             if nxt and nxt.startswith('/') and not nxt.startswith('//'):
                 return redirect(nxt)
 
-            # Default: edited trip ke customer ke statement par bhejo
+            # Default: customer trips -> customer statement, baaki -> Trips list
             if trip.customer:
                 return redirect('ledger:customer_statement', customer_id=trip.customer.id)
 
-            return redirect(
-                'trips:detail',
-                trip_id=trip.id
-            )
+            return redirect('trips:list')
         else:
+            # Invalid save — page wapas edit par dikhega (errors ke saath).
+            # Log me exact reason capture karo taaki diagnose easy ho.
+            import logging
+            logging.getLogger('trips').warning(
+                "Trip edit FAILED | trip_id=%s | errors=%s",
+                trip_id, dict(form.errors),
+            )
             err_list = [f"{field}: {', '.join(errs)}" for field, errs in form.errors.items()]
             messages.error(request, f"Failed to update trip: {'; '.join(err_list)}")
     else:
