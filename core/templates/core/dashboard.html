@@ -304,6 +304,7 @@
         var bar = document.getElementById('tripFreezeBar');
         var box = document.getElementById('dashTripScroll');
         var fab = document.querySelector('.app-fab');
+        var shell = document.getElementById('app-shell');
         var fbH = bar ? bar.offsetHeight : 57;
 
         function sync() {
@@ -311,6 +312,7 @@
                 if (bar) bar.style.top = '0px';
                 if (box) box.style.maxHeight = '';
                 if (fab) fab.classList.remove('app-hidden');
+                if (shell) shell.style.paddingBottom = '';
                 return;
             }
             var tbH = tb ? tb.offsetHeight : 45;
@@ -322,16 +324,19 @@
             // 2) FAB: sirf freeze ke baad gayab, top par wapas
             if (fab) fab.classList.toggle('app-hidden', frozen);
 
-            // 3) Box: sirf frozen state me navbar clear karo, warna natural
+            // 3) Box: frozen me MAX height (navbar se sirf 8px upar) +
+            //    neeche ka extra page-space hatao taake box navbar tak bhare
             if (box) {
                 if (!frozen) {
                     box.style.maxHeight = '';
+                    if (shell) shell.style.paddingBottom = '';
                 } else {
                     var natural = window.innerHeight * 0.75;
                     var nb = document.querySelector('.lq-bar');
                     var nbH = nb ? nb.offsetHeight : 62;
-                    var avail = window.innerHeight - tbH - fbH - nbH - 20;
+                    var avail = window.innerHeight - 12 - nbH - 8 - tbH - fbH;
                     box.style.maxHeight = (avail < natural ? avail : natural) + 'px';
+                    if (shell) shell.style.paddingBottom = '14px';
                 }
             }
         }
