@@ -273,6 +273,34 @@ def trip_export(request):
         }
         return render(request, 'trips/_export_preview.html', context)
 
+    # ---- CSV DOWNLOAD (?format=csv) ----
+    if request.GET.get('format') == 'csv':
+        import csv as csv_module
+
+        csv_filename = "{0}.csv".format(filename[:-len('.xlsx')] if filename.endswith('.xlsx') else filename)
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="{0}"'.format(csv_filename)
+        writer = csv_module.writer(response)
+        writer.writerow(headers := [
+            'Trip Code', 'Date', 'Customer', 'Destination', 'Vehicle No.',
+            'Drivers / Labour', 'Material', 'Quantity', 'Rate',
+            'Revenue', 'Received', 'Outstanding',
+            'Trip Status', 'Payment Status',
+        ])
+        for r in table_rows:
+            writer.writerow([
+                r['code'], r['date'], r['customer'], r['destination'], r['vehicle'],
+                r['drivers'], r['material'],
+                r['quantity'], r['rate'],
+                r['revenue'], r['received'], r['outstanding'],
+                r['status'], r['payment'],
+            ])
+        writer.writerow([
+            'TOTAL', '', '', '', '', '', '',
+            total_qty, '', total_rev, total_rec, total_out, '', ''
+        ])
+        return response
+
     # ---- EXCEL (.xlsx) DOWNLOAD ----
     wb = Workbook()
     ws = wb.active
