@@ -513,9 +513,19 @@
             }
         }
 
+        // Loading overlay helper — programmatic form.submit() event fire
+        // NAHI karta, isliye overlay manually on karna padta hai
+        function showNavLoader() {
+            var ov = document.getElementById('nav-overlay');
+            if (!ov) return;
+            ov.classList.add('on');
+            setTimeout(function () { ov.classList.remove('on'); }, 8000);
+        }
+
         // Transaction type chips
         document.querySelectorAll('.chip-type').forEach(function (chip) {
             chip.addEventListener('click', function () {
+                showNavLoader();
                 const form = document.getElementById('tripFiltersForm');
                 const hidden = form.querySelector('input[name="transaction_type"]');
                 if (hidden) hidden.value = chip.dataset.value;
@@ -537,6 +547,7 @@
             if (!form) return;
             const el = form.elements['search'];
             if (el) el.value = '';
+            showNavLoader();
             form.submit();
         }
 
