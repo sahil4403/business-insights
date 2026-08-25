@@ -533,6 +533,7 @@ $(document).ready(function() {
         syncNitin();
     })();
 </script>
+<script>
             const chk = row.querySelector(".driver-checkbox");
             const countInput = row.querySelector(".driver-count-input");
             if (chk && chk.checked && countInput) {
@@ -700,267 +701,62 @@ $(document).ready(function() {
         const customerId = customerSelect ? customerSelect.value : "";
         if (!customerId) return;
 </script>
-            const chk = row.querySelector(".driver-checkbox");
-            const countInput = row.querySelector(".driver-count-input");
-            if (chk && chk.checked && countInput) {
-                const val = parseFloat(countInput.value) || 0;
-                if (val > 0) {
-                    totalDriverTrips += val;
-                    hasDriverAllocation = true;
-                }
-            }
-        });
+<script>
+    // ============ JCB SECTION VISIBILITY ============
+    function toggleJcbSectionVisibility() {
+        const jcbSection = document.getElementById("jcb_reading_section");
+        const materialGroup = document.getElementById("material_form_group");
+        const vehicleSelect = document.getElementById("id_vehicle");
+        const vehicleCatSelect = document.getElementById("id_vehicle_category");
+        if (!jcbSection) return;
 
-        if (hasDriverAllocation) {
-            quantityInput.value = totalDriverTrips;
-            quantityInput.style.backgroundColor = "#ecfdf5";
-            quantityInput.style.borderColor = "#10b981";
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryParam = (urlParams.get("category") || "").toLowerCase();
+        let isJcb = (categoryParam === "jcb");
+
+        if (!isJcb && vehicleCatSelect && (vehicleCatSelect.value || "").toUpperCase() === "JCB") isJcb = true;
+        if (!isJcb && vehicleSelect && vehicleSelect.selectedIndex >= 0) {
+            const selectedText = vehicleSelect.options[vehicleSelect.selectedIndex].text.toUpperCase();
+            if (selectedText.includes("JCB")) isJcb = true;
+        }
+
+        if (isJcb) {
+            jcbSection.style.display = "block";
+            if (materialGroup) materialGroup.style.display = "none";
+            const driverBhattaInput = document.getElementById("id_driver_bhatta");
+            if (driverBhattaInput && (!driverBhattaInput.value || driverBhattaInput.value === "0.00" || driverBhattaInput.value === "0")) {
+                driverBhattaInput.value = "200.00";
+            }
         } else {
-            quantityInput.style.backgroundColor = "";
-            quantityInput.style.borderColor = "";
+            jcbSection.style.display = "none";
+            if (materialGroup) materialGroup.style.display = "flex";
+            const driverBhattaInput = document.getElementById("id_driver_bhatta");
+            if (driverBhattaInput) driverBhattaInput.value = "0.00";
         }
     }
 
-    if (driversSelect && driverRows.length > 0) {
-        function syncDriversSelect() {
-            driverRows.forEach(row => {
-                const chk = row.querySelector(".driver-checkbox");
-                const driverId = chk.dataset.driverId;
-                const opt = Array.from(driversSelect.options).find(o => o.value === driverId);
-                if (opt) {
-                    opt.selected = chk.checked;
-                }
-            });
-        }
+    // ============ JCB CALCULATIONS ============
+    function updateJcbCalculations() {
+        const startInput = document.getElementById("id_start_reading");
+        const endInput = document.getElementById("id_end_reading");
+        const totalHoursInput = document.getElementById("id_total_hours");
+        const quantityInput = document.getElementById("id_quantity");
 
-        driverRows.forEach(row => {
-            const chk = row.querySelector(".driver-checkbox");
-            const countWrap = row.querySelector(".driver-count-wrap");
-            const countInput = row.querySelector(".driver-count-input");
-            const driverId = chk.dataset.driverId;
-
-            const opt = Array.from(driversSelect.options).find(o => o.value === driverId);
-            if (opt && opt.selected) {
-                chk.checked = true;
-                countWrap.style.opacity = "1";
-                countWrap.style.pointerEvents = "auto";
-            }
-
-            chk.addEventListener("change", function() {
-                if (chk.checked) {
-                    countWrap.style.opacity = "1";
-                    countWrap.style.pointerEvents = "auto";
-                    if (!countInput.value) countInput.focus();
-                } else {
-                    countWrap.style.opacity = "0.4";
-                    countWrap.style.pointerEvents = "none";
-                }
-                syncDriversSelect();
-                syncDriverTripCountSum();
-            });
-
-            if (countInput) {
-                countInput.addEventListener("input", function() {
-                    syncDriverTripCountSum();
-                });
-            }
-        });
-
-        // Initialize sum calculation on load
-        syncDriverTripCountSum();
-    }
-
-    // SUBMIT VALIDATION — required fields, scroll + highlight
-    function markInvalid(input) {
-        input.classList.add("field-error");
-        input.scrollIntoView({ behavior: "smooth", block: "center" });
-        input.focus({ preventScroll: true });
-        input.addEventListener("input", () => input.classList.remove("field-error"), { once: true });
-        input.addEventListener("change", () => input.classList.remove("field-error"), { once: true });
-    }
-
-    const tripForm = document.querySelector("form");
-    if (tripForm) {
-        tripForm.addEventListener("submit", function(e) {
-            syncDriversSelect();
-            syncDriverTripCountSum();
-
-            const tripDateInput = document.getElementById("id_trip_date");
-            const transTypeSelect = document.getElementById("id_transaction_type");
-            const customerSelect = document.getElementById("id_customer");
-            const customerGroup = document.getElementById("customer_form_group");
-            const materialSelect = document.getElementById("id_material");
-            const vehicleSelect = document.getElementById("id_vehicle");
-            const vehicleCatSelect = document.getElementById("id_vehicle_category");
-
-            function isJcbActive() {
-                const cat = (vehicleCatSelect && vehicleCatSelect.value || "").toUpperCase();
-                const vehText = vehicleSelect && vehicleSelect.selectedIndex >= 0
-                    ? vehicleSelect.options[vehicleSelect.selectedIndex].text.toUpperCase() : "";
-                return cat === "JCB" || vehText.includes("JCB");
-            }
-
-            if (tripDateInput && !tripDateInput.value) {
-                e.preventDefault();
-                markInvalid(tripDateInput);
-                return false;
-            }
-
-            const isInternal = transTypeSelect && transTypeSelect.value === "INTERNAL_STOCK";
-            if (!isInternal && customerGroup && customerGroup.style.display !== "none"
-                && customerSelect && !customerSelect.value) {
-                e.preventDefault();
-                markInvalid(customerSelect);
-                return false;
-            }
-
-            const isVendorSupply = transTypeSelect && transTypeSelect.value === "VENDOR_SUPPLY";
-
-            // Vendor Supply: vendor ka apna vehicle/driver hota hai — dono optional
-            if (!isVendorSupply && !isJcbActive() && materialSelect && materialSelect.value
-                && vehicleSelect && !vehicleSelect.value) {
-                e.preventDefault();
-                markInvalid(vehicleSelect);
-                return false;
-            }
-
-            if (!isInternal && !isVendorSupply && !isJcbActive() && vehicleSelect && vehicleSelect.value) {
-                const driverCheckboxes = document.querySelectorAll(".driver-checkbox");
-                let hasDriver = false;
-                driverCheckboxes.forEach(cb => { if (cb.checked) hasDriver = true; });
-                if (!hasDriver) {
-                    const target = driverCheckboxes[0] || document.querySelector("#driver_allocation_box");
-                    if (target) {
-                        e.preventDefault();
-                        markInvalid(target);
-                        return false;
-                    }
-                }
-            }
-
-            const qtyVal = parseFloat(quantityInput ? quantityInput.value : 0) || 0;
-            if (qtyVal <= 0) {
-                e.preventDefault();
-                alert("⚠️ Please fill out the Quantity field (or enter Driver Trip Allocations) before saving!");
-                if (quantityInput) quantityInput.focus();
-                return false;
-            }
-        });
-    }
-});
-
-function promptSaveAndViewStatement() {
-    const customerSelect = document.getElementById("id_customer");
-    if (!customerSelect || !customerSelect.value) {
-        alert("Please select a customer first to view their statement.");
-        return;
-    }
-    const modal = document.getElementById("statement_confirm_modal");
-    if (modal) modal.style.display = "flex";
-}
-
-function closeStatementModal() {
-    const modal = document.getElementById("statement_confirm_modal");
-    if (modal) modal.style.display = "none";
-}
-
-function confirmSaveAndViewStatement(shouldSave) {
-    const customerSelect = document.getElementById("id_customer");
-    const customerId = customerSelect ? customerSelect.value : "";
-    if (!customerId) return;
-
-    if (shouldSave) {
-        const form = customerSelect.closest("form");
-        if (form) {
-            let hiddenInput = document.getElementById("save_and_view_statement_input");
-            if (!hiddenInput) {
-                hiddenInput = document.createElement("input");
-                hiddenInput.type = "hidden";
-                hiddenInput.id = "save_and_view_statement_input";
-                hiddenInput.name = "save_and_view_statement";
-                form.appendChild(hiddenInput);
-            }
-            hiddenInput.value = "1";
-            form.submit();
-        }
-    } else {
-        window.location.href = `/ledger/customer/${customerId}/`;
-    }
-}
-
-function toggleJcbSectionVisibility() {
-    const jcbSection = document.getElementById("jcb_reading_section");
-    const materialGroup = document.getElementById("material_form_group");
-    const vehicleSelect = document.getElementById("id_vehicle");
-    if (!jcbSection) return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const categoryParam = (urlParams.get("category") || "").toLowerCase();
-
-    let isJcb = (categoryParam === "jcb");
-
-    const vehicleCatSelect = document.getElementById("id_vehicle_category");
-    if (!isJcb && vehicleCatSelect && (vehicleCatSelect.value || "").toUpperCase() === "JCB") {
-        isJcb = true;
-    }
-
-    if (!isJcb && vehicleSelect && vehicleSelect.selectedIndex >= 0) {
-        const selectedText = vehicleSelect.options[vehicleSelect.selectedIndex].text.toUpperCase();
-        if (selectedText.includes("JCB")) {
-            isJcb = true;
-        }
-    }
-
-    if (isJcb) {
-        jcbSection.style.display = "block";
-        if (materialGroup) {
-            materialGroup.style.display = "none";
-        }
-        const driverBhattaInput = document.getElementById("id_driver_bhatta");
-        if (driverBhattaInput && (!driverBhattaInput.value || driverBhattaInput.value === "0.00" || driverBhattaInput.value === "0")) {
-            driverBhattaInput.value = "200.00";
-        }
-    } else {
-        jcbSection.style.display = "none";
-        if (materialGroup) {
-            materialGroup.style.display = "flex";
-        }
-        const driverBhattaInput = document.getElementById("id_driver_bhatta");
-        if (driverBhattaInput) {
-            driverBhattaInput.value = "0.00";
-        }
-    }
-}
-
-function updateJcbCalculations() {
-    const startInput = document.getElementById("id_start_reading");
-    const endInput = document.getElementById("id_end_reading");
-    const totalHoursInput = document.getElementById("id_total_hours");
-    const quantityInput = document.getElementById("id_quantity");
-
-    if (startInput && endInput && totalHoursInput) {
-        const startVal = parseFloat(startInput.value);
-        const endVal = parseFloat(endInput.value);
-
-        if (!isNaN(startVal) && !isNaN(endVal) && endVal >= startVal) {
-            const hrs = (endVal - startVal).toFixed(2);
-            totalHoursInput.value = parseFloat(hrs);
-            if (quantityInput) {
-                quantityInput.value = parseFloat(hrs);
+        if (startInput && endInput && totalHoursInput) {
+            const startVal = parseFloat(startInput.value);
+            const endVal = parseFloat(endInput.value);
+            if (!isNaN(startVal) && !isNaN(endVal) && endVal >= startVal) {
+                const hrs = (endVal - startVal).toFixed(2);
+                totalHoursInput.value = parseFloat(hrs);
+                if (quantityInput) quantityInput.value = parseFloat(hrs);
             }
         }
     }
-}
 
-document.addEventListener("DOMContentLoaded", function() {
-    const vehicleSelect = document.getElementById("id_vehicle");
-    if (vehicleSelect) {
-        vehicleSelect.addEventListener("change", toggleJcbSectionVisibility);
-    }
-    toggleJcbSectionVisibility();
-
+    // ============ VEHICLE TYPE FILTER ============
     function setupVehicleTypeFilter() {
         const typeSelect = document.getElementById("id_vehicle_category");
+        const vehicleSelect = document.getElementById("id_vehicle");
         if (!typeSelect || !vehicleSelect) return;
 
         const originalOptions = Array.from(vehicleSelect.options);
@@ -985,9 +781,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     vehicleSelect.appendChild(clone);
                 }
             });
-            if (want && vehicleSelect.value !== current) {
-                vehicleSelect.value = "";
-            }
+            if (want && vehicleSelect.value !== current) vehicleSelect.value = "";
             toggleJcbSectionVisibility();
         }
 
@@ -1007,14 +801,15 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         filterVehicles();
     }
-    setupVehicleTypeFilter();
 
+    // ============ DRIVER FILTER (HYVA/HALFTON vs TRACTOR) ============
     function setupDriverFilter() {
         const typeSel = document.getElementById("id_vehicle_category");
         const driverSelect = document.getElementById("id_drivers");
         if (!typeSel || !driverSelect) return;
 
         const tractorOnlyNames = ["ankush bhau", "kishan bhau", "shubham bhau"];
+        const hyvaHalftonNames = ["dinesh bhaiya", "gaju bhaiya", "santosh bhaiya"];
         const allDriverOptions = Array.from(driverSelect.options);
         const driverRows = document.querySelectorAll(".driver-allocation-row");
 
@@ -1031,7 +826,14 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
                 const name = opt.text.trim().toLowerCase();
                 const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
-                const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
+                let show;
+                if (want === "tractor") {
+                    show = isTractorOnly;
+                } else if (want === "hyva" || want === "halfton") {
+                    show = hyvaHalftonNames.indexOf(name) !== -1;
+                } else {
+                    show = true;
+                }
                 if (show) {
                     const clone = opt.cloneNode(true);
                     if (clone.value === current) {
@@ -1041,15 +843,20 @@ document.addEventListener("DOMContentLoaded", function() {
                     driverSelect.appendChild(clone);
                 }
             });
-
-            if (current && !keptCurrent) {
-                driverSelect.value = "";
-            }
+            if (current && !keptCurrent) driverSelect.value = "";
 
             driverRows.forEach(row => {
                 const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
                 const isTractorOnly = tractorOnlyNames.indexOf(name) !== -1;
-                const show = want === "tractor" ? isTractorOnly : !isTractorOnly;
+                const isHyvaHalfton = hyvaHalftonNames.indexOf(name) !== -1;
+                let show;
+                if (want === "tractor") {
+                    show = isTractorOnly;
+                } else if (want === "hyva" || want === "halfton") {
+                    show = isHyvaHalfton;
+                } else {
+                    show = true;
+                }
                 if (show) {
                     row.style.display = "flex";
                 } else {
@@ -1066,76 +873,78 @@ document.addEventListener("DOMContentLoaded", function() {
         typeSel.addEventListener("change", filterDrivers);
         filterDrivers();
     }
-    setupDriverFilter();
 
-    const startInput = document.getElementById("id_start_reading");
-    const endInput = document.getElementById("id_end_reading");
-    if (startInput) startInput.addEventListener("input", updateJcbCalculations);
-    if (endInput) endInput.addEventListener("input", updateJcbCalculations);
-});
+    // ============ QUICK-FILL (last trip auto-fill) ============
+    (function () {
+        const customerEl = document.getElementById("id_customer");
+        const materialEl = document.getElementById("id_material");
+        const rateEl = document.getElementById("id_rate");
+        const qtyEl = document.getElementById("id_quantity");
+        const destEl = document.getElementById("id_destination");
+        if (!customerEl) return;
 
-// QUICK-FILL: customer/material select karne par last trip ka rate, quantity,
-// destination auto-fill (sirf khali fields — user ka input kabhi override nahi hota)
-document.addEventListener("DOMContentLoaded", function () {
-    const customerEl = document.getElementById("id_customer");
-    const materialEl = document.getElementById("id_material");
-    const rateEl = document.getElementById("id_rate");
-    const qtyEl = document.getElementById("id_quantity");
-    const destEl = document.getElementById("id_destination");
-    if (!customerEl) return;
-
-    function fillIfEmpty(el, value) {
-        if (!el || value === null || value === undefined || value === "") return false;
-        if (String(el.value).trim() !== "") return false;
-        el.value = value;
-        return true;
-    }
-
-    function showHint(msg) {
-        let hint = document.getElementById("quickfill-hint");
-        if (!hint && rateEl && rateEl.parentElement) {
-            hint = document.createElement("div");
-            hint.id = "quickfill-hint";
-            hint.className = "text-[11px] text-emerald-700 font-semibold mt-1";
-            rateEl.parentElement.appendChild(hint);
+        function fillIfEmpty(el, value) {
+            if (!el || value === null || value === undefined || value === "") return false;
+            if (String(el.value).trim() !== "") return false;
+            el.value = value;
+            return true;
         }
-        if (!hint) return;
-        hint.textContent = msg;
-        hint.style.opacity = "1";
-        setTimeout(function () { hint.style.opacity = "0"; hint.textContent = ""; }, 2500);
-        hint.style.transition = "opacity .4s ease";
-    }
 
-    function quickFill() {
-        const cid = customerEl.value;
-        if (!cid) return;
-        const params = new URLSearchParams({ customer: cid });
-        if (materialEl && materialEl.value) params.set("material", materialEl.value);
-        fetch("{% url 'trips:quickfill' %}?" + params.toString(), { credentials: "same-origin" })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (!data.found) return;
-                var filled = [];
-                if (fillIfEmpty(rateEl, data.rate)) filled.push("rate");
-                if (fillIfEmpty(qtyEl, data.quantity)) filled.push("quantity");
-                if (fillIfEmpty(destEl, data.destination)) filled.push("destination");
-                if (filled.length) {
-                    showHint("✓ Last trip se auto-fill: " + filled.join(", "));
-                    if (rateEl) rateEl.dispatchEvent(new Event("input", { bubbles: true }));
-                }
-            })
-            .catch(function () {});
-    }
+        function showHint(msg) {
+            let hint = document.getElementById("quickfill-hint");
+            if (!hint && rateEl && rateEl.parentElement) {
+                hint = document.createElement("div");
+                hint.id = "quickfill-hint";
+                hint.className = "text-[11px] text-emerald-700 font-semibold mt-1";
+                rateEl.parentElement.appendChild(hint);
+            }
+            if (!hint) return;
+            hint.textContent = msg;
+            hint.style.opacity = "1";
+            setTimeout(function () { hint.style.opacity = "0"; hint.textContent = ""; }, 2500);
+            hint.style.transition = "opacity .4s ease";
+        }
 
-    customerEl.addEventListener("change", function () {
-        // Customer badle toh purane auto-fill values hata kar fresh fetch
-        [rateEl, qtyEl].forEach(function (el) { if (el && el.dataset.autofilled !== "1") el.value = ""; });
-        quickFill();
+        function quickFill() {
+            const cid = customerEl.value;
+            if (!cid) return;
+            const params = new URLSearchParams({ customer: cid });
+            if (materialEl && materialEl.value) params.set("material", materialEl.value);
+            fetch("/trips/api/quickfill/?" + params.toString(), { credentials: "same-origin" })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.found) return;
+                    var filled = [];
+                    if (fillIfEmpty(rateEl, data.rate)) filled.push("rate");
+                    if (fillIfEmpty(qtyEl, data.quantity)) filled.push("quantity");
+                    if (fillIfEmpty(destEl, data.destination)) filled.push("destination");
+                    if (filled.length) {
+                        showHint("\u2713 Last trip se auto-fill: " + filled.join(", "));
+                        if (rateEl) rateEl.dispatchEvent(new Event("input", { bubbles: true }));
+                    }
+                })
+                .catch(function () {});
+        }
+
+        customerEl.addEventListener("change", function () {
+            [rateEl, qtyEl].forEach(function (el) { if (el && el.dataset.autofilled !== "1") el.value = ""; });
+            quickFill();
+        });
+        if (materialEl) materialEl.addEventListener("change", quickFill);
+        if (customerEl.value) quickFill();
+    })();
+
+    // ============ INIT ============
+    document.addEventListener("DOMContentLoaded", function() {
+        const vehicleSelect = document.getElementById("id_vehicle");
+        if (vehicleSelect) vehicleSelect.addEventListener("change", toggleJcbSectionVisibility);
+        toggleJcbSectionVisibility();
+        setupVehicleTypeFilter();
+        setupDriverFilter();
+        const startInput = document.getElementById("id_start_reading");
+        const endInput = document.getElementById("id_end_reading");
+        if (startInput) startInput.addEventListener("input", updateJcbCalculations);
+        if (endInput) endInput.addEventListener("input", updateJcbCalculations);
     });
-    if (materialEl) materialEl.addEventListener("change", quickFill);
-
-    // Page load par customer pehle se selected ho (validation error wapas aane par)
-    if (customerEl.value) quickFill();
-});
 </script>
 {% endblock %}
