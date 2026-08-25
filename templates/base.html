@@ -316,6 +316,9 @@
                 <a href="{% url 'trips:list' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-truck"/></svg>Trips</a>
                 <a href="{% url 'expenses:list' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-receipt"/></svg>Expenses</a>
                 <a href="{% url 'core:admin_reauth' %}" target="_blank" class="nav-link text-slate-400"><svg class="icon-sm" aria-hidden="true"><use href="#i-settings"/></svg>Admin</a>
+                {% if user.is_superuser %}
+                <a href="/staff/" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Staff</a>
+                {% endif %}
                 <a href="{% url 'authentication:logout' %}" class="nav-link !text-red-600 hover:!bg-red-50"><svg class="icon-sm" aria-hidden="true"><use href="#i-logout"/></svg>Logout</a>
             </div>
         </div>

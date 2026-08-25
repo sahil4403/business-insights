@@ -18,6 +18,7 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import include, path
+from authentication.views import staff_manage
 from core.views import custom_admin_login
 
 urlpatterns = [
@@ -27,5 +28,6 @@ urlpatterns = [
     path("expenses/", include("expenses.urls")),
     path("trips/", include("trips.urls")),
     path('login/', include('authentication.urls')),
+    path("staff/", staff_manage, name='staff_manage'),
     path('', include('core.urls')),
 ]
