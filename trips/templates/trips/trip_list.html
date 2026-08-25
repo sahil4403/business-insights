@@ -340,44 +340,44 @@
         <!-- DESKTOP TABLE -->
         <div class="hidden md:block">
             <div class="max-h-[65vh] overflow-y-auto overscroll-contain scroll-smooth" id="tripsTableContainer">
-                <table class="w-full min-w-[1050px] text-sm">
+                <table class="w-full min-w-[1050px] text-xs">
                     <thead class="sticky top-0 z-10">
                         <tr class="bg-slate-50 text-left">
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Trip</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Destination</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Vehicle</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Drivers / Labour</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Material</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Quantity</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Revenue</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Received</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Outstanding</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Trip Status</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Payment</th>
-                            <th class="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Trip</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Customer</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Destination</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Vehicle</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Drivers / Labour</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Material</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Quantity</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Revenue</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Received</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Outstanding</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Trip Status</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Payment</th>
+                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         {% for trip in trips %}
                             <tr class="hover:bg-slate-50/60 transition">
-                                <td class="px-4 py-3">
+                                <td class="px-2.5 py-2 whitespace-nowrap">
                                     <a href="{% url 'trips:detail' trip.id %}" class="font-bold text-brand-600 hover:underline">
                                         {{ trip.trip_code }}
                                     </a>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap">{{ trip.trip_date|date:"d-M-Y" }}</td>
-                                <td class="px-4 py-3">
+                                <td class="px-2.5 py-2 whitespace-nowrap">{{ trip.trip_date|date:"d-M-Y" }}</td>
+                                <td class="px-2.5 py-2">
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                         <span class="text-slate-500 font-semibold italic">📦 Internal Stock</span>
                                     {% else %}
                                         {{ trip.customer.name }}
                                     {% endif %}
                                 </td>
-                                <td class="px-4 py-3">{{ trip.destination|default:"—" }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">{{ trip.vehicle.registration_number }}</td>
-                                <td class="px-4 py-3 text-[12px] text-slate-600">
+                                <td class="px-2.5 py-2">{{ trip.destination|default:"—" }}</td>
+                                <td class="px-2.5 py-2 whitespace-nowrap">{{ trip.vehicle.registration_number }}</td>
+                                <td class="px-2.5 py-2 text-[12px] text-slate-600">
                                     {% if trip.drivers.all %}
                                         {% for driver in trip.drivers.all %}
                                             {{ driver.name }}{% if not forloop.last %}, {% endif %}
@@ -386,12 +386,12 @@
                                         <span class="text-slate-400 italic">—</span>
                                     {% endif %}
                                 </td>
-                                <td class="px-4 py-3">{{ trip.material.name }}</td>
-                                <td class="px-4 py-3">{{ trip.quantity }}</td>
-                                <td class="px-4 py-3 text-right font-semibold whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</td>
-                                <td class="px-4 py-3 text-right font-semibold whitespace-nowrap text-emerald-700">₹{{ trip.total_received|floatformat:2 }}</td>
-                                <td class="px-4 py-3 text-right font-semibold whitespace-nowrap {% if trip.outstanding_amount > 0 %}text-red-600{% endif %}">₹{{ trip.outstanding_amount|floatformat:2 }}</td>
-                                <td class="px-4 py-3">
+                                <td class="px-2.5 py-2">{{ trip.material.name }}</td>
+                                <td class="px-2.5 py-2">{{ trip.quantity }}</td>
+                                <td class="px-2.5 py-2 text-right font-semibold whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</td>
+                                <td class="px-2.5 py-2 text-right font-semibold whitespace-nowrap text-emerald-700">₹{{ trip.total_received|floatformat:2 }}</td>
+                                <td class="px-2.5 py-2 text-right font-semibold whitespace-nowrap {% if trip.outstanding_amount > 0 %}text-red-600{% endif %}">₹{{ trip.outstanding_amount|floatformat:2 }}</td>
+                                <td class="px-2.5 py-2">
                                     {% if trip.trip_status == 'PLANNED' %}
                                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-800">Planned</span>
                                     {% elif trip.trip_status == 'IN_PROGRESS' %}
@@ -402,7 +402,7 @@
                                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Cancelled</span>
                                     {% endif %}
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="px-2.5 py-2">
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                         <span class="text-slate-400 italic">—</span>
                                     {% elif trip.calculated_payment_status == 'UNPAID' %}
@@ -413,14 +413,14 @@
                                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
                                     {% endif %}
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
+                                <td class="px-2.5 py-2 whitespace-nowrap">
                                     <a href="{% url 'trips:detail' trip.id %}"
-                                       class="inline-flex h-9 px-3.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[13px] items-center gap-1 transition active:scale-[0.98]">
+                                       class="inline-flex h-7 px-2.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[11px] items-center gap-1 transition active:scale-[0.98]">
                                         View
                                     </a>
                                     {% if trip.transaction_type != 'INTERNAL_STOCK' and trip.outstanding_amount > 0 %}
                                         <a href="{% url 'trips:payment_create' trip.id %}"
-                                           class="inline-flex h-9 px-3.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold text-[13px] items-center gap-1 transition active:scale-[0.98] ml-1.5">
+                                           class="inline-flex h-7 px-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold text-[11px] items-center gap-1 transition active:scale-[0.98] ml-1">
                                             + Pay
                                         </a>
                                     {% endif %}
