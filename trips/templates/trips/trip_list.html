@@ -589,4 +589,24 @@
             fit();
         })();
     </script>
+
+    <script>
+        // AUTO TOP REDIRECT: list ke andar top par pahunchte hi (chahe
+        // andar se scroll karo ya bahar se) page smooth hoke poore top
+        // menu tak wapas chala jata hai — ek hi flow me, stuck nahi
+        (function () {
+            var el = document.getElementById('tripMobileScroll');
+            if (!el) return;
+            var prevTop = 0;
+            el.addEventListener('scroll', function () {
+                var t = el.scrollTop;
+                if (window.innerWidth < 768 && t === 0 && prevTop > 4 &&
+                    window.scrollY > 60) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+                prevTop = t;
+            }, { passive: true });
+            window.addEventListener('pageshow', function () { prevTop = el.scrollTop; });
+        })();
+    </script>
 {% endblock %}
