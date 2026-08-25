@@ -317,6 +317,11 @@ def trip_edit(request, trip_id):
             if request.POST.get('save_and_view_statement') == '1' and trip.customer:
                 return redirect('ledger:customer_statement', customer_id=trip.customer.id)
 
+            # Jahan se aaya tha (statement/detail) wahin wapas — ?next= chain
+            nxt = request.POST.get('next') or request.GET.get('next')
+            if nxt and nxt.startswith('/') and not nxt.startswith('//'):
+                return redirect(nxt)
+
             return redirect(
                 'trips:detail',
                 trip_id=trip.id

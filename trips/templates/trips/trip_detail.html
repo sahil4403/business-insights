@@ -67,7 +67,7 @@
                     + Receive Payment
                 </a>
             {% endif %}
-            <a href="{% url 'trips:edit' trip.id %}" class="app-chip">
+            <a href="{% url 'trips:edit' trip.id %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="app-chip">
                 Edit Trip
             </a>
             <a href="{{ back_url }}" class="app-chip">
