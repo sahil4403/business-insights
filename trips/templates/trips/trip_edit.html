@@ -324,7 +324,162 @@ $(document).ready(function() {
         minimumInputLength: 1
     });
 
-    // Toggle customer field based on transaction type (Internal Stock vs Customer Delivery)
+    // =============================================
+    // DRIVER FILTERING LOGIC BASED ON VEHICLE TYPE & MATERIAL
+    // =============================================
+    function updateDriverVisibility() {
+        var vehicleCatSelect = document.getElementById("id_vehicle_category");
+        var materialSelect = document.getElementById("id_material");
+        var drvSel = document.getElementById("id_drivers");
+        
+        if (!drvSel) return;
+        
+        // Get selected vehicle category
+        var vehicleCatSelect = document.getElementById("id_vehicle_category");
+        var vehicleCat = vehicleCatSelect ? vehicleCatSelect.value.toUpperCase() : "";
+        // Also check vehicle select for JCB
+        var vehicleSelect = document.getElementById("id_vehicle");
+        var vehText = vehicleSelect && vehicleSelect.selectedIndex >= 0 
+            ? vehicleSelect.options[vehicleSelect.selectedIndex].text.toUpperCase() : "";
+        
+        // Get selected material
+        var matText = "";
+        var materialSelect = document.getElementById("id_material");
+        if (materialSelect && materialSelect.selectedIndex >= 0) {
+            matText = materialSelect.options[materialSelect.selectedIndex].text.trim().toLowerCase();
+        }
+        
+        var isCrushed = matText.indexOf("crushed stone") !== -1;
+        var isJcbMaterial = matText.indexOf("jcb") !== -1;
+        var isJcbVehicle = vehText.includes("JCB");
+        var isJcb = isJcbMaterial || isJcbVehicle;
+        
+        var vehicleCat = vehicleCatSelect ? vehicleCatSelect.value.toUpperCase() : "";
+        var isHyvaOrHalfton = vehicleCat === "HYVA" || vehicleCat === "HALFTON";
+        var isTractor = vehicleCat === "TRACTOR";
+        var isJcb = isJcbMaterial || isJcbVehicle;
+        
+        Array.prototype.forEach.call(drvSel.options, function (o) {
+            if (!o.value) return; // skip empty option
+            
+            var driverName = o.text.trim().toLowerCase();
+            var show = true;
+            var disabled = false;
+            
+            // Nitin Prasad: only for Crushed Stone
+            if (driverName.indexOf("nitin prasad") !== -1) {
+                var showNitin = driverName.indexOf("nitin prasad") !== -1;
+                var show = showNitin && (matText.indexOf("crushed stone") !== -1);
+                o.hidden = !show;
+                o.disabled = !show;
+                if (!show) o.selected = false;
+                return;
+            }
+            
+            // Driver mapping by vehicle type
+            var isHyvaHalftonDriver = (driverName.indexOf("dinesh bhaiya") !== -1 ||
+                                       driverName.indexOf("gaju bhaiya") !== -1 ||
+                                       driverName.indexOf("santosh bhaiya") !== -1);
+            
+            var isTractorDriver = (driverName.indexOf("shubham bhau") !== -1 ||
+                                   driverName.indexOf("kishan bhau") !== -1 ||
+                                   driverName.indexOf("ankush bhau") !== -1);
+            
+            var isJcbDriver = (driverName.indexOf("jcb") !== -1); // adjust if needed
+            
+            // Determine vehicle context
+            var isHyvaOrHalftonCtx = isHyvaOrHalfton;
+            var isTractorCtx = isTractor;
+            var isJcbCtx = isJcb;
+            
+            // Apply filtering logic
+            if (isHyvaOrHalftonCtx) {
+                // HYVA/HALFTON: Only Dinesh, Gaju, Santosh
+                show = isHyvaHalftonDriver;
+            } else if (isTractorCtx) {
+                // TRACTOR: Only Shubham, Kishan, Ankush
+                show = isTractorDriver;
+            } else if (isJcbCtx) {
+                // JCB: Show all or specific JCB drivers
+                show = true; // Or filter for JCB drivers if needed
+            } else {
+                // Default: show all except Nitin (handled above)
+                show = true;
+            }
+            
+            o.hidden = !show;
+            o.disabled = !show;
+            if (!show) o.selected = false;
+        });
+    }
+
+    // Trigger initial sync
+    function syncAll() {
+        // Trigger material change to update Nitin Prasad visibility
+        var matSel = document.getElementById("id_material");
+        if (matSel) {
+            var event = new Event('change');
+            matSel.dispatchEvent(event);
+        }
+    }
+    
+    // Listen for changes
+    var matSel = document.getElementById("id_material");
+    var vehCatSel = document.getElementById("id_vehicle_category");
+    var vehSel = document.getElementById("id_vehicle");
+    
+    if (matSel) matSel.addEventListener("change", syncAll);
+    if (vehCatSel) vehCatSel.addEventListener("change", syncAll);
+    if (vehSel) vehSel.addEventListener("change", syncAll);
+    
+    // Initial sync
+    syncAll();
+
+    // =============================================
+    // JCB SECTION VISIBILITY
+    // =============================================
+    function toggleJcbSection() {
+        var matSel = document.getElementById("id_material");
+        var vehSel = document.getElementById("id_vehicle");
+        var jcbSection = document.getElementById("jcb_reading_section");
+        
+        if (!jcbSection) return;
+        
+        var isJcb = false;
+        
+        if (matSel && matSel.selectedIndex >= 0) {
+            var matText = matSel.options[matSel.selectedIndex].text.trim().toLowerCase();
+            if (matText.indexOf("jcb") !== -1) isJcb = true;
+        }
+        
+        if (vehSel && vehSel.selectedIndex >= 0) {
+            var vehText = vehSel.options[vehSel.selectedIndex].text.toUpperCase();
+            if (vehText.includes("JCB")) isJcb = true;
+        }
+        
+        if (isJcb) {
+            jcbSection.style.display = "block";
+        } else {
+            jcbSection.style.display = "none";
+            // Reset JCB fields when hidden
+            var jcbInputs = jcbSection.querySelectorAll("input, select");
+            jcbInputs.forEach(function(input) {
+                if (input.type !== "hidden") input.value = "";
+            });
+        }
+    }
+    
+    // Listen for material/vehicle changes
+    var matSel = document.getElementById("id_material");
+    var vehSel = document.getElementById("id_vehicle");
+    if (matSel) matSel.addEventListener("change", toggleJcbSection);
+    if (vehSel) vehSel.addEventListener("change", toggleJcbSection);
+    // Initial check
+    toggleJcbSection();
+
+    // =============================================
+    // CUSTOMER FIELD VISIBILITY (INTERNAL_STOCK vs CUSTOMER_DELIVERY)
+    // =============================================
     var transTypeSelect = document.getElementById("id_transaction_type");
     var customerGroup = document.getElementById("customer_form_group");
     var customerSelect = document.getElementById("id_customer");
@@ -345,18 +500,43 @@ $(document).ready(function() {
         transTypeSelect.addEventListener("change", toggleCustomerVisibility);
         toggleCustomerVisibility();
     }
+
+    // =============================================
+    // Initialize Select2 on customer dropdown
+    // =============================================
+    $('#id_customer').select2({
+        placeholder: 'Search Customer...',
+        allowClear: true,
+        width: '100%',
+        minimumInputLength: 1
+    });
+
+    // =============================================
+    // DRIVER ALLOCATION CHECKBOX & SYNC HANDLER
+    // =============================================
+    var driversSelect = document.getElementById("id_drivers");
+
+    // NITIN PRASAD: sirf Crushed Stone material par Driver Allocation me
+    (function () {
+        var matSel = document.getElementById("id_material");
+        var drvSel = document.getElementById("id_drivers");
+        if (!matSel || !drvSel) return;
+        function syncNitin() {
+            var matText = matSel.selectedIndex >= 0
+                ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
+            var isCrushed = matText.indexOf("crushed stone") !== -1;
+            Array.prototype.forEach.call(drvSel.options, function (o) {
+                if (o.text.trim().toLowerCase().indexOf("nitin prasad") !== -1) {
+                    o.hidden = !isCrushed;
+                    o.disabled = !isCrushed;
+                    if (!isCrushed) o.selected = false;
+                }
+            });
+        }
+        matSel.addEventListener("change", syncNitin);
+        syncNitin();
+    })();
 </script>
-    const driverRows = document.querySelectorAll(".driver-allocation-row");
-    const quantityInput = document.getElementById("id_quantity");
-    const initialCounts = {{ trip.driver_trip_counts|default:"{}"|safe }};
-
-    function syncDriverTripCountSum() {
-        if (!driverRows || driverRows.length === 0 || !quantityInput) return;
-        
-        let totalDriverTrips = 0;
-        let hasDriverAllocation = false;
-
-        driverRows.forEach(row => {
             const chk = row.querySelector(".driver-checkbox");
             const countInput = row.querySelector(".driver-count-input");
             if (chk && chk.checked && countInput) {
