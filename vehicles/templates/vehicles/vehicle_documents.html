@@ -99,9 +99,17 @@
                         {% if doc.notes %}· {{ doc.notes }}{% endif %}
                     </div>
                 </div>
-                <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-2 shrink-0 flex-wrap">
                     {% if doc.file %}
-                        <a href="{{ doc.file.url }}" target="_blank" class="lq-glass-btn !h-8 !px-3 !text-[11px]">📎 File</a>
+                        <a href="{{ doc.file.url }}" target="_blank" class="lq-glass-btn !h-8 !px-3 !text-[11px]" title="View">📎 File</a>
+                        <button type="button" class="lq-glass-btn !h-8 !px-3 !text-[11px]" title="Download"
+                                onclick="downloadDoc('{{ doc.file.url|escapejs }}', '{{ doc.file.name|escapejs }}', '{{ vehicle.registration_number|escapejs }}_{{ doc.doc_type }}_{{ doc.expiry_date|date:'dMY' }}')">
+                            📥
+                        </button>
+                        <button type="button" class="lq-glass-btn !h-8 !px-3 !text-[11px]" title="Share (WhatsApp etc.)"
+                                onclick="shareDoc('{{ doc.file.url|escapejs }}', '{{ doc.file.name|escapejs }}', '{{ vehicle.registration_number|escapejs }}_{{ doc.doc_type }}_{{ doc.expiry_date|date:'dMY' }}', '{{ vehicle.registration_number }} - {{ doc.get_doc_type_display }} (Expiry: {{ doc.expiry_date|date:'d-M-Y' }})')">
+                            📤
+                        </button>
                     {% endif %}
                     {% if user.is_superuser %}
                         <a href="?doc={{ doc.id }}" class="lq-glass-btn !h-8 !px-3 !text-[11px]">✏️ Edit</a>
@@ -129,4 +137,56 @@
 
 <!-- spacer for mobile bottom bars -->
 <div class="h-20 md:h-0"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ============ DOCUMENT DOWNLOAD + SHARE (statement jaisa) ============
+    async function __fetchBlob(url) {
+        const r = await fetch(url, { credentials: 'same-origin' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return await r.blob();
+    }
+
+    function __extOf(filename, fallback) {
+        const m = (filename || '').split('.');
+        const ext = m.length > 1 ? m[m.length - 1].toLowerCase() : '';
+        return /^[a-z0-9]{2,5}$/.test(ext) ? ext : (fallback || 'pdf');
+    }
+
+    async function downloadDoc(url, filename, saveBase) {
+        const saveName = (saveBase || 'document') + '.' + __extOf(filename);
+        try {
+            const blob = await __fetchBlob(url);
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = saveName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        } catch (e) {
+            window.open(url, '_blank');
+        }
+    }
+
+    async function shareDoc(url, filename, saveBase, msgText) {
+        const saveName = (saveBase || 'document') + '.' + __extOf(filename);
+        // Pehle native share sheet (phone me WhatsApp/Gallery/etc.)
+        try {
+            const blob = await __fetchBlob(url);
+            const file = new File([blob], saveName, { type: blob.type || 'application/pdf' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: saveName, text: msgText || '' });
+                return;
+            }
+        } catch (e) {
+            if (e && e.name === 'AbortError') return; // user ne cancel kiya
+        }
+        // FALLBACK: file download + WhatsApp text window (file manually attach karo)
+        await downloadDoc(url, filename, saveBase);
+        const text = encodeURIComponent((msgText || '') + '\n(Downloaded file attach kar dein)');
+        window.open('https://wa.me/?text=' + text, '_blank');
+    }
+</script>
 {% endblock %}
