@@ -41,8 +41,18 @@ def vehicle_documents(request, vehicle_id):
             messages.error(request, 'Sirf Admin documents add/change kar sakta hai.')
             return redirect('vehicles:documents', vehicle_id=vehicle.id)
 
-        instance = editing if (editing and request.POST.get('doc_id')) else VehicleDocument(vehicle=vehicle)
-        form = VehicleDocumentForm(request.POST, request.FILES, instance=instance)
+        is_edit = bool(editing and request.POST.get('doc_id'))
+        if is_edit:
+            instance = editing
+            # Edit mode me vehicle select DISABLED hota hai — disabled inputs
+            # POST me value nahi bhejte, isliye instance ka vehicle hi inject karo
+            data = request.POST.copy()
+            data['vehicle'] = instance.vehicle_id
+            form = VehicleDocumentForm(data, request.FILES, instance=instance)
+        else:
+            instance = VehicleDocument(vehicle=vehicle)
+            form = VehicleDocumentForm(request.POST, request.FILES, instance=instance)
+
         if form.is_valid():
             form.save()
             messages.success(request, f'{instance.get_doc_type_display()} document save ho gaya!')
@@ -50,6 +60,9 @@ def vehicle_documents(request, vehicle_id):
         else:
             err_list = [f"{f}: {', '.join(e)}" for f, e in form.errors.items()]
             messages.error(request, '; '.join(err_list))
+            # Invalid par bhi edit form par hi wapas jao (blank add form na khule)
+            if is_edit:
+                return redirect(f'/vehicles/{vehicle.id}/documents/?doc={editing.pk}')
 
     form = VehicleDocumentForm(instance=editing, initial={'vehicle': vehicle})
     if editing:
