@@ -34,13 +34,15 @@
         <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Vehicle Report</h1>
         <p class="text-sm text-slate-500 mt-1">Vehicle-wise trips, revenue, payments and outstanding overview</p>
     </div>
+    <a href="{% url 'vehicles:all_documents' %}" class="lq-glass-btn !h-10 !px-3.5 !text-xs shrink-0 no-underline">
+        📄 <span class="hidden sm:inline">All Docs</span>
+    </a>
     <details class="export-menu relative md:hidden shrink-0">
         <summary class="app-chip active-soft cursor-pointer">
             📤 Export <span class="text-slate-400">▾</span>
         </summary>
         <div class="export-sheet">
             <div class="export-sheet-title">Export Options</div>
-            <a href="{% url 'vehicles:all_documents' %}" class="btn btn-ghost">📄 All Vehicle Documents</a>
             <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
                class="export-opt">📊 Export CSV</a>
             <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
