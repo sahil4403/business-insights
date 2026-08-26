@@ -143,7 +143,13 @@
                         <div class="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500">
                             <span class="whitespace-nowrap">{{ payment.payment_date|date:"d M Y" }}</span>
                             <span class="text-slate-300">•</span>
-                            <span class="truncate">{% if payment.trip %}{{ payment.trip.trip_code }}{% else %}On-Account{% endif %}</span>
+                            {% if payment.is_merged %}
+                                <span class="truncate text-amber-600 font-semibold">Lumpsum ({{ payment.child_count }} trips)</span>
+                            {% elif payment.trip %}
+                                <span class="truncate">{{ payment.trip.trip_code }}</span>
+                            {% else %}
+                                <span class="truncate">On-Account</span>
+                            {% endif %}
                         </div>
                         <div class="mt-1.5 flex items-center gap-1.5">
                             <span class="inline-flex items-center rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold px-2 py-0.5">{{ payment.payment_method.name }}</span>
@@ -194,8 +200,16 @@
                         {% endifchanged %}
                         <tr class="hover:bg-slate-50 transition">
                             <td class="px-4 py-3 font-semibold whitespace-nowrap">{{ payment.payment_date|date:"d-M-Y" }}</td>
-                            <td class="px-4 py-3 font-semibold text-slate-900">{% if payment.customer %}{{ payment.customer.name }}{% else %}{{ payment.trip.customer.name|default:"—" }}{% endif %}</td>
-                            <td class="px-4 py-3">{% if payment.trip %}{{ payment.trip.trip_code }}{% else %}On-Account{% endif %}</td>
+                            <td class="px-4 py-3 font-semibold text-slate-900">{% if payment.customer %}{{ payment.customer.name }}{% elif payment.trip %}{{ payment.trip.customer.name|default:"—" }}{% else %}—{% endif %}</td>
+                            <td class="px-4 py-3">
+                                {% if payment.is_merged %}
+                                    <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-700 text-[11px] font-semibold px-2 py-0.5">Lumpsum ({{ payment.child_count }} trips)</span>
+                                {% elif payment.trip %}
+                                    {{ payment.trip.trip_code }}
+                                {% else %}
+                                    On-Account
+                                {% endif %}
+                            </td>
                             <td class="px-4 py-3 text-right font-bold text-brand-600">₹{{ payment.amount|floatformat:2 }}</td>
                             <td class="px-4 py-3">{{ payment.payment_method.name }}</td>
                             <td class="px-4 py-3 text-slate-500">{% if payment.reference_number %}{{ payment.reference_number }}{% else %}—{% endif %}</td>

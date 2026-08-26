@@ -1870,12 +1870,66 @@ def payment_report(request):
     )
 
     # -----------------------------------
+    # MERGE LUMPSUM AUTO-ALLOCATED PAYMENTS
+    # -----------------------------------
+    # When a lumpsum payment is recorded without selecting a specific trip,
+    # the auto-allocation splits it across multiple trips. Each split creates
+    # a separate TripPayment record with the same notes. We group these back
+    # into a single row showing the original lumpsum amount.
+
+    _LUMPSUM_NOTES = (
+        'Customer lumpsum / on-account payment',
+        'Customer lumpsum / opening balance payment',
+    )
+
+    lumpsum_qs = payments.filter(notes__in=_LUMPSUM_NOTES)
+    regular_qs = payments.exclude(notes__in=_LUMPSUM_NOTES)
+
+    from itertools import groupby as _groupby
+
+    _merged = []
+    for _key, _group in _groupby(
+        lumpsum_qs.order_by(
+            'payment_date', 'payment_method_id', 'reference_number'
+        ),
+        key=lambda p: (
+            (p.trip.customer_id if p.trip else p.customer_id),
+            p.payment_date,
+            p.payment_method_id,
+            (p.reference_number or ''),
+        ),
+    ):
+        _group_list = list(_group)
+        _total = sum(p.amount for p in _group_list)
+        _rep = _group_list[0]
+        _merged.append(type('_MergedPayment', (), {
+            'id': _rep.id,
+            'customer': _rep.trip.customer if _rep.trip else _rep.customer,
+            'trip': None,
+            'payment_date': _rep.payment_date,
+            'amount': _total,
+            'payment_method': _rep.payment_method,
+            'reference_number': _rep.reference_number or '',
+            'notes': f"Lumpsum ({len(_group_list)} trips allocated)",
+            'payment_type': 'RECEIVED',
+            'effective_date': _rep.payment_date,
+            'is_merged': True,
+            'child_count': len(_group_list),
+        })())
+
+    display_payments = sorted(
+        list(regular_qs) + _merged,
+        key=lambda p: p.payment_date or timezone.localdate(),
+        reverse=True,
+    )
+
+    # -----------------------------------
     # BLANK EXPORT GUARD (no data -> block CSV/Excel/PDF)
     # -----------------------------------
 
     if request.GET.get('export'):
 
-        if not payments.exists():
+        if not display_payments:
 
             messages.error(
                 request,
@@ -1982,12 +2036,12 @@ def payment_report(request):
 
         total_amount = Decimal('0')
 
-        for payment in payments:
+        for payment in display_payments:
             cust_name = payment.customer.name if payment.customer else (payment.trip.customer.name if payment.trip and payment.trip.customer else '—')
-            trip_code = payment.trip.trip_code if payment.trip else 'On-Account'
+            trip_code = 'Lumpsum' if getattr(payment, 'is_merged', False) else (payment.trip.trip_code if payment.trip else 'On-Account')
             amt = Decimal(str(payment.amount or 0))
             total_amount += amt
-            p_date = payment.payment_date or payment.effective_date
+            p_date = payment.payment_date or getattr(payment, 'effective_date', None)
 
             data.append([
                 Paragraph(p_date.strftime('%d-%b-%Y') if p_date else '—', body_style),
@@ -2056,12 +2110,12 @@ def payment_report(request):
             )
 
 
-        for payment in payments:
+        for payment in display_payments:
             cust_name = payment.customer.name if payment.customer else (payment.trip.customer.name if payment.trip and payment.trip.customer else '')
-            trip_code = payment.trip.trip_code if payment.trip else 'On-Account'
+            trip_code = 'Lumpsum' if getattr(payment, 'is_merged', False) else (payment.trip.trip_code if payment.trip else 'On-Account')
 
             worksheet.append([
-                payment.payment_date or payment.effective_date,
+                payment.payment_date or getattr(payment, 'effective_date', None),
                 cust_name,
                 trip_code,
                 payment.amount,
@@ -2186,12 +2240,21 @@ def payment_report(request):
             'Notes',
         ])
 
-        for payment in payments:
+        for payment in display_payments:
+            cust_name = ''
+            if getattr(payment, 'customer', None):
+                cust_name = payment.customer.name
+            elif getattr(payment, 'trip', None) and payment.trip and payment.trip.customer:
+                cust_name = payment.trip.customer.name
+
+            trip_code = 'Lumpsum' if getattr(payment, 'is_merged', False) else (
+                payment.trip.trip_code if getattr(payment, 'trip', None) and payment.trip else 'On-Account'
+            )
 
             writer.writerow([
                 payment.payment_date,
-                payment.trip.customer.name,
-                payment.trip.trip_code,
+                cust_name,
+                trip_code,
                 payment.amount,
                 payment.payment_method.name if payment.payment_method else '',
                 payment.reference_number or '',
@@ -2204,7 +2267,7 @@ def payment_report(request):
     context = {
 
         'payments':
-            payments,
+            display_payments,
 
         'payment_methods':
             payment_methods,
