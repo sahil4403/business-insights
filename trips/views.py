@@ -544,11 +544,8 @@ def trip_edit(request, trip_id):
             if nxt and nxt.startswith('/') and not nxt.startswith('//'):
                 return redirect(nxt)
 
-            # Default: customer trips -> customer statement, baaki -> Trips list
-            if trip.customer:
-                return redirect('ledger:customer_statement', customer_id=trip.customer.id)
-
-            return redirect('trips:list')
+            # Default: trip detail page
+            return redirect('trips:detail', trip_id=trip.id)
         else:
             # Invalid save — page wapas edit par dikhega (errors ke saath).
             # Log me exact reason capture karo taaki diagnose easy ho.
