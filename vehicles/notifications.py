@@ -86,6 +86,7 @@ def check_and_notify():
 
     for doc in docs:
         days_left = (doc.expiry_date - today).days
+        changed = False
 
         # ---- Window reminders (30 / 15 / 7) ----
         for window, flag in WINDOWS:
@@ -94,6 +95,7 @@ def check_and_notify():
                 if send_whatsapp_message(msg):
                     sent.append(f"{doc.vehicle.registration_number} {doc.get_doc_type_display()} ({days_left}d)")
                 setattr(doc, flag, True)
+                changed = True
 
         # ---- Expired ----
         if days_left < 0 and not doc.notified_expired:
@@ -101,8 +103,11 @@ def check_and_notify():
             if send_whatsapp_message(msg):
                 sent.append(f"{doc.vehicle.registration_number} {doc.get_doc_type_display()} (EXPIRED)")
             doc.notified_expired = True
+            changed = True
 
-        doc.save(update_fields=['notified_30', 'notified_15', 'notified_7', 'notified_expired'])
+        # Sirf changed docs save (roz sabko save karna wasteful tha)
+        if changed:
+            doc.save(update_fields=['notified_30', 'notified_15', 'notified_7', 'notified_expired'])
 
     if sent:
         logger.info('Doc expiry notifications sent: %s', sent)

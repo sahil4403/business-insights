@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
 from core.utils import get_safe_next_or_referer
@@ -99,7 +99,7 @@ def all_vehicle_documents(request):
     today = timezone.localdate()
     rows = []
 
-    for v in Vehicle.objects.all().order_by('registration_number'):
+    for v in Vehicle.objects.prefetch_related('documents').all().order_by('registration_number'):
         # Generic type-named vehicles (Hyva/Halfton/Tractor/JCB — jisme
         # actual registration number nahi) list se skip karo
         if not any(ch.isdigit() for ch in (v.registration_number or '')):

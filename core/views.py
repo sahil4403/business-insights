@@ -125,7 +125,6 @@ from reportlab.platypus import (
     Spacer,
 )
 
-from trips.forms import TripForm
 
 @login_required(login_url='/login/')
 def dashboard(request):
