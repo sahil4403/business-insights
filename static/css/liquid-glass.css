@@ -140,6 +140,14 @@ thead tr.bg-white {
     overflow-x: clip;
 }
 
+/* Fixed-position modals should not be clipped by #app-shell overflow */
+#app-shell > .fixed,
+#app-shell > div > .fixed,
+#app-shell > div > div > .fixed {
+    position: fixed !important;
+    overflow: visible !important;
+}
+
 /* ---------- 11. SCROLL FLICKER FIX ---------- */
 .lq-bar, .lq-action, .lq-nav, #scroll-topbar {
     backface-visibility: hidden;

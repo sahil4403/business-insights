@@ -345,6 +345,9 @@
 
     </div><!-- /#app-shell -->
 
+    <!-- MODALS (outside #app-shell so overflow-x: clip doesn't cut them) -->
+    {% block modals %}{% endblock %}
+
     <!-- MOBILE BOTTOM NAV · LIQUID GLASS -->
     <nav class="lq-bar md:hidden" aria-label="Main navigation">
         <a href="{% url 'core:dashboard' %}" data-navlink class="lq-link">

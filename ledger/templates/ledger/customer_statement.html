@@ -449,6 +449,9 @@
 
 </div>
 
+{% endblock %}
+
+{% block modals %}
 <!-- RECORD PAYMENT MODAL (mobile: bottom-sheet with internal scroll — buttons never hide under Safari toolbar) -->
 <div class="fixed inset-0 z-[70] hidden items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm" id="paymentModal">
     <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
@@ -601,12 +604,14 @@
 
     function openOpeningBalanceModal() {
         const modal = document.getElementById('openingBalanceModal');
-        if (modal) modal.classList.remove('hidden');
+        // Overlay carries items-*/justify-* but no `flex`; add it so the panel
+        // actually centers (removing `hidden` alone leaves it display:block).
+        if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
     }
 
     function closeOpeningBalanceModal() {
         const modal = document.getElementById('openingBalanceModal');
-        if (modal) modal.classList.add('hidden');
+        if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
     }
 
     const openingBalModal = document.getElementById('openingBalanceModal');
@@ -623,13 +628,16 @@
         const dateInput = document.getElementById('modal_payment_date');
         if (dateInput) dateInput.value = today;
         const modal = document.getElementById('paymentModal');
-        if (modal) modal.classList.remove('hidden');
+        // Add `flex` so items-center/justify-center actually center the panel;
+        // removing `hidden` alone would leave the overlay as display:block and
+        // the modal would render mis-aligned / cut off on desktop.
+        if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
         updateTripAmount();
     }
 
     function closePaymentModal() {
         const modal = document.getElementById('paymentModal');
-        if (modal) modal.classList.add('hidden');
+        if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
     }
 
     function updateTripAmount() {
