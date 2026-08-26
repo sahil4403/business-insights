@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
@@ -9,7 +10,8 @@ from django.db.models.functions import Coalesce
 from django.db.models import Q
 from core.audit import log_action
 from django.shortcuts import get_object_or_404, render, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
+from django.db import transaction
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -34,59 +36,158 @@ from django.conf import settings
 from core.utils import get_safe_next, get_safe_next_or_referer
 
 LUMPSUM_NOTE = 'Customer lumpsum / on-account payment'
+LUMPSUM_OPENING_NOTE = 'Customer lumpsum / opening balance payment'
+
+# Notes historically written by the auto-allocation path. Used only to detect
+# LEGACY split rows (created before payment_group existed) so old data can still
+# be merged for display / backfilled.
+LEGACY_LUMPSUM_NOTES = (LUMPSUM_NOTE, LUMPSUM_OPENING_NOTE)
+
+
+def allocate_customer_payment(customer, amount, payment_date, payment_method,
+                              reference_number, notes, group_id):
+    """Allocate ONE recorded customer payment across pending trips, oldest first.
+
+    Every row created here shares the same ``group_id`` so that statements /
+    reports can show a SINGLE line for the full amount actually received, while
+    the individual per-trip rows keep each trip's paid/unpaid status accurate
+    (FIFO). Any amount left after clearing all pending trips is stored as an
+    on-account credit against the customer.
+
+    Returns the list of created TripPayment rows.
+    """
+    from trips.models import Trip, TripPayment
+
+    created = []
+    remaining = amount
+
+    pending_trips = (
+        Trip.objects.filter(customer=customer)
+        .prefetch_related('payments')
+        .order_by('trip_date', 'id')
+    )
+
+    for trip in pending_trips:
+        if remaining <= 0:
+            break
+        outstanding = trip.outstanding_amount
+        if outstanding <= 0:
+            continue
+        pay_amount = min(remaining, outstanding)
+        created.append(
+            TripPayment.objects.create(
+                trip=trip,
+                customer=None,
+                amount=pay_amount,
+                payment_date=payment_date,
+                payment_method=payment_method,
+                reference_number=reference_number,
+                notes=notes or LUMPSUM_NOTE,
+                payment_group=group_id,
+            )
+        )
+        remaining -= pay_amount
+
+    # Leftover (or when the customer has no pending trips at all) is recorded as
+    # a direct on-account credit so the customer's overall balance stays correct.
+    if remaining > 0:
+        created.append(
+            TripPayment.objects.create(
+                trip=None,
+                customer=customer,
+                amount=remaining,
+                payment_date=payment_date,
+                payment_method=payment_method,
+                reference_number=reference_number,
+                notes=notes or LUMPSUM_OPENING_NOTE,
+                payment_group=group_id,
+            )
+        )
+
+    return created
 
 
 def _payment_transactions(period_payments, today_date):
     """Build statement transaction dicts for payments.
 
-    Rows created by lumpsum auto-allocation share the same default note;
-    when several land on the SAME day they are merged into ONE credit line
-    showing the full amount actually received that day.
+    All rows created from ONE recorded lumpsum payment share a ``payment_group``
+    and are shown as a SINGLE credit line for the full amount received, while the
+    per-trip rows underneath keep each trip's paid/unpaid status accurate.
+    Legacy split rows (created before payment_group existed) fall back to a
+    same-day / method / reference grouping so old data also reads cleanly.
     """
     def pdate(p):
         return p.payment_date or (p.trip.trip_date if p.trip else today_date)
 
-    splits = {}
-    items = []
+    # ---- Bucket rows into logical payments ----
+    groups = {}
+    order = []
+
+    def _add(key, p):
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(p)
+
     for payment in period_payments:
-        if payment.trip_id and (payment.notes or '') == LUMPSUM_NOTE:
-            splits.setdefault(pdate(payment), []).append(payment)
+        pg = getattr(payment, 'payment_group', None)
+        if pg:
+            _add(('G', pg), payment)
+        elif payment.trip_id and (payment.notes or '') in LEGACY_LUMPSUM_NOTES:
+            # Legacy auto-allocated split with no group id yet.
+            _add((
+                'L', pdate(payment), payment.payment_method_id,
+                payment.reference_number or '', payment.notes or '',
+            ), payment)
         else:
-            items.append((pdate(payment), 'single', payment))
-
-    for pdate_key, group in splits.items():
-        if len(group) > 1:
-            items.append((pdate_key, 'merged', group))
-        else:
-            items.append((pdate_key, 'single', group[0]))
-
-    items.sort(key=lambda item: item[0])
+            _add(('S', payment.id), payment)
 
     transactions = []
-    for p_date, kind, payload in items:
-        if kind == 'merged':
-            methods = [p.payment_method for p in payload if p.payment_method]
-            method_name = methods[0].name if methods else None
-            codes = [p.trip.trip_code for p in payload if p.trip and p.trip.trip_code]
+    for key in order:
+        payload = groups[key]
+        kind = key[0]
+        p_date = pdate(payload[0])
+
+        # ---- Merged lumpsum line (2+ rows from one payment) ----
+        if kind in ('G', 'L') and len(payload) > 1:
+            method = next(
+                (p.payment_method for p in payload if p.payment_method), None
+            )
+            method_name = method.name if method else None
+            codes = [
+                p.trip.trip_code for p in payload
+                if p.trip and p.trip.trip_code
+            ]
             shown = ', '.join(codes[:3])
             if len(codes) > 3:
                 shown += f' +{len(codes) - 3} more'
             total = sum((p.amount for p in payload), Decimal('0'))
-            desc = (
-                f"Lumpsum Payment - {method_name} ({len(payload)} trips: {shown})"
-                if method_name
-                else f"Lumpsum Payment Received ({len(payload)} trips: {shown})"
-            )
+            n_trips = len(codes)
+            if method_name:
+                desc = (
+                    f"Lumpsum Payment - {method_name} ({n_trips} trips: {shown})"
+                    if n_trips else
+                    f"Lumpsum Payment - {method_name} (On-Account)"
+                )
+            else:
+                desc = (
+                    f"Lumpsum Payment Received ({n_trips} trips: {shown})"
+                    if n_trips else
+                    "Lumpsum Payment Received (On-Account)"
+                )
             transactions.append({
                 'date': p_date,
                 'type': 'PAYMENT',
                 'description': desc,
                 'debit': Decimal('0'),
                 'credit': total,
-                'reference': codes[0] if codes else 'On-Account',
+                'reference': codes[0] if codes else (payload[0].reference_number or 'On-Account'),
                 'destination': '',
                 'trip_id': None,
                 'payment_id': None,
+                # Present for new grouped payments -> edit/delete as one unit.
+                # None for legacy same-day merges (per-row breakdown fallback).
+                'payment_group': payload[0].payment_group,
                 'merged_payments': [
                     {'id': p.id, 'amount': p.amount,
                      'trip_code': p.trip.trip_code if p.trip else '',
@@ -94,51 +195,60 @@ def _payment_transactions(period_payments, today_date):
                     for p in payload
                 ],
             })
-        else:
-            payment = payload
-            p_ref = payment.trip.trip_code if payment.trip else (payment.reference_number or "On-Account")
-            p_trip_id = payment.trip.id if payment.trip else None
-            p_destination = (payment.trip.destination or '') if payment.trip else ''
-            p_type = getattr(payment, 'payment_type', 'RECEIVED')
+            continue
 
-            if p_type == 'PAID':
-                p_desc = f"💸 Payment Paid - {payment.payment_method.name}" if payment.payment_method else "Payment Paid to Party"
-                transactions.append({
-                    'date': p_date,
-                    'type': 'PAYMENT_PAID',
-                    'description': p_desc,
-                    'debit': payment.amount,
-                    'credit': Decimal('0'),
-                    'reference': p_ref,
-                    'destination': p_destination,
-                    'trip_id': p_trip_id,
-                    'payment_id': payment.id,
-                })
-            elif p_type == 'CONTRA':
-                transactions.append({
-                    'date': p_date,
-                    'type': 'CONTRA',
-                    'description': "🔄 Contra Settlement (Mutual Netting Off)",
-                    'debit': Decimal('0'),
-                    'credit': payment.amount,
-                    'reference': p_ref,
-                    'destination': p_destination,
-                    'trip_id': p_trip_id,
-                    'payment_id': payment.id,
-                })
-            else:
-                p_desc = f"Payment - {payment.payment_method.name}" if payment.payment_method else "Payment Received"
-                transactions.append({
-                    'date': p_date,
-                    'type': 'PAYMENT',
-                    'description': p_desc,
-                    'debit': Decimal('0'),
-                    'credit': payment.amount,
-                    'reference': p_ref,
-                    'destination': p_destination,
-                    'trip_id': p_trip_id,
-                    'payment_id': payment.id,
-                })
+        # ---- Single line (standalone payment OR a 1-row lumpsum group) ----
+        payment = payload[0]
+        pg = getattr(payment, 'payment_group', None)
+        p_ref = payment.trip.trip_code if payment.trip else (payment.reference_number or "On-Account")
+        p_trip_id = payment.trip.id if payment.trip else None
+        p_destination = (payment.trip.destination or '') if payment.trip else ''
+        p_type = getattr(payment, 'payment_type', 'RECEIVED')
+        # A row that belongs to a payment_group is edited/deleted as a GROUP
+        # (re-allocation), so never expose its individual single payment_id.
+        edit_payment_id = None if pg else payment.id
+
+        if p_type == 'PAID':
+            p_desc = f"💸 Payment Paid - {payment.payment_method.name}" if payment.payment_method else "Payment Paid to Party"
+            transactions.append({
+                'date': p_date,
+                'type': 'PAYMENT_PAID',
+                'description': p_desc,
+                'debit': payment.amount,
+                'credit': Decimal('0'),
+                'reference': p_ref,
+                'destination': p_destination,
+                'trip_id': p_trip_id,
+                'payment_id': edit_payment_id,
+                'payment_group': pg,
+            })
+        elif p_type == 'CONTRA':
+            transactions.append({
+                'date': p_date,
+                'type': 'CONTRA',
+                'description': "🔄 Contra Settlement (Mutual Netting Off)",
+                'debit': Decimal('0'),
+                'credit': payment.amount,
+                'reference': p_ref,
+                'destination': p_destination,
+                'trip_id': p_trip_id,
+                'payment_id': edit_payment_id,
+                'payment_group': pg,
+            })
+        else:
+            p_desc = f"Payment - {payment.payment_method.name}" if payment.payment_method else "Payment Received"
+            transactions.append({
+                'date': p_date,
+                'type': 'PAYMENT',
+                'description': p_desc,
+                'debit': Decimal('0'),
+                'credit': payment.amount,
+                'reference': p_ref,
+                'destination': p_destination,
+                'trip_id': p_trip_id,
+                'payment_id': edit_payment_id,
+                'payment_group': pg,
+            })
     return transactions
 
 
@@ -956,44 +1066,20 @@ def customer_record_payment(request, customer_id):
                     reference_number=reference_number,
                     notes=notes,
                 )
-        # Case 2: Lumpsum / Auto-allocate across pending trips (Oldest first)
+        # Case 2: Lumpsum / Auto-allocate across pending trips (Oldest first).
+        # Every row created shares ONE payment_group so the payment renders as a
+        # single clean line everywhere, while per-trip paid/unpaid status stays
+        # accurate (FIFO). Leftover becomes an on-account credit.
         else:
-            pending_trips = (
-                Trip.objects.filter(customer=customer)
-                .prefetch_related('payments')
-                .order_by('trip_date', 'id')
+            allocate_customer_payment(
+                customer=customer,
+                amount=amount,
+                payment_date=payment_date,
+                payment_method=payment_method,
+                reference_number=reference_number,
+                notes=notes,
+                group_id=uuid.uuid4().hex,
             )
-
-            remaining_to_allocate = amount
-            for trip in pending_trips:
-                if remaining_to_allocate <= 0:
-                    break
-                outstanding = trip.outstanding_amount
-                if outstanding <= 0:
-                    continue
-                pay_amount = min(remaining_to_allocate, outstanding)
-                TripPayment.objects.create(
-                    trip=trip,
-                    customer=None,
-                    amount=pay_amount,
-                    payment_date=payment_date,
-                    payment_method=payment_method,
-                    reference_number=reference_number,
-                    notes=notes or "Customer lumpsum / on-account payment",
-                )
-                remaining_to_allocate -= pay_amount
-
-            # If there is remaining payment (or 0 pending trips exist), record as direct customer payment against Opening Balance
-            if remaining_to_allocate > 0:
-                TripPayment.objects.create(
-                    trip=None,
-                    customer=customer,
-                    amount=remaining_to_allocate,
-                    payment_date=payment_date,
-                    payment_method=payment_method,
-                    reference_number=reference_number,
-                    notes=notes or "Customer lumpsum / opening balance payment",
-                )
 
         log_action(
             request,
@@ -1007,6 +1093,145 @@ def customer_record_payment(request, customer_id):
         return redirect(next_url)
 
     return redirect(next_url)
+
+
+@login_required(login_url='/login/')
+def customer_payment_group_edit(request, group_id):
+    """Edit a whole lumpsum payment (all rows sharing payment_group) as ONE unit.
+
+    On save the old group rows are deleted and the FIFO allocation is re-run with
+    the new amount/date/method/reference/notes under the SAME group id, so each
+    trip's paid/unpaid status is recomputed correctly.
+    """
+    from django.contrib import messages
+    from master_data.models import PaymentMethod
+
+    rows = list(
+        TripPayment.objects.filter(payment_group=group_id)
+        .select_related('trip', 'trip__customer', 'customer', 'payment_method')
+    )
+    if not rows:
+        raise Http404("Payment group not found")
+
+    rep = rows[0]
+    customer = rep.trip.customer if rep.trip else rep.customer
+    if customer is None:
+        raise Http404("Payment customer not found")
+
+    next_url = get_safe_next_or_referer(
+        request, f"/ledger/customer/{customer.id}/"
+    )
+    current_total = sum((r.amount for r in rows), Decimal('0'))
+
+    if request.method == 'POST':
+        raw_amount = request.POST.get('amount', '').strip()
+        raw_payment_date = request.POST.get('payment_date', '').strip()
+        payment_method_id = request.POST.get('payment_method', '').strip()
+        reference_number = request.POST.get('reference_number', '').strip()
+        notes = request.POST.get('notes', '').strip()
+
+        try:
+            amount = Decimal(raw_amount)
+            if amount <= 0:
+                raise ValueError()
+        except (InvalidOperation, ValueError):
+            messages.error(request, "Please enter a valid amount greater than zero.")
+            return redirect(request.get_full_path())
+
+        if raw_payment_date:
+            try:
+                payment_date = datetime.strptime(raw_payment_date, '%Y-%m-%d').date()
+            except ValueError:
+                payment_date = timezone.localdate()
+        else:
+            payment_date = timezone.localdate()
+
+        payment_method = None
+        if payment_method_id:
+            payment_method = PaymentMethod.objects.filter(
+                pk=payment_method_id, is_active=True
+            ).first()
+
+        with transaction.atomic():
+            # Free up the old rows first, then re-allocate the new amount FIFO.
+            TripPayment.objects.filter(payment_group=group_id).delete()
+            allocate_customer_payment(
+                customer=customer,
+                amount=amount,
+                payment_date=payment_date,
+                payment_method=payment_method,
+                reference_number=reference_number,
+                notes=notes,
+                group_id=group_id,
+            )
+
+        log_action(
+            request,
+            'PAYMENT_EDIT',
+            model_name='Customer',
+            object_repr=str(customer),
+            details=f"Edit lumpsum payment (group {group_id[:8]}) -> ₹{amount} | Date {payment_date}",
+        )
+        messages.success(request, f"Payment updated to ₹{amount:,.2f} successfully!")
+        return redirect(next_url)
+
+    payment_methods = PaymentMethod.objects.filter(is_active=True).order_by('name')
+    context = {
+        'customer': customer,
+        'group_id': group_id,
+        'current_total': current_total,
+        'rep': rep,
+        'rows': rows,
+        'row_count': len(rows),
+        'notes_prefill': '' if (rep.notes or '') in LEGACY_LUMPSUM_NOTES else (rep.notes or ''),
+        'payment_methods': payment_methods,
+        'next_url': next_url,
+    }
+    return render(request, 'ledger/payment_group_edit.html', context)
+
+
+@login_required(login_url='/login/')
+def customer_payment_group_delete(request, group_id):
+    """Delete a whole lumpsum payment (all rows sharing payment_group) at once."""
+    from django.contrib import messages
+
+    rows = list(
+        TripPayment.objects.filter(payment_group=group_id)
+        .select_related('trip', 'trip__customer', 'customer', 'payment_method')
+    )
+    if not rows:
+        raise Http404("Payment group not found")
+
+    rep = rows[0]
+    customer = rep.trip.customer if rep.trip else rep.customer
+    next_url = get_safe_next_or_referer(
+        request, f"/ledger/customer/{customer.id}/" if customer else "/"
+    )
+    total = sum((r.amount for r in rows), Decimal('0'))
+
+    if request.method == 'POST':
+        with transaction.atomic():
+            TripPayment.objects.filter(payment_group=group_id).delete()
+        log_action(
+            request,
+            'PAYMENT_DELETE',
+            model_name='TripPayment',
+            object_repr=f"Lumpsum group {group_id[:8]}",
+            details=f"Deleted lumpsum payment ₹{total} ({len(rows)} rows) for {customer}",
+        )
+        messages.success(request, f"Payment of ₹{total:,.2f} removed successfully!")
+        return redirect(next_url)
+
+    context = {
+        'customer': customer,
+        'group_id': group_id,
+        'total': total,
+        'rep': rep,
+        'rows': rows,
+        'row_count': len(rows),
+        'next_url': next_url,
+    }
+    return render(request, 'ledger/payment_group_delete.html', context)
 
 
 @login_required(login_url='/login/')

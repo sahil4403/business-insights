@@ -1872,37 +1872,30 @@ def payment_report(request):
     # -----------------------------------
     # MERGE LUMPSUM AUTO-ALLOCATED PAYMENTS
     # -----------------------------------
-    # When a lumpsum payment is recorded without selecting a specific trip,
-    # the auto-allocation splits it across multiple trips. Each split creates
-    # a separate TripPayment record with the same notes. We group these back
-    # into a single row showing the original lumpsum amount.
+    # A lumpsum payment is stored as several TripPayment rows (one per trip it
+    # was allocated to) that all share a `payment_group`. We collapse each group
+    # back into a single display row showing the full amount received. Rows
+    # created before payment_group existed are grouped by the legacy
+    # (customer, date, method, reference) heuristic on the known lumpsum notes.
 
     _LUMPSUM_NOTES = (
         'Customer lumpsum / on-account payment',
         'Customer lumpsum / opening balance payment',
     )
 
-    lumpsum_qs = payments.filter(notes__in=_LUMPSUM_NOTES)
-    regular_qs = payments.exclude(notes__in=_LUMPSUM_NOTES)
+    _no_group = Q(payment_group__isnull=True) | Q(payment_group='')
+
+    grouped_qs = payments.exclude(_no_group)
+    legacy_qs = payments.filter(_no_group).filter(notes__in=_LUMPSUM_NOTES)
+    regular_qs = payments.filter(_no_group).exclude(notes__in=_LUMPSUM_NOTES)
 
     from itertools import groupby as _groupby
 
-    _merged = []
-    for _key, _group in _groupby(
-        lumpsum_qs.order_by(
-            'payment_date', 'payment_method_id', 'reference_number'
-        ),
-        key=lambda p: (
-            (p.trip.customer_id if p.trip else p.customer_id),
-            p.payment_date,
-            p.payment_method_id,
-            (p.reference_number or ''),
-        ),
-    ):
-        _group_list = list(_group)
+    def _make_merged(_group_list):
         _total = sum(p.amount for p in _group_list)
         _rep = _group_list[0]
-        _merged.append(type('_MergedPayment', (), {
+        _n = len(_group_list)
+        return type('_MergedPayment', (), {
             'id': _rep.id,
             'customer': _rep.trip.customer if _rep.trip else _rep.customer,
             'trip': None,
@@ -1910,12 +1903,48 @@ def payment_report(request):
             'amount': _total,
             'payment_method': _rep.payment_method,
             'reference_number': _rep.reference_number or '',
-            'notes': f"Lumpsum ({len(_group_list)} trips allocated)",
+            'notes': (
+                f"Lumpsum ({_n} trips allocated)" if _n > 1 else (_rep.notes or '')
+            ),
             'payment_type': 'RECEIVED',
             'effective_date': _rep.payment_date,
-            'is_merged': True,
-            'child_count': len(_group_list),
-        })())
+            'is_merged': _n > 1,
+            'child_count': _n,
+            'payment_group': _rep.payment_group,
+        })()
+
+    _merged = []
+
+    # New payments: group strictly by shared payment_group.
+    for _key, _group in _groupby(
+        grouped_qs.order_by('payment_group'),
+        key=lambda p: p.payment_group,
+    ):
+        _merged.append(_make_merged(list(_group)))
+
+    # Legacy split rows (pre-migration): heuristic grouping. groupby only
+    # collapses CONSECUTIVE equal keys, so sort in Python on the full key first
+    # (including the owning customer) — otherwise two customers sharing the same
+    # date/method/blank-reference could interleave and mis-split.
+    def _legacy_key(p):
+        return (
+            (p.trip.customer_id if p.trip else p.customer_id),
+            p.payment_date,
+            p.payment_method_id,
+            (p.reference_number or ''),
+        )
+
+    _legacy_sorted = sorted(
+        legacy_qs,
+        key=lambda p: (
+            (p.trip.customer_id if p.trip else p.customer_id) or 0,
+            str(p.payment_date or ''),
+            p.payment_method_id or 0,
+            (p.reference_number or ''),
+        ),
+    )
+    for _key, _group in _groupby(_legacy_sorted, key=_legacy_key):
+        _merged.append(_make_merged(list(_group)))
 
     display_payments = sorted(
         list(regular_qs) + _merged,

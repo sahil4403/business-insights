@@ -317,6 +317,20 @@ class TripPayment(models.Model):
         blank=True
     )
 
+    # Groups together all rows that were created from a SINGLE recorded
+    # payment. When a lumpsum is auto-allocated across several trips (FIFO),
+    # every resulting row shares the same payment_group (a uuid4 hex string).
+    # This lets reports/statements show ONE clean line for the full amount
+    # actually received, while the per-trip rows keep trip paid/unpaid status
+    # accurate. Null for legacy rows and for single specific-trip payments.
+    payment_group = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='Shared id for all rows created from one lumpsum payment.'
+    )
+
     PAYMENT_TYPE_CHOICES = [
         ('RECEIVED', 'Payment Received from Customer'),
         ('PAID', 'Payment Paid to Vendor/Customer'),

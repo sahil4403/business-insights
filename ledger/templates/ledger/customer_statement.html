@@ -281,13 +281,29 @@
                                 {% endif %}
                             </div>
                         {% elif transaction.type == 'PAYMENT' %}
-                            {% if transaction.payment_id %}
+                            {% if transaction.payment_group %}
+                                <div class="flex items-center gap-2 mt-2">
+                                    <a href="{% url 'ledger:customer_payment_group_edit' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm">Edit</a>
+                                    <a href="{% url 'ledger:customer_payment_group_delete' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger">Delete</a>
+                                </div>
+                                {% if transaction.merged_payments %}
+                                    <details class="mt-1.5">
+                                        <summary class="inline-flex items-center gap-1 app-chip sm">{{ transaction.merged_payments|length }} trips ▾</summary>
+                                        <div class="mt-1.5 space-y-1">
+                                            {% for mp in transaction.merged_payments %}
+                                                <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5">
+                                                    <span class="text-[12px] font-semibold text-slate-700 truncate">₹{{ mp.amount|floatformat:2 }}{% if mp.trip_code %} <span class="text-slate-400 font-medium">· {{ mp.trip_code }}</span>{% endif %}</span>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </details>
+                                {% endif %}
+                            {% elif transaction.payment_id %}
                                 <div class="flex items-center gap-2 mt-2">
                                     <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm">Edit</a>
                                     <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger">Delete</a>
                                 </div>
-                            {% endif %}
-                            {% if transaction.merged_payments %}
+                            {% elif transaction.merged_payments %}
                                 <details class="mt-1.5">
                                     <summary class="inline-flex items-center gap-1 app-chip sm">{{ transaction.merged_payments|length }} Payments ▾</summary>
                                     <div class="mt-1.5 space-y-1">
@@ -382,11 +398,25 @@
                                             <a href="{% url 'trips:payment_create' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm primary" title="Record Payment for this Trip">Pay ₹{{ transaction.outstanding|floatformat:0 }}</a>
                                         {% endif %}
                                     {% elif transaction.type == 'PAYMENT' %}
-                                        {% if transaction.payment_id %}
+                                        {% if transaction.payment_group %}
+                                            <a href="{% url 'ledger:customer_payment_group_edit' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm" title="Edit Payment">Edit</a>
+                                            <a href="{% url 'ledger:customer_payment_group_delete' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger" title="Delete Payment">Delete</a>
+                                            {% if transaction.merged_payments %}
+                                                <details class="inline-block">
+                                                    <summary class="app-chip sm">{{ transaction.merged_payments|length }} trips ▾</summary>
+                                                    <div class="mt-1.5 space-y-1 text-left">
+                                                        {% for mp in transaction.merged_payments %}
+                                                            <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 whitespace-nowrap">
+                                                                <span class="text-[12px] font-semibold text-slate-700">₹{{ mp.amount|floatformat:2 }}{% if mp.trip_code %} <span class="text-slate-400 font-medium">· {{ mp.trip_code }}</span>{% endif %}</span>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </details>
+                                            {% endif %}
+                                        {% elif transaction.payment_id %}
                                             <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm" title="Edit Payment">Edit</a>
                                             <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger" title="Delete Payment">Delete</a>
-                                        {% endif %}
-                                        {% if transaction.merged_payments %}
+                                        {% elif transaction.merged_payments %}
                                             <details class="inline-block">
                                                 <summary class="app-chip sm">{{ transaction.merged_payments|length }} Payments ▾</summary>
                                                 <div class="mt-1.5 space-y-1 text-left">

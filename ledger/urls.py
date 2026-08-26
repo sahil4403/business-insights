@@ -24,6 +24,18 @@ urlpatterns = [
     ),
 
     path(
+        'customer/payment-group/<str:group_id>/edit/',
+        views.customer_payment_group_edit,
+        name='customer_payment_group_edit'
+    ),
+
+    path(
+        'customer/payment-group/<str:group_id>/delete/',
+        views.customer_payment_group_delete,
+        name='customer_payment_group_delete'
+    ),
+
+    path(
         'customer/<int:customer_id>/update-opening-balance/',
         views.update_customer_opening_balance,
         name='update_customer_opening_balance'

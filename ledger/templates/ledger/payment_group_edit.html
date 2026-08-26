@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Payment - {{ customer.name }}{% endblock %}
+
+{% block head %}
+    <style>
+        .payment-form input[type="date"],
+        .payment-form input[type="number"],
+        .payment-form input[type="text"],
+        .payment-form select,
+        .payment-form textarea {
+            width: 100%; height: 3rem; padding: 0 0.75rem; border-radius: 0.75rem;
+            border: 1px solid #cbd5e1; background: #fff; font-size: 16px;
+            color: #0f172a; box-sizing: border-box; transition: all 0.15s ease;
+        }
+        .payment-form textarea { height: auto; padding: 0.75rem; resize: vertical; }
+        .payment-form input:focus,
+        .payment-form select:focus,
+        .payment-form textarea:focus {
+            outline: none; border-color: #16665a; box-shadow: 0 0 0 3px rgba(22,102,90,0.15);
+        }
+        @media (min-width: 768px) {
+            .payment-form input[type="date"],
+            .payment-form input[type="number"],
+            .payment-form input[type="text"],
+            .payment-form select { height: 2.75rem; font-size: 0.875rem; }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+
+<form method="post">
+    {% csrf_token %}
+    {% if next_url %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+    {% endif %}
+
+    <div class="mb-4 md:mb-6">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+            <h1 class="text-xl md:text-2xl font-bold text-slate-900">Edit Payment</h1>
+            <span class="app-chip active-soft">{{ customer.name }}</span>
+        </div>
+        <div class="flex gap-2.5 mt-3 md:hidden">
+            <a href="{{ next_url }}" class="btn btn-secondary flex-1">Cancel</a>
+            <button type="submit" class="btn btn-primary flex-1">Save Changes</button>
+        </div>
+    </div>
+
+    <div class="app-surface p-4 md:p-6 payment-form">
+
+        <div class="mb-5 flex items-center justify-between gap-3 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
+            <span class="text-[13px] text-slate-500">Editing payment</span>
+            <span class="text-[13px] font-semibold text-slate-900">
+                ₹{{ current_total|floatformat:2 }} · {{ rep.payment_date|date:"d-M-Y" }}
+            </span>
+        </div>
+
+        {% if row_count > 1 %}
+        <div class="mb-4 rounded-xl px-4 py-3 bg-sky-50 border border-sky-200 text-sky-800 text-[13px] leading-relaxed">
+            💡 Yeh payment abhi <strong>{{ row_count }} trips</strong> mein allocate hui hai (oldest first).
+            Amount badloge to system dobara oldest trips se allocate kar dega — trip ka paid/unpaid status apne aap sahi ho jayega.
+        </div>
+        {% endif %}
+
+        <div class="space-y-4">
+
+            <div>
+                <label class="label" for="amount">Payment Amount (₹) *</label>
+                <input type="number" step="0.01" min="0.01" name="amount" id="amount"
+                       value="{{ current_total|floatformat:2 }}" required>
+            </div>
+
+            <div>
+                <label class="label" for="payment_date">Payment Date *</label>
+                <input type="date" name="payment_date" id="payment_date"
+                       value="{{ rep.payment_date|date:'Y-m-d' }}" required>
+            </div>
+
+            <div>
+                <label class="label" for="payment_method">Payment Method</label>
+                <select name="payment_method" id="payment_method">
+                    <option value="">-- Select Method --</option>
+                    {% for pm in payment_methods %}
+                        <option value="{{ pm.id }}" {% if rep.payment_method_id == pm.id %}selected{% endif %}>{{ pm.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="label" for="reference_number">Reference Number (UTR / Cheque / Txn ID)</label>
+                <input type="text" name="reference_number" id="reference_number"
+                       value="{{ rep.reference_number }}" placeholder="Optional">
+            </div>
+
+            <div>
+                <label class="label" for="notes">Notes</label>
+                <textarea name="notes" id="notes" rows="2" placeholder="Optional">{{ notes_prefill }}</textarea>
+            </div>
+
+        </div>
+
+        <div class="hidden md:flex justify-end gap-2.5 pt-5">
+            <a href="{{ next_url }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+
+    </div>
+
+</form>
+
+{% endblock %}
