@@ -40,6 +40,7 @@
         </summary>
         <div class="export-sheet">
             <div class="export-sheet-title">Export Options</div>
+            <a href="{% url 'vehicles:all_documents' %}" class="btn btn-ghost">📄 All Vehicle Documents</a>
             <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
                class="export-opt">📊 Export CSV</a>
             <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
@@ -52,7 +53,8 @@
         </div>
     </details>
     <div class="hidden md:flex gap-2 shrink-0">
-        <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
+        <a href="{% url 'vehicles:all_documents' %}" class="btn btn-ghost">📄 All Vehicle Documents</a>
+            <a href="?export=csv{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
            class="btn btn-ghost">📊 CSV</a>
         <a href="?export=excel{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if vehicle_type %}&vehicle_type={{ vehicle_type }}{% endif %}{% if vehicle_id %}&vehicle_id={{ vehicle_id }}{% endif %}{% if driver_id %}&driver_id={{ driver_id }}{% endif %}"
            class="btn btn-ghost">📗 Excel</a>
@@ -161,9 +163,9 @@
                         <div class="font-bold text-[15px] text-slate-900 truncate">{{ vehicle.vehicle_number }}</div>
                         <div class="mt-0.5 text-[12px] text-slate-500">{{ vehicle.total_trips }} Trips</div>
                         <div class="mt-0.5 text-[12px] text-slate-500">₹{{ vehicle.total_revenue|floatformat:2 }} Revenue · ₹{{ vehicle.total_received|floatformat:2 }} Received</div>
-                        <a href="{% url 'vehicles:documents' vehicle.vehicle_id %}" class="mt-1.5 inline-flex items-center gap-1 h-7 px-2.5 rounded-lg bg-brand-50 text-brand-600 font-bold text-[11px] active:scale-[0.95] transition">
+                        {% if vehicle.vehicle_id %}<a href="{% url 'vehicles:documents' vehicle.vehicle_id %}" class="mt-1.5 inline-flex items-center gap-1 h-7 px-2.5 rounded-lg bg-brand-50 text-brand-600 font-bold text-[11px] active:scale-[0.95] transition">
                             📄 Documents {% if vehicle.docs_count %}({{ vehicle.docs_count }}){% endif %}
-                        </a>
+                        </a>{% endif %}
                     </div>
                     <div class="text-right shrink-0 pl-2">
                         <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Outstanding</div>
@@ -192,9 +194,9 @@
                         <tr class="hover:bg-slate-50/60 transition">
                             <td class="px-5 py-3.5 font-semibold text-slate-900">
                                 {{ vehicle.vehicle_number }}
-                                <a href="{% url 'vehicles:documents' vehicle.vehicle_id %}" class="ml-2 inline-flex items-center gap-1 h-6 px-2 rounded-lg bg-brand-50 text-brand-600 font-bold text-[10px] hover:bg-brand-100 transition">
+                                {% if vehicle.vehicle_id %}<a href="{% url 'vehicles:documents' vehicle.vehicle_id %}" class="ml-2 inline-flex items-center gap-1 h-6 px-2 rounded-lg bg-brand-50 text-brand-600 font-bold text-[10px] hover:bg-brand-100 transition">
                                     📄 Docs {% if vehicle.docs_count %}({{ vehicle.docs_count }}){% endif %}
-                                </a>
+                                </a>{% endif %}
                             </td>
                             <td class="px-4 py-3.5 text-right">{{ vehicle.total_trips }}</td>
                             <td class="px-4 py-3.5 text-right whitespace-nowrap">₹{{ vehicle.total_revenue|floatformat:2 }}</td>

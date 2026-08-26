@@ -63,3 +63,37 @@ def vehicle_documents(request, vehicle_id):
         'back_url': get_safe_next_or_referer(request, reverse('core:vehicle_report')),
     }
     return render(request, 'vehicles/vehicle_documents.html', context)
+
+
+@login_required(login_url='/login/')
+def all_vehicle_documents(request):
+    """
+    SAARE vehicles ki document summary — bina trips wale vehicles bhi.
+    Vehicle Report page ke 'All Vehicle Documents' button se aate hain.
+    """
+    from datetime import timedelta
+    from django.utils import timezone
+
+    today = timezone.localdate()
+    rows = []
+
+    for v in Vehicle.objects.all().order_by('registration_number'):
+        docs = v.documents.all()
+        nearest = docs.order_by('expiry_date').first()
+        urgent = docs.filter(
+            expiry_date__lte=today + timedelta(days=30)
+        ).count()
+        rows.append({
+            'vehicle': v,
+            'docs_count': docs.count(),
+            'nearest_expiry': nearest.expiry_date if nearest else None,
+            'nearest_type': nearest.get_doc_type_display() if nearest else '',
+            'days_left': (nearest.expiry_date - today).days if nearest else None,
+            'urgency': nearest.urgency if nearest else 'none',
+            'urgent_count': urgent,
+        })
+
+    return render(request, 'vehicles/all_documents.html', {
+        'rows': rows,
+        'back_url': get_safe_next_or_referer(request, reverse('core:vehicle_report')),
+    })
