@@ -43,6 +43,30 @@ LUMPSUM_OPENING_NOTE = 'Customer lumpsum / opening balance payment'
 # be merged for display / backfilled.
 LEGACY_LUMPSUM_NOTES = (LUMPSUM_NOTE, LUMPSUM_OPENING_NOTE)
 
+# Sentinel that collapses the two default auto-notes into ONE grouping token, so
+# a payment's per-trip rows and its on-account leftover row stay together, while
+# a custom note the user typed (e.g. a project name like "Vidarbha Homes") keeps
+# its own identity and marks its own payment. A blank note returns '' (falsy) —
+# such rows are individual manual payments and are never auto-merged.
+_LUMPSUM_SENTINEL = '\x00__lumpsum__'
+
+
+def _lumpsum_note_key(notes):
+    """Normalise a payment row's note into a grouping token.
+
+    * default auto-notes  -> ``_LUMPSUM_SENTINEL`` (all collapse together)
+    * any other non-blank -> the trimmed note itself (custom project note)
+    * blank / whitespace  -> ``''`` (caller must NOT group these)
+
+    This lets the display self-heal ANY un-grouped split payment — legacy or
+    freshly imported, default note or custom note — into one clean line without
+    needing to run the backfill command first.
+    """
+    note = (notes or '').strip()
+    if note in LEGACY_LUMPSUM_NOTES:
+        return _LUMPSUM_SENTINEL
+    return note
+
 
 def allocate_customer_payment(customer, amount, payment_date, payment_method,
                               reference_number, notes, group_id):
@@ -133,14 +157,19 @@ def _payment_transactions(period_payments, today_date):
         pg = getattr(payment, 'payment_group', None)
         if pg:
             _add(('G', pg), payment)
-        elif payment.trip_id and (payment.notes or '') in LEGACY_LUMPSUM_NOTES:
-            # Legacy auto-allocated split with no group id yet.
-            _add((
-                'L', pdate(payment), payment.payment_method_id,
-                payment.reference_number or '', payment.notes or '',
-            ), payment)
         else:
-            _add(('S', payment.id), payment)
+            nkey = _lumpsum_note_key(getattr(payment, 'notes', ''))
+            if payment.trip_id and nkey:
+                # Un-grouped auto-allocated split (legacy OR freshly imported).
+                # Merge on the fly by (date, method, reference, note) so it reads
+                # as ONE line even without a payment_group — custom project notes
+                # included. Self-heals the display without a backfill run.
+                _add((
+                    'L', pdate(payment), payment.payment_method_id,
+                    payment.reference_number or '', nkey,
+                ), payment)
+            else:
+                _add(('S', payment.id), payment)
 
     transactions = []
     for key in order:

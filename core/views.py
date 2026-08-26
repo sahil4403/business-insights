@@ -1885,9 +1885,24 @@ def payment_report(request):
 
     _no_group = Q(payment_group__isnull=True) | Q(payment_group='')
 
+    _LUMPSUM_SENTINEL = '\x00__lumpsum__'
+
+    def _note_key(p):
+        """Collapse the two default auto-notes; keep custom notes; blank -> ''."""
+        note = (getattr(p, 'notes', '') or '').strip()
+        if note in _LUMPSUM_NOTES:
+            return _LUMPSUM_SENTINEL
+        return note
+
     grouped_qs = payments.exclude(_no_group)
-    legacy_qs = payments.filter(_no_group).filter(notes__in=_LUMPSUM_NOTES)
-    regular_qs = payments.filter(_no_group).exclude(notes__in=_LUMPSUM_NOTES)
+
+    # Un-grouped rows: a trip-linked row carrying a lumpsum/custom note is a
+    # split fragment (legacy OR freshly imported) and gets merged on the fly;
+    # everything else (blank-note rows, standalone on-account payments) is shown
+    # as-is. This self-heals the report without needing the backfill command.
+    _no_group_rows = list(payments.filter(_no_group).select_related('trip'))
+    _legacy = [p for p in _no_group_rows if p.trip_id and _note_key(p)]
+    _regular = [p for p in _no_group_rows if not (p.trip_id and _note_key(p))]
 
     from itertools import groupby as _groupby
 
@@ -1922,32 +1937,38 @@ def payment_report(request):
     ):
         _merged.append(_make_merged(list(_group)))
 
-    # Legacy split rows (pre-migration): heuristic grouping. groupby only
-    # collapses CONSECUTIVE equal keys, so sort in Python on the full key first
-    # (including the owning customer) — otherwise two customers sharing the same
-    # date/method/blank-reference could interleave and mis-split.
+    # Un-grouped split rows: merge by (customer, date, method, reference, note).
+    # groupby only collapses CONSECUTIVE equal keys, so sort in Python on the
+    # full key first — otherwise two customers sharing the key could interleave
+    # and mis-split. A group of ONE is not a split, so render it as a normal row.
     def _legacy_key(p):
         return (
             (p.trip.customer_id if p.trip else p.customer_id),
             p.payment_date,
             p.payment_method_id,
             (p.reference_number or ''),
+            _note_key(p),
         )
 
     _legacy_sorted = sorted(
-        legacy_qs,
+        _legacy,
         key=lambda p: (
             (p.trip.customer_id if p.trip else p.customer_id) or 0,
             str(p.payment_date or ''),
             p.payment_method_id or 0,
             (p.reference_number or ''),
+            _note_key(p),
         ),
     )
     for _key, _group in _groupby(_legacy_sorted, key=_legacy_key):
-        _merged.append(_make_merged(list(_group)))
+        _rows = list(_group)
+        if len(_rows) > 1:
+            _merged.append(_make_merged(_rows))
+        else:
+            _regular.append(_rows[0])
 
     display_payments = sorted(
-        list(regular_qs) + _merged,
+        _regular + _merged,
         key=lambda p: p.payment_date or timezone.localdate(),
         reverse=True,
     )
