@@ -346,3 +346,7 @@ nav.lq-bar {
     background: linear-gradient(160deg, rgba(213, 235, 230, .9), rgba(238, 247, 245, .9));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
 }
+/* ---------- 18. DESKTOP PAR HIDE (mobile-only glass buttons) ---------- */
+@media (min-width: 768px) {
+    .lq-hide-desktop { display: none !important; }
+}
