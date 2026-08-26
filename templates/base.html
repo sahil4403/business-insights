@@ -27,6 +27,23 @@
         .tabbar-link:active, .nav-link:active, .app-chip:active { opacity: .65; }
 
         /* PAGE LOADER BAR + BUSY BUTTONS */
+        /* PAGE LOADER OVERLAY + TOP BAR */
+        #page-loader-overlay {
+            position: fixed; inset: 0; z-index: 99999;
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(2px);
+            display: none; align-items: center; justify-content: center;
+            pointer-events: none;
+        }
+        #page-loader-overlay.active { display: flex; }
+        #page-loader-spinner {
+            width: 36px; height: 36px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #16665a;
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         #page-loader { position: fixed !important; top: 0 !important; left: 0 !important; height: 3px; width: 0;
             background: linear-gradient(90deg, #16665a, #2ab39b);
             z-index: 99999; opacity: 0; pointer-events: none;
@@ -501,18 +518,30 @@
         }
     </script>
     <script>
-        // TAP FEEDBACK: top loader bar on navigation, busy state + double-tap
-        // guard on buttons/links so users never click repeatedly.
+        // TAP FEEDBACK: full-screen loader overlay + top bar on navigation
         (function () {
+            // Create top bar
             var bar = document.createElement('div');
             bar.id = 'page-loader';
             document.body.appendChild(bar);
 
-            function reset() { bar.className = ''; bar.style.width = '0'; }
-            function start() { bar.className = 'active'; bar.style.width = '35%';
-                setTimeout(function () { if (bar.className === 'active') bar.style.width = '70%'; }, 300); }
+            // Create full-screen overlay with spinner
+            var overlay = document.createElement('div');
+            overlay.id = 'page-loader-overlay';
+            overlay.innerHTML = '<div id="page-loader-spinner"></div>';
+            document.body.appendChild(overlay);
+
+            function reset() {
+                bar.className = ''; bar.style.width = '0';
+                overlay.classList.remove('active');
+            }
+            function start() {
+                bar.className = 'active'; bar.style.width = '35%';
+                overlay.classList.add('active');
+                setTimeout(function () { if (bar.className === 'active') bar.style.width = '70%'; }, 300);
+            }
             window.addEventListener('load', reset);
-            window.addEventListener('pageshow', reset); // back/forward cache
+            window.addEventListener('pageshow', reset);
 
             var lastHref = '', lastTime = 0;
             document.addEventListener('click', function (e) {
@@ -547,7 +576,7 @@
 
                 var now = Date.now();
                 if (href === lastHref && now - lastTime < 1500) {
-                    e.preventDefault();  // double-tap on same link -> ignore
+                    e.preventDefault();
                     return;
                 }
                 lastHref = href; lastTime = now;
