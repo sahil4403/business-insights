@@ -93,7 +93,12 @@ def all_vehicle_documents(request):
             'urgent_count': urgent,
         })
 
+    # Back hamesha Vehicle Report par (referer-based nahi — warna
+    # documents <-> all-documents loop ban jaata hai)
+    from core.utils import get_safe_next
+    back_url = get_safe_next(request, reverse('core:vehicle_report'))
+
     return render(request, 'vehicles/all_documents.html', {
         'rows': rows,
-        'back_url': get_safe_next_or_referer(request, reverse('core:vehicle_report')),
+        'back_url': back_url,
     })
