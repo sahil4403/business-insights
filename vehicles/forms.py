@@ -24,7 +24,12 @@ class VehicleDocumentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['vehicle'].queryset = self.fields['vehicle'].queryset.order_by('registration_number')
+        # Sirf REAL registration number wale vehicles (generic type-names skip)
+        self.fields['vehicle'].queryset = (
+            self.fields['vehicle'].queryset
+            .filter(registration_number__regex=r'\d')
+            .order_by('registration_number')
+        )
         self.fields['document_number'].required = False
         self.fields['issue_date'].required = False
         self.fields['file'].required = False

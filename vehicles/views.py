@@ -100,6 +100,10 @@ def all_vehicle_documents(request):
     rows = []
 
     for v in Vehicle.objects.all().order_by('registration_number'):
+        # Generic type-named vehicles (Hyva/Halfton/Tractor/JCB — jisme
+        # actual registration number nahi) list se skip karo
+        if not any(ch.isdigit() for ch in (v.registration_number or '')):
+            continue
         docs = v.documents.all()
         nearest = docs.order_by('expiry_date').first()
         urgent = docs.filter(
