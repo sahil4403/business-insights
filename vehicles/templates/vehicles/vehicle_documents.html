@@ -7,6 +7,7 @@
     #doc-form input, #doc-form select, #doc-form textarea {
         width: 100%; box-sizing: border-box;
     }
+    .field-error { border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important; }
 </style>
 
 <!-- HEADER -->
@@ -141,6 +142,37 @@
 
 {% block scripts %}
 <script>
+    // ===== BLANK FIELD VALIDATION POPUP =====
+    (function () {
+        const form = document.getElementById('doc-form');
+        if (!form) return;
+
+        form.addEventListener('submit', function (e) {
+            const docType = form.elements['doc_type'];
+            const expiry = form.elements['expiry_date'];
+
+            const missing = [];
+            if (!docType.value) missing.push('Document Type');
+            if (!expiry.value) missing.push('Expiry Date');
+
+            if (missing.length) {
+                e.preventDefault();
+                alert('⚠️ Please fill the section:\n\n' + missing.join('\n') + '\n\nYe fields zaroori hain!');
+                if (!docType.value) {
+                    docType.classList.add('field-error');
+                    docType.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    docType.addEventListener('change', () => docType.classList.remove('field-error'), { once: true });
+                }
+                if (!expiry.value) {
+                    expiry.classList.add('field-error');
+                    if (docType.value) expiry.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    expiry.addEventListener('change', () => expiry.classList.remove('field-error'), { once: true });
+                }
+                return false;
+            }
+        });
+    })();
+
     // ============ DOCUMENT DOWNLOAD + SHARE (statement jaisa) ============
     async function __fetchBlob(url) {
         const r = await fetch(url, { credentials: 'same-origin' });

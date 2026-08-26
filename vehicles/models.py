@@ -89,6 +89,8 @@ class VehicleDocument(models.Model):
         ('PERMIT', 'Permit'),
         ('RC', 'RC Book'),
         ('TAX', 'Road Tax'),
+        ('ENV_TAX', 'Environment Tax'),
+        ('MV_TAX', 'MV Tax'),
         ('OTHER', 'Other'),
     ]
 
