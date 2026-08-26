@@ -10,17 +10,25 @@ This command stamps a shared ``payment_group`` UUID onto each set of legacy rows
 that originated from the same recorded payment, so they display and edit/delete
 as ONE clean entry going forward.
 
-Grouping key: (customer, payment_date, payment_method, reference_number).
+Grouping key: (customer, payment_date, payment_method, reference_number, note).
 The FIFO allocator wrote all rows of one payment with identical values for those
-four fields, so this reliably reconstructs a payment. The per-trip rows and the
-on-account leftover row carry *different* auto-notes, so notes is deliberately
-NOT part of the key (otherwise the leftover would split off on its own).
+fields, so this reliably reconstructs a payment. The `note` part is normalised:
+the two default auto-notes (per-trip vs on-account leftover) collapse to a single
+sentinel so a payment's leftover row stays with its trip rows, while a *custom*
+note the user typed (e.g. a project name like "Vidarbha Homes") is kept as-is so
+it identifies its own payment. Rows with a blank note are treated as individual
+manual payments and are never auto-grouped.
+
+Why note is in the key: real legacy data (e.g. customer "Raj Sir") recorded two
+same-day, same-method, blank-reference lumpsum payments distinguished ONLY by a
+custom project note. Without note in the key they would wrongly merge into one
+line; with it they correctly stay as two payments.
 
 LIMITATION (unavoidable for legacy data): if the same customer had two separate
-lumpsum payments on the same day, same method, and same/blank reference, the
-original per-payment boundary is lost and they will merge into one group. Use
---dry-run to review before committing, and pass an explicit --reference-required
-if you want to skip blank-reference rows.
+lumpsum payments on the same day, same method, same/blank reference AND the same
+(or both-default) note, the original per-payment boundary is lost and they will
+merge into one group. Use --dry-run to review before committing, and pass an
+explicit --reference-required if you want to skip blank-reference rows.
 
 Usage on PythonAnywhere (bash console, inside the project venv):
     python manage.py backfill_payment_groups --dry-run     # preview, no writes
@@ -83,17 +91,37 @@ class Command(BaseCommand):
             return row.trip.customer_id
         return None
 
+    # Sentinel used to collapse the two default auto-notes into one bucket so a
+    # payment's per-trip rows and its on-account leftover row group together.
+    LUMPSUM_SENTINEL = '\x00__lumpsum__'
+
+    def _note_key(self, notes):
+        """Normalise a row's note into a grouping token.
+
+        Returns:
+          * ``LUMPSUM_SENTINEL`` for the default auto-notes (per-trip / leftover)
+          * the trimmed custom note for anything else non-blank
+          * ``''`` (falsy) for a blank note -> caller must NOT group these
+        """
+        note = (notes or '').strip()
+        if note in LEGACY_LUMPSUM_NOTES:
+            return self.LUMPSUM_SENTINEL
+        return note
+
     def handle(self, *args, **options):
         dry_run = options['dry_run']
         include_singletons = options['include_singletons']
         reference_required = options['reference_required']
 
-        # Only untouched legacy auto-allocated rows (no group id yet).
+        # Only untouched rows (no group id yet). We no longer restrict to the
+        # default lumpsum notes — legacy auto-split rows may carry a custom note
+        # (a project name). Auto-split candidates are identified structurally:
+        # rows that share (customer, date, method, reference, note) in a bucket
+        # of 2+. Blank-note rows are excluded below as manual single payments.
         no_group = Q(payment_group__isnull=True) | Q(payment_group='')
         qs = (
             TripPayment.objects
             .filter(no_group)
-            .filter(notes__in=LEGACY_LUMPSUM_NOTES)
             .select_related('trip')
             .order_by('payment_date', 'id')
         )
@@ -101,6 +129,7 @@ class Command(BaseCommand):
         buckets = defaultdict(list)
         skipped_no_customer = 0
         skipped_no_reference = 0
+        skipped_blank_note = 0
 
         for row in qs:
             cid = self._customer_id(row)
@@ -108,12 +137,18 @@ class Command(BaseCommand):
                 skipped_no_customer += 1
                 continue
 
+            note_key = self._note_key(row.notes)
+            if not note_key:
+                # Blank-note rows are individual manual payments, never grouped.
+                skipped_blank_note += 1
+                continue
+
             reference = (row.reference_number or '').strip()
             if reference_required and not reference:
                 skipped_no_reference += 1
                 continue
 
-            key = (cid, row.payment_date, row.payment_method_id, reference)
+            key = (cid, row.payment_date, row.payment_method_id, reference, note_key)
             buckets[key].append(row)
 
         # Decide which buckets to stamp.
@@ -130,7 +165,7 @@ class Command(BaseCommand):
         self.stdout.write("")
         self.stdout.write(self.style.MIGRATE_HEADING("Backfill payment_group — plan"))
         self.stdout.write(
-            f"  Legacy lumpsum rows scanned : {qs.count()}"
+            f"  Un-grouped rows scanned     : {qs.count()}"
         )
         self.stdout.write(
             f"  Payments to tag (groups)    : {len(target_buckets)}"
@@ -153,6 +188,11 @@ class Command(BaseCommand):
             self.stdout.write(
                 f"  Blank-reference rows skipped: {skipped_no_reference}"
             )
+        if skipped_blank_note:
+            self.stdout.write(
+                f"  Blank-note rows skipped     : {skipped_blank_note} "
+                f"(treated as individual manual payments)"
+            )
         self.stdout.write("")
 
         if not target_buckets:
@@ -162,11 +202,15 @@ class Command(BaseCommand):
         # Show a short sample so the operator can sanity-check the grouping.
         sample = sorted(target_buckets, key=lambda kr: -len(kr[1]))[:8]
         self.stdout.write("Sample of groups that will be created:")
-        for (cid, pdate, method_id, reference), rows in sample:
+        for (cid, pdate, method_id, reference, note_key), rows in sample:
             total = sum((r.amount for r in rows), 0)
+            note_label = (
+                '(lumpsum)' if note_key == self.LUMPSUM_SENTINEL else note_key
+            )
             self.stdout.write(
                 f"  • customer#{cid}  {pdate}  method#{method_id or '-'}  "
-                f"ref={reference or '(none)'}  -> {len(rows)} rows  ₹{total}"
+                f"ref={reference or '(none)'}  note={note_label!r}  "
+                f"-> {len(rows)} rows  ₹{total}"
             )
         self.stdout.write("")
 
