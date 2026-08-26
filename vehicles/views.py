@@ -68,12 +68,21 @@ def vehicle_documents(request, vehicle_id):
     if editing:
         form.fields['vehicle'].disabled = True
 
+    # Back URL: ?next= > referer > All Documents (default).
+    # Referer khud current page ho (edit/delete ke baad hota hai) toh
+    # All Documents par bhejo — warna Back button self-loop karta hai.
+    from urllib.parse import urlparse
+    back_url = get_safe_next_or_referer(request, reverse('vehicles:all_documents'))
+    back_path = urlparse(back_url).path
+    if back_path == request.path:
+        back_url = reverse('vehicles:all_documents')
+
     context = {
         'vehicle': vehicle,
         'documents': documents,
         'form': form,
         'editing': editing,
-        'back_url': get_safe_next_or_referer(request, reverse('core:vehicle_report')),
+        'back_url': back_url,
     }
     return render(request, 'vehicles/vehicle_documents.html', context)
 
