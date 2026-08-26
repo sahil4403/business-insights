@@ -423,7 +423,22 @@ def dashboard(request):
     # CONTEXT
     # -----------------------------------
 
+    # ---- VEHICLE DOCUMENT EXPIRY (A+B combo) ----
+    # Daily-guard: din me ek hi baar WhatsApp check (dedupe flags andar hain)
+    from django.core.cache import cache
+    from vehicles.notifications import check_and_notify, get_expiry_alerts
+
+    if not cache.get('doc_expiry_checked'):
+        cache.set('doc_expiry_checked', 1, 60 * 60 * 12)
+        try:
+            check_and_notify()
+        except Exception:
+            pass
+
     context = {
+        'expiry_alerts':
+            get_expiry_alerts(limit=6),
+
 
         'today': today,
 
@@ -1648,6 +1663,13 @@ def vehicle_report(request):
 
     vehicle_rows = []
 
+    from django.db.models import Count as DjangoCount
+    from vehicles.models import VehicleDocument
+    doc_counts = {
+        d['vehicle_id']: d['n']
+        for d in VehicleDocument.objects.values('vehicle_id').annotate(n=DjangoCount('id'))
+    }
+
     for vehicle in vehicle_report_data:
 
         revenue = (
@@ -1669,6 +1691,9 @@ def vehicle_report(request):
 
             'vehicle_id':
                 vehicle['vehicle_id'],
+
+            'docs_count':
+                doc_counts.get(vehicle['vehicle_id'], 0),
 
             'vehicle_number':
                 vehicle[

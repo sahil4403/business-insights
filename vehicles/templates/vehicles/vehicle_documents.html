@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Documents — {{ vehicle.registration_number }}{% endblock %}
+
+{% block content %}
+<style>
+    #doc-form input, #doc-form select, #doc-form textarea {
+        width: 100%; box-sizing: border-box;
+    }
+</style>
+
+<!-- HEADER -->
+<div class="mb-4 md:mb-6">
+    <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+            <a href="{{ back_url }}" class="lq-glass-btn mb-3">← <span class="hidden sm:inline">Back</span></a>
+            <h1 class="text-xl md:text-3xl font-extrabold text-slate-900">📄 {{ vehicle.registration_number }}</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                {{ vehicle.vehicle_type.name }} — Documents & Expiry
+                {% if vehicle.documents.count %}· {{ vehicle.documents.count }} documents{% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ADD / EDIT FORM -->
+<div class="app-surface p-4 md:p-6 mb-4">
+    <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">
+        {% if editing %}✏️ Edit: {{ editing.get_doc_type_display }}{% else %}➕ Naya Document Add Karo{% endif %}
+    </h2>
+    <form method="post" id="doc-form" enctype="multipart/form-data" class="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+        {% csrf_token %}
+        <input type="hidden" name="doc_id" value="{{ editing.pk|default:'' }}">
+        <div class="col-span-2 sm:col-span-1">
+            <label class="label">Vehicle</label>
+            {{ form.vehicle }}
+        </div>
+        <div>
+            <label class="label">Document Type *</label>
+            {{ form.doc_type }}
+        </div>
+        <div>
+            <label class="label">Document No.</label>
+            {{ form.document_number }}
+        </div>
+        <div>
+            <label class="label">Issue Date</label>
+            {{ form.issue_date }}
+        </div>
+        <div>
+            <label class="label">Expiry Date *</label>
+            {{ form.expiry_date }}
+        </div>
+        <div>
+            <label class="label">File (PDF/Photo)</label>
+            {{ form.file }}
+        </div>
+        <div class="col-span-2">
+            <label class="label">Notes</label>
+            {{ form.notes }}
+        </div>
+        <div class="col-span-2 md:col-span-4 flex gap-2.5">
+            <button type="submit" class="lq-glass-btn lq-glass-btn-primary flex-1 sm:flex-none">
+                {% if editing %}💾 Save Changes{% else %}➕ Add Document{% endif %}
+            </button>
+            {% if editing %}
+                <a href="{% url 'vehicles:documents' vehicle.id %}" class="lq-glass-btn">Cancel</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- DOCUMENTS LIST -->
+<div class="app-surface p-4 md:p-6">
+    <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">📋 Saare Documents</h2>
+
+    <div class="flex flex-col gap-2.5">
+        {% for doc in documents %}
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 p-3.5 rounded-2xl border {% if doc.urgency == 'expired' %}border-red-200 bg-red-50/60{% elif doc.urgency == 'critical' %}border-orange-200 bg-orange-50/60{% elif doc.urgency == 'warning' %}border-amber-100 bg-amber-50/50{% else %}border-slate-200 bg-white{% endif %}">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-extrabold text-[15px] text-slate-900">{{ doc.get_doc_type_display }}</span>
+                        {% if doc.document_number %}<span class="text-[11px] text-slate-400">#{{ doc.document_number }}</span>{% endif %}
+                        {% if doc.urgency == 'expired' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">❌ EXPIRED</span>
+                        {% elif doc.urgency == 'critical' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700">⏰ {{ doc.days_left }} din bache</span>
+                        {% elif doc.urgency == 'warning' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">⚠️ {{ doc.days_left }} din</span>
+                        {% elif doc.urgency == 'info' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-700">📅 {{ doc.days_left }} din</span>
+                        {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">✅ {{ doc.days_left }} din</span>
+                        {% endif %}
+                    </div>
+                    <div class="mt-1 text-[12px] text-slate-500">
+                        Expiry: <strong class="text-slate-700">{{ doc.expiry_date|date:"d-M-Y" }}</strong>
+                        {% if doc.issue_date %}· Issued: {{ doc.issue_date|date:"d-M-Y" }}{% endif %}
+                        {% if doc.notes %}· {{ doc.notes }}{% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    {% if doc.file %}
+                        <a href="{{ doc.file.url }}" target="_blank" class="lq-glass-btn !h-8 !px-3 !text-[11px]">📎 File</a>
+                    {% endif %}
+                    {% if user.is_superuser %}
+                        <a href="?doc={{ doc.id }}" class="lq-glass-btn !h-8 !px-3 !text-[11px]">✏️ Edit</a>
+                        <form method="post" onsubmit="return confirm('{{ doc.get_doc_type_display }} document delete karna hai?')">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="doc_id" value="{{ doc.id }}">
+                            <button type="submit" class="lq-glass-btn !h-8 !px-3 !text-[11px] !text-red-600">🗑️</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        {% empty %}
+            <div class="py-10 text-center text-sm text-slate-500">
+                📭 Koi document nahi hai — upar se pehla document add karo.
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-4 rounded-xl bg-sky-50 border border-sky-200 px-3.5 py-2.5 text-[12px] text-sky-800 leading-relaxed">
+        🔔 Expiry se <strong>30 din, 15 din aur 7 din pehle</strong> WhatsApp notification aayega
+        (+ expire hone ke baad bhi). Dashboard par bhi alert card dikhta hai.
+    </div>
+</div>
+
+<!-- spacer for mobile bottom bars -->
+<div class="h-20 md:h-0"></div>
+{% endblock %}
