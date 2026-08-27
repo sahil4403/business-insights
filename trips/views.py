@@ -135,7 +135,7 @@ def _filtered_trips(request):
     if driver_id:
         trips = trips.filter(drivers__id=driver_id).distinct()
 
-    transaction_type = request.GET.get('transaction_type', 'CUSTOMER_DELIVERY').strip()
+    transaction_type = request.GET.get('transaction_type', 'ALL').strip()
 
     if transaction_type == 'CUSTOMER_DELIVERY':
         trips = trips.filter(transaction_type='CUSTOMER_DELIVERY')
