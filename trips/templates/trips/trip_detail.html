@@ -379,6 +379,7 @@
          style="bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); width: min(calc(100% - 20px), 430px);">
         {% if trip.transaction_type != 'INTERNAL_STOCK' and trip.outstanding_amount > 0 %}
             <a href="{% url 'trips:payment_create' trip.id %}"
+               onclick="var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');"
                class="flex-1 h-11 rounded-xl font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2"
                style="background: linear-gradient(160deg, rgba(23, 112, 99, .92), rgba(17, 82, 72, .86)); -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%); border: 1px solid rgba(255, 255, 255, .35); color: #fff; box-shadow: 0 6px 18px -8px rgba(22, 102, 90, .6), inset 0 1px 0 rgba(255, 255, 255, .28);">
                 + Payment
@@ -386,17 +387,20 @@
         {% endif %}
         {% if trip.customer %}
             <a href="{% url 'ledger:customer_statement' trip.customer.id %}"
+               onclick="var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');"
                class="flex-1 h-11 rounded-xl font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2"
                style="background: rgba(224, 242, 254, .72); -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%); border: 1px solid rgba(255, 255, 255, .65); color: #0369a1; box-shadow: 0 4px 14px -6px rgba(14, 116, 144, .35), inset 0 1px 0 rgba(255, 255, 255, .8);">
                 Statement
             </a>
         {% endif %}
         <a href="{% url 'trips:edit' trip.id %}?next={{ back_url|urlencode }}"
+           onclick="var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');"
            class="flex-1 h-11 rounded-xl font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2"
            style="background: rgba(255, 255, 255, .55); -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%); border: 1px solid rgba(255, 255, 255, .78); color: #334155; box-shadow: 0 4px 16px -6px rgba(15, 23, 42, .14), inset 0 1px 0 rgba(255, 255, 255, .85);">
             Edit
         </a>
         <a href="{{ back_url }}"
+           onclick="var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');"
            class="flex-1 h-11 rounded-xl font-semibold text-[13px] flex items-center justify-center transition active:scale-[0.98] whitespace-nowrap px-2"
            style="background: rgba(255, 255, 255, .45); -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%); border: 1px solid rgba(255, 255, 255, .7); color: #475569; box-shadow: 0 4px 14px -6px rgba(15, 23, 42, .12), inset 0 1px 0 rgba(255, 255, 255, .8);">
             Back
