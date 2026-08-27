@@ -412,7 +412,7 @@ def trip_list(request):
         'total_pending': sum((t.outstanding_amount or Decimal('0')) for t in trips_list) if trips_list else Decimal('0'),
         'paid_count': len([t for t in trips_list if t.calculated_status == 'PAID']),
         'pending_count': len([t for t in trips_list if t.calculated_status in ['UNPAID', 'PARTIAL']]),
-        'is_internal_stock': transaction_type == 'INTERNAL_STOCK',
+        'is_internal_stock': filters.get('selected_transaction_type') == 'INTERNAL_STOCK',
     }
 
     context = {
