@@ -8,6 +8,9 @@
     @media (min-width: 768px) {
         #filter-details[open] summary { display: inline-flex; }
     }
+    @media (max-width: 767px) {
+        #tripsHeader { transition: box-shadow .2s ease; }
+    }
 </style>
 {% endblock %}
 
@@ -394,7 +397,7 @@
 
     <!-- TRIPS -->
     <div class="app-surface overflow-hidden">
-        <div class="px-4 py-3 md:px-5 md:py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
+        <div id="tripsHeader" class="px-4 py-3 md:px-5 md:py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
             <div class="font-bold text-slate-900 text-base">
                 Trips <span class="text-[13px] font-medium text-slate-500">({{ summary.total_count }} trips)</span>
             </div>
@@ -604,6 +607,55 @@
                 container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
             }
         }
+
+        // MOBILE: Sticky trips header + dynamic scroll height
+        (function () {
+            if (window.innerWidth >= 768) return;
+            var header = document.getElementById('tripsHeader');
+            var scrollBox = document.getElementById('tripMobileScroll');
+            var surface = header ? header.closest('.app-surface') : null;
+            if (!header || !scrollBox || !surface) return;
+
+            var TOPBAR_H = 48;
+            var BOTTOMNAV_H = 64;
+            var HEADER_H = 48;
+
+            function setHeight() {
+                var vh = window.innerHeight;
+                scrollBox.style.height = (vh - TOPBAR_H - HEADER_H - BOTTOMNAV_H) + 'px';
+            }
+
+            function onScroll() {
+                var surfaceTop = surface.getBoundingClientRect().top;
+                var stuck = surfaceTop <= TOPBAR_H;
+
+                if (stuck) {
+                    header.style.position = 'fixed';
+                    header.style.top = TOPBAR_H + 'px';
+                    header.style.left = '0';
+                    header.style.right = '0';
+                    header.style.zIndex = '40';
+                    header.style.background = '#fff';
+                    header.style.borderBottom = '1px solid #eef1f6';
+                    header.style.boxShadow = '0 2px 8px rgba(15,23,42,0.06)';
+                    surface.style.paddingTop = HEADER_H + 'px';
+                } else {
+                    header.style.position = '';
+                    header.style.top = '';
+                    header.style.left = '';
+                    header.style.right = '';
+                    header.style.zIndex = '';
+                    header.style.background = '';
+                    header.style.borderBottom = '';
+                    header.style.boxShadow = '';
+                    surface.style.paddingTop = '';
+                }
+            }
+
+            setHeight();
+            window.addEventListener('resize', setHeight, { passive: true });
+            window.addEventListener('scroll', onScroll, { passive: true });
+        })();
 
         // Loading overlay helper — programmatic form.submit() event fire
         // NAHI karta, isliye overlay manually on karna padta hai
