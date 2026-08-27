@@ -306,6 +306,18 @@
                         </div>
 
                         <div class="col-span-2">
+                            <label class="label" for="sort">Date Order</label>
+                            <select id="sort" name="sort" class="input">
+                                <option value="newest" {% if selected_sort != 'oldest' %}selected{% endif %}>
+                                    Newest First (Latest upar)
+                                </option>
+                                <option value="oldest" {% if selected_sort == 'oldest' %}selected{% endif %}>
+                                    Oldest First (Purani upar)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-span-2">
                             <label class="label">Payment Status</label>
                             <div class="flex flex-wrap gap-1.5" id="paymentStatusChips">
                                 <button type="button" data-value=""
@@ -329,18 +341,6 @@
                                     Paid
                                 </button>
                             </div>
-                        </div>
-
-                        <div class="col-span-2">
-                            <label class="label" for="sort">Date Order</label>
-                            <select id="sort" name="sort" class="input">
-                                <option value="newest" {% if selected_sort != 'oldest' %}selected{% endif %}>
-                                    Newest First (Latest upar)
-                                </option>
-                                <option value="oldest" {% if selected_sort == 'oldest' %}selected{% endif %}>
-                                    Oldest First (Purani upar)
-                                </option>
-                            </select>
                         </div>
 
                         <div class="col-span-2 md:col-span-3 flex flex-col sm:flex-row gap-2.5 pt-2.5 mt-1 border-t border-slate-100">
