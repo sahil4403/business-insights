@@ -560,12 +560,7 @@
                     </a>
                     <div class="text-right shrink-0 pl-2">
                         {% if trip.transaction_type == 'INTERNAL_STOCK' %}
-                            {% if trip.material.unit == 'PIECE' %}
-                                <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">1 Trip</div>
-                                <div class="text-[11px] font-bold text-slate-500 whitespace-nowrap">{{ trip.quantity|floatformat:0 }} pcs</div>
-                            {% else %}
-                                <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">{{ trip.quantity|floatformat }} Trip{{ trip.quantity|pluralize }}</div>
-                            {% endif %}
+                            <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">{{ trip.quantity|floatformat }}</div>
                             <div class="text-[11px] font-bold text-slate-400 whitespace-nowrap">📦 Stock Transfer</div>
                         {% else %}
                             <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</div>
