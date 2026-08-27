@@ -166,15 +166,21 @@ def _filtered_trips(request):
         ''
     )
 
-    if payment_status == 'UNPAID':
-        # Customer-level: show only trips where customer net outstanding > 0
-        trips = trips.filter(net_outstanding__gt=0)
-    elif payment_status == 'PAID':
-        # Customer-level: show only trips where customer net outstanding <= 0
-        trips = trips.filter(net_outstanding__lte=0)
-    elif payment_status == 'PARTIAL':
-        # Per-trip partial (has some payment but not full)
-        trips = trips.filter(calculated_status='PARTIAL')
+    if payment_status:
+        # Support multiple comma-separated values (e.g., "UNPAID,PARTIAL")
+        status_list = [s.strip().upper() for s in payment_status.split(',') if s.strip()]
+
+        if status_list and set(status_list) != {'UNPAID', 'PARTIAL', 'PAID'}:
+            # Build Q objects for selected statuses
+            q = Q()
+            if 'UNPAID' in status_list:
+                q |= Q(net_outstanding__gt=0)
+            if 'PARTIAL' in status_list:
+                q |= Q(calculated_status='PARTIAL')
+            if 'PAID' in status_list:
+                q |= Q(net_outstanding__lte=0)
+            if q:
+                trips = trips.filter(q)
 
     material_id = request.GET.get('material', '').strip()
     if material_id:

@@ -27,7 +27,7 @@
         <input type="hidden" name="year" value="{{ selected_year }}">
         <input type="hidden" name="month" value="{{ selected_month }}">
         <input type="hidden" name="trip_status" value="{{ selected_trip_status }}">
-        <input type="hidden" name="payment_status" value="{{ selected_payment_status }}">
+        <input type="hidden" name="payment_status" id="ts_payment_status" value="{{ selected_payment_status }}">
         <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search trip, customer or vehicle..."
                class="w-full h-9 pl-3 pr-8 rounded-lg border border-slate-300 bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
     </form>
@@ -117,7 +117,7 @@
         <input type="hidden" name="year" value="{{ selected_year }}">
         <input type="hidden" name="month" value="{{ selected_month }}">
         <input type="hidden" name="trip_status" value="{{ selected_trip_status }}">
-        <input type="hidden" name="payment_status" value="{{ selected_payment_status }}">
+        <input type="hidden" name="payment_status" id="payment_status_input" value="{{ selected_payment_status }}">
 
         <!-- SEARCH BAR: always visible (mobile + desktop) -->
         <div class="relative mb-2.5">
@@ -306,22 +306,29 @@
                         </div>
 
                         <div>
-                            <label class="label" for="payment_status">Payment Status</label>
-                            <select id="payment_status" name="payment_status" class="input">
-                                <option value="">
-                                    All Payment Status
-                                </option>
-                                {% for value, label in payment_status_choices %}
-                                    <option
-                                        value="{{ value }}"
-                                        {% if selected_payment_status == value %}
-                                            selected
-                                        {% endif %}
-                                    >
-                                        {{ label }}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                            <label class="label">Payment Status</label>
+                            <div class="flex flex-wrap gap-1.5" id="paymentStatusChips">
+                                <button type="button" data-value=""
+                                        class="app-chip chip-pay text-[11px] {% if not selected_payment_status %}active{% endif %}"
+                                        onclick="togglePayStatus(this)">
+                                    All
+                                </button>
+                                <button type="button" data-value="UNPAID"
+                                        class="app-chip chip-pay text-[11px] {% if 'UNPAID' in selected_payment_status %}active{% endif %}"
+                                        onclick="togglePayStatus(this)">
+                                    Unpaid
+                                </button>
+                                <button type="button" data-value="PARTIAL"
+                                        class="app-chip chip-pay text-[11px] {% if 'PARTIAL' in selected_payment_status %}active{% endif %}"
+                                        onclick="togglePayStatus(this)">
+                                    Partial
+                                </button>
+                                <button type="button" data-value="PAID"
+                                        class="app-chip chip-pay text-[11px] {% if 'PAID' in selected_payment_status %}active{% endif %}"
+                                        onclick="togglePayStatus(this)">
+                                    Paid
+                                </button>
+                            </div>
                         </div>
 
                         <div>
@@ -801,6 +808,46 @@ function toggleDateSort() {
                 if (typeof fn === 'function') fn();
             };
         })();
+
+        // MULTI-SELECT PAYMENT STATUS CHIPS
+        function togglePayStatus(btn) {
+            var val = btn.getAttribute('data-value');
+            var input = document.getElementById('payment_status_input');
+            var tsInput = document.getElementById('ts_payment_status');
+            var current = input ? input.value : '';
+            var selected = current ? current.split(',').filter(Boolean) : [];
+
+            if (val === '') {
+                // "All" selected — clear everything
+                selected = [];
+            } else {
+                // Toggle this value
+                var idx = selected.indexOf(val);
+                if (idx > -1) {
+                    selected.splice(idx, 1);
+                } else {
+                    selected.push(val);
+                }
+            }
+
+            var newVal = selected.join(',');
+            if (input) input.value = newVal;
+            if (tsInput) tsInput.value = newVal;
+
+            // Update chip active states
+            document.querySelectorAll('.chip-pay').forEach(function(c) {
+                var cv = c.getAttribute('data-value');
+                if (cv === '') {
+                    c.classList.toggle('active', selected.length === 0);
+                } else {
+                    c.classList.toggle('active', selected.indexOf(cv) > -1);
+                }
+            });
+
+            // Auto-submit form
+            var form = document.getElementById('tripFiltersForm');
+            if (form) form.submit();
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
             const badge = document.getElementById('filtersCountBadge');
