@@ -313,7 +313,7 @@
     <div class="app-surface overflow-hidden">
 
         <!-- NAME SORT: A→Z / Z→A (outstanding customers only) -->
-        <div class="flex items-center gap-2 px-4 py-2 border-b border-[#f1f5f9] overflow-x-auto">
+        <div id="customerSortBar" class="flex items-center gap-2 px-4 py-2 border-b border-[#f1f5f9] overflow-x-auto">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Name Sort</span>
             <a href="{{ sort_asc_url }}"
                class="app-chip sm shrink-0 {% if selected_sort == 'asc' %}active{% endif %}">A → Z</a>
@@ -539,30 +539,81 @@
         updateTopbar();
     }
 
-    // LIST BOX HEIGHT: box search-bar ke neeche se navigation bar tak —
-    // page scroll header collapse karta hai, box top topbar par rukta hai
-    // (trips jaisa feel), navbar collapse nahi hota
+    // LIST BOX HEIGHT + STICKY NAME SORT BAR (mobile)
     var fitListBox = function () {
         var el = document.querySelector('.cr-scroll-space');
+        var sortBar = document.getElementById('customerSortBar');
+        var surface = sortBar ? sortBar.closest('.app-surface') : null;
         if (!el) return;
         var shell = document.getElementById('app-shell');
         if (window.innerWidth >= 768) {
             el.style.maxHeight = '';
+            el.style.paddingBottom = '';
+            if (sortBar) {
+                sortBar.style.position = '';
+                sortBar.style.top = '';
+                sortBar.style.left = '';
+                sortBar.style.right = '';
+                sortBar.style.zIndex = '';
+                sortBar.style.background = '';
+                sortBar.style.borderBottom = '';
+                sortBar.style.boxShadow = '';
+            }
+            if (surface) surface.style.paddingTop = '';
             if (shell) shell.style.paddingBottom = '';
             return;
         }
         var bar = document.querySelector('.lq-bar');
         var barH = bar ? bar.offsetHeight : 62;
-        var h = window.innerHeight - barH - 76;
+        var SORTBAR_H = 40;
+        var h = window.innerHeight - barH - 76 - SORTBAR_H;
         el.style.maxHeight = Math.max(h, 200) + 'px';
+        el.style.paddingBottom = '25px';
         if (shell) shell.style.paddingBottom = (barH + 18) + 'px';
     };
+
+    // Sticky Name Sort bar on scroll (mobile)
+    var stickySortBar = function () {
+        if (window.innerWidth >= 768) return;
+        var sortBar = document.getElementById('customerSortBar');
+        var surface = sortBar ? sortBar.closest('.app-surface') : null;
+        if (!sortBar || !surface) return;
+        var TOPBAR_H = 48;
+        var SORTBAR_H = 40;
+
+        var surfaceTop = surface.getBoundingClientRect().top;
+        var stuck = surfaceTop <= TOPBAR_H;
+
+        if (stuck) {
+            sortBar.style.position = 'fixed';
+            sortBar.style.top = TOPBAR_H + 'px';
+            sortBar.style.left = '0';
+            sortBar.style.right = '0';
+            sortBar.style.zIndex = '40';
+            sortBar.style.background = '#fff';
+            sortBar.style.borderBottom = '1px solid #eef1f6';
+            sortBar.style.boxShadow = '0 2px 8px rgba(15,23,42,0.06)';
+            surface.style.paddingTop = SORTBAR_H + 'px';
+        } else {
+            sortBar.style.position = '';
+            sortBar.style.top = '';
+            sortBar.style.left = '';
+            sortBar.style.right = '';
+            sortBar.style.zIndex = '';
+            sortBar.style.background = '';
+            sortBar.style.borderBottom = '';
+            sortBar.style.boxShadow = '';
+            surface.style.paddingTop = '';
+        }
+    };
+
     window.addEventListener('resize', fitListBox);
     window.addEventListener('load', fitListBox);
     document.addEventListener('DOMContentLoaded', fitListBox);
+    window.addEventListener('scroll', stickySortBar, { passive: true });
     var fdFit = document.getElementById('filter-details');
     if (fdFit) fdFit.addEventListener('toggle', function () {
-        setTimeout(fitListBox, 350); // filter open/close ke baad bhi refit
+        setTimeout(fitListBox, 350);
     });
     fitListBox();
 </script>
