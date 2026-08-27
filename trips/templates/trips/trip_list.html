@@ -162,8 +162,8 @@
                     <span id="filter-toggle">⚙ Filters</span>
                     <span id="filtersCountBadge" class="text-[11px] font-bold">All</span>
                 </summary>
-                <div class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[19rem] md:w-[42rem] max-w-[calc(100vw-3rem)] bg-white rounded-2xl border border-slate-200 shadow-xl p-3.5">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-3.5">
+                <div class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[19rem] md:w-[38rem] max-w-[calc(100vw-3rem)] bg-white rounded-2xl border border-slate-200 shadow-xl p-3.5">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-3.5">
                         <div>
                             <label class="label" for="material">Material</label>
                             <select id="material" name="material" class="input">
@@ -336,7 +336,7 @@
                             </select>
                         </div>
 
-                        <div class="col-span-2 md:col-span-4 flex flex-col sm:flex-row gap-2.5 pt-2.5 mt-1 border-t border-slate-100">
+                        <div class="col-span-2 md:col-span-3 flex flex-col sm:flex-row gap-2.5 pt-2.5 mt-1 border-t border-slate-100">
                             <button type="submit"
                                     class="h-11 md:h-10 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
                                 🔍 Apply
@@ -474,7 +474,7 @@
                                     {% elif trip.calculated_payment_status == 'UNPAID' %}
                                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Unpaid</span>
                                     {% elif trip.calculated_payment_status == 'PARTIAL' %}
-                                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
+                                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partially Paid</span>
                                     {% elif trip.calculated_payment_status == 'PAID' %}
                                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
                                     {% endif %}
@@ -532,7 +532,7 @@
                             {% elif trip.calculated_payment_status == 'PAID' %}
                                 <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
                             {% elif trip.calculated_payment_status == 'PARTIAL' %}
-                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partially Paid</span>
                             {% else %}
                                 <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Unpaid</span>
                             {% endif %}
