@@ -456,7 +456,13 @@
                                 <td class="px-2.5 py-2">{{ trip.quantity }}</td>
                                 <td class="px-2.5 py-2 text-right font-semibold whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</td>
                                 <td class="px-2.5 py-2 text-right font-semibold whitespace-nowrap text-emerald-700">₹{{ trip.total_received|floatformat:2 }}</td>
-                                <td class="px-2.5 py-2 text-right font-semibold whitespace-nowrap {% if trip.outstanding_amount > 0 %}text-red-600{% endif %}">₹{{ trip.outstanding_amount|floatformat:2 }}</td>
+                                <td class="px-2.5 py-2 text-right font-semibold whitespace-nowrap {% if trip.net_outstanding > 0 %}text-red-600{% endif %}">
+                                    {% if trip.transaction_type == 'VENDOR_SUPPLY' %}
+                                        <span class="text-emerald-700">₹{{ trip.total_amount|floatformat:2 }}</span>
+                                    {% else %}
+                                        ₹{{ trip.net_outstanding|floatformat:2 }}
+                                    {% endif %}
+                                </td>
                                 <td class="px-2.5 py-2">
                                     {% if trip.trip_status == 'PLANNED' %}
                                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-800">Planned</span>
@@ -471,12 +477,14 @@
                                 <td class="px-2.5 py-2">
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                         <span class="text-slate-400 italic">—</span>
-                                    {% elif trip.calculated_payment_status == 'UNPAID' %}
-                                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Unpaid</span>
+                                    {% elif trip.transaction_type == 'VENDOR_SUPPLY' %}
+                                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Inward</span>
+                                    {% elif trip.net_outstanding <= 0 %}
+                                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Settled</span>
                                     {% elif trip.calculated_payment_status == 'PARTIAL' %}
                                         <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
-                                    {% elif trip.calculated_payment_status == 'PAID' %}
-                                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
+                                    {% else %}
+                                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-50 text-red-700">Unpaid</span>
                                     {% endif %}
                                 </td>
                                 <td class="px-2.5 py-2 whitespace-nowrap">
@@ -484,7 +492,7 @@
                                        class="inline-flex h-7 px-2.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[11px] items-center gap-1 transition active:scale-[0.98]">
                                         View
                                     </a>
-                                    {% if trip.transaction_type != 'INTERNAL_STOCK' and trip.outstanding_amount > 0 %}
+                                    {% if trip.transaction_type != 'INTERNAL_STOCK' and trip.transaction_type != 'VENDOR_SUPPLY' and trip.net_outstanding > 0 %}
                                         <a href="{% url 'trips:payment_create' trip.id %}"
                                            class="inline-flex h-7 px-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold text-[11px] items-center gap-1 transition active:scale-[0.98] ml-1">
                                             + Pay
@@ -529,8 +537,10 @@
                             {% endif %}
                             {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                 <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500">Internal Stock</span>
-                            {% elif trip.calculated_payment_status == 'PAID' %}
-                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
+                            {% elif trip.transaction_type == 'VENDOR_SUPPLY' %}
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Inward</span>
+                            {% elif trip.net_outstanding <= 0 %}
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Settled</span>
                             {% elif trip.calculated_payment_status == 'PARTIAL' %}
                                 <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700">Partial</span>
                             {% else %}
@@ -544,8 +554,10 @@
                             <div class="text-[11px] font-bold text-slate-400 whitespace-nowrap">📦 Stock Transfer</div>
                         {% else %}
                             <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</div>
-                            {% if trip.outstanding_amount > 0 %}
-                                <div class="text-[11px] font-bold text-red-600 whitespace-nowrap">₹{{ trip.outstanding_amount|floatformat:2 }} due</div>
+                            {% if trip.transaction_type == 'VENDOR_SUPPLY' %}
+                                <div class="text-[11px] font-bold text-emerald-600 whitespace-nowrap">Inward (Credit)</div>
+                            {% elif trip.net_outstanding > 0 %}
+                                <div class="text-[11px] font-bold text-red-600 whitespace-nowrap">₹{{ trip.net_outstanding|floatformat:2 }} net due</div>
                                 <a href="{% url 'trips:payment_create' trip.id %}"
                                    class="mt-1.5 inline-flex h-8 px-3 rounded-full bg-sky-100 text-sky-700 font-bold text-[12px] items-center transition active:scale-[0.95]">
                                     + Pay
