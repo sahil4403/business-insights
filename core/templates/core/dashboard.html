@@ -139,7 +139,7 @@
             <h3 class="font-bold text-slate-900 text-base">
                 Trip Records <span class="text-xs font-medium text-slate-400">(Filtered Results)</span>
             </h3>
-            <a href="{% url 'trips:create' %}" class="btn btn-primary whitespace-nowrap inline-flex"><svg class="icon-sm" aria-hidden="true"><use href="#i-plus"/></svg>Add New Trip</a>
+            <a href="{% url 'trips:create' %}" class="btn btn-primary whitespace-nowrap inline-flex" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;"><svg class="icon-sm" aria-hidden="true"><use href="#i-plus"/></svg>Add New Trip</a>
         </div>
 
         <!-- SCROLL + FREEZE PANEL -->
@@ -322,7 +322,7 @@
 </div>
 
 <!-- FAB: ADD NEW TRIP (mobile) -->
-<a href="{% url 'trips:create' %}" class="app-fab md:hidden no-underline">
+<a href="{% url 'trips:create' %}" class="app-fab md:hidden no-underline" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
     <svg class="icon-md" aria-hidden="true"><use href="#i-plus"/></svg> New Trip
 </a>
 
