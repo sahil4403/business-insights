@@ -117,7 +117,7 @@
         <input type="hidden" name="year" value="{{ selected_year }}">
         <input type="hidden" name="month" value="{{ selected_month }}">
         <input type="hidden" name="trip_status" value="{{ selected_trip_status }}">
-        <input type="hidden" name="payment_status" value="{{ selected_payment_status }}">
+        <input type="hidden" name="payment_status" id="payment_status_input" value="{{ selected_payment_status }}">
 
         <!-- SEARCH BAR: always visible (mobile + desktop) -->
         <div class="relative mb-2.5">
@@ -306,22 +306,29 @@
                         </div>
 
                         <div>
-                            <label class="label" for="payment_status">Payment Status</label>
-                            <select id="payment_status" name="payment_status" class="input">
-                                <option value="">
-                                    All Payment Status
-                                </option>
-                                {% for value, label in payment_status_choices %}
-                                    <option
-                                        value="{{ value }}"
-                                        {% if selected_payment_status == value %}
-                                            selected
-                                        {% endif %}
-                                    >
-                                        {{ label }}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                            <label class="label">Payment Status</label>
+                            <div class="flex flex-wrap gap-1.5" id="paymentStatusChips">
+                                <button type="button" data-value=""
+                                        class="app-chip text-[11px] {% if not selected_payment_status %}active{% endif %}"
+                                        onclick="togglePayStatus(this)">
+                                    All
+                                </button>
+                                <button type="button" data-value="UNPAID"
+                                        class="app-chip text-[11px] {% if 'UNPAID' in selected_payment_status %}active{% endif %}"
+                                        onclick="togglePayStatus(this)">
+                                    Unpaid
+                                </button>
+                                <button type="button" data-value="PARTIAL"
+                                        class="app-chip text-[11px] {% if 'PARTIAL' in selected_payment_status %}active{% endif %}"
+                                        onclick="togglePayStatus(this)">
+                                    Partial
+                                </button>
+                                <button type="button" data-value="PAID"
+                                        class="app-chip text-[11px] {% if 'PAID' in selected_payment_status %}active{% endif %}"
+                                        onclick="togglePayStatus(this)">
+                                    Paid
+                                </button>
+                            </div>
                         </div>
 
                         <div>
@@ -625,6 +632,40 @@
             filterDetails.addEventListener('toggle', () => {
                 filterToggle.textContent = filterDetails.open ? 'Hide' : 'Filters';
             });
+        }
+
+        // MULTI-SELECT PAYMENT STATUS CHIPS
+        function togglePayStatus(btn) {
+            var val = btn.getAttribute('data-value');
+            var input = document.getElementById('payment_status_input');
+            var current = input.value ? input.value.split(',').filter(Boolean) : [];
+
+            if (val === '') {
+                // "All" clicked — clear everything
+                input.value = '';
+            } else {
+                var idx = current.indexOf(val);
+                if (idx > -1) {
+                    current.splice(idx, 1);
+                } else {
+                    current.push(val);
+                }
+                input.value = current.join(',');
+            }
+
+            // Update chip active states
+            var chips = document.querySelectorAll('#paymentStatusChips .app-chip');
+            chips.forEach(function(c) {
+                var cv = c.getAttribute('data-value');
+                if (cv === '') {
+                    c.classList.toggle('active', input.value === '');
+                } else {
+                    c.classList.toggle('active', current.indexOf(cv) > -1);
+                }
+            });
+
+            // Auto-submit
+            document.getElementById('tripFiltersForm').submit();
         }
 
 function clearTripSearch() {

@@ -109,9 +109,11 @@ def _filtered_trips(request):
     )
 
     if payment_status:
-        trips = trips.filter(
-            calculated_status=payment_status
-        )
+        statuses = [s.strip() for s in payment_status.split(',') if s.strip()]
+        if statuses:
+            trips = trips.filter(
+                calculated_status__in=statuses
+            )
 
     material_id = request.GET.get('material', '').strip()
     if material_id:
