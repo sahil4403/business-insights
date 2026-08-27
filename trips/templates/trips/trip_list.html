@@ -464,7 +464,15 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-2.5 py-2">{{ trip.material.name }}</td>
-                                <td class="px-2.5 py-2">{{ trip.quantity }}</td>
+                                <td class="px-2.5 py-2">
+                                    {% if trip.material.unit == 'PIECE' %}
+                                        <span class="text-[11px] text-slate-400">1</span>
+                                        <span class="text-[10px] text-slate-500 ml-0.5">·</span>
+                                        <span class="text-[11px] font-semibold text-slate-700 ml-0.5">{{ trip.quantity|floatformat:0 }} pcs</span>
+                                    {% else %}
+                                        {{ trip.quantity }}
+                                    {% endif %}
+                                </td>
                                 <td class="px-2.5 py-2 text-right font-semibold whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</td>
                                 <td class="px-2.5 py-2 text-right font-semibold whitespace-nowrap text-emerald-700">₹{{ trip.total_received|floatformat:2 }}</td>
                                 <td class="px-2.5 py-2 text-right font-semibold whitespace-nowrap {% if trip.outstanding_amount > 0 %}text-red-600{% endif %}">₹{{ trip.outstanding_amount|floatformat:2 }}</td>
@@ -527,6 +535,7 @@
                         </div>
                         <div class="mt-0.5 text-[12px] text-slate-500 truncate">
                             {{ trip.vehicle|vehicle_icon }} {{ trip.vehicle.registration_number|default:"—" }} · 📦 {{ trip.material.name }}{% if trip.destination %} · 📍 {{ trip.destination }}{% endif %}
+                            {% if trip.material.unit == 'PIECE' %} · {{ trip.quantity|floatformat:0 }} pcs{% endif %}
                         </div>
                         <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
                             {% if trip.trip_status == 'PLANNED' %}
@@ -551,7 +560,12 @@
                     </a>
                     <div class="text-right shrink-0 pl-2">
                         {% if trip.transaction_type == 'INTERNAL_STOCK' %}
-                            <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">{{ trip.quantity|floatformat }} Trip{{ trip.quantity|pluralize }}</div>
+                            {% if trip.material.unit == 'PIECE' %}
+                                <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">1 Trip</div>
+                                <div class="text-[11px] font-bold text-slate-500 whitespace-nowrap">{{ trip.quantity|floatformat:0 }} pcs</div>
+                            {% else %}
+                                <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">{{ trip.quantity|floatformat }} Trip{{ trip.quantity|pluralize }}</div>
+                            {% endif %}
                             <div class="text-[11px] font-bold text-slate-400 whitespace-nowrap">📦 Stock Transfer</div>
                         {% else %}
                             <div class="text-[15px] font-extrabold text-slate-900 whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</div>
