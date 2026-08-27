@@ -617,12 +617,13 @@
             if (!header || !scrollBox || !surface) return;
 
             var TOPBAR_H = 48;
-            var BOTTOMNAV_H = 100;
+            var BOTTOMNAV_H = 95;
             var HEADER_H = 48;
 
             function setHeight() {
                 var vh = window.innerHeight;
                 scrollBox.style.height = (vh - TOPBAR_H - HEADER_H - BOTTOMNAV_H) + 'px';
+                scrollBox.style.paddingBottom = '20px';
             }
 
             function onScroll() {
