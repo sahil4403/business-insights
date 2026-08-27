@@ -18,7 +18,8 @@
 {% block scrolltopbar %}
 <div class="flex items-center gap-2 px-3 py-2">
     <a href="{% url 'core:customer_report' %}"
-       class="shrink-0 h-9 px-3 rounded-full app-chip glass text-xs font-bold flex items-center gap-1">
+       class="shrink-0 h-9 px-3 rounded-full app-chip glass text-xs font-bold flex items-center gap-1"
+       onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
         ← Back
     </a>
     <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ customer.name }}</span>
