@@ -35,7 +35,7 @@
         <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search trip, customer or vehicle..."
                class="w-full h-9 pl-3 pr-8 rounded-lg border border-slate-300 bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
     </form>
-    <span class="shrink-0 text-xs font-bold text-brand-600">{{ summary.total_count }}</span>
+    <span class="shrink-0 text-xs font-bold text-brand-600">{{ summary.total_qty|floatformat:0 }}</span>
 </div>
 {% endblock %}
 
@@ -367,7 +367,7 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3 mb-4 md:mb-5">
         <div class="app-stat">
             <span class="lbl">Total Trips</span>
-            <span class="val">{{ summary.total_count }}</span>
+            <span class="val">{{ summary.total_qty|floatformat:0 }}</span>
             <span class="block text-[11px] font-semibold text-slate-400 mt-1">
                 {{ summary.paid_count }} Paid · {{ summary.pending_count }} Pending
             </span>
@@ -375,7 +375,7 @@
         {% if selected_transaction_type == 'INTERNAL_STOCK' %}
             <div class="app-stat col-span-2 md:col-span-3">
                 <span class="lbl">📦 Internal Stock Trips</span>
-                <span class="val">{{ summary.total_count }}</span>
+                <span class="val">{{ summary.total_qty|floatformat:0 }}</span>
                 <span class="block text-[11px] font-semibold text-slate-400 mt-1">
                     Stock transfer — no payment tracking
                 </span>
