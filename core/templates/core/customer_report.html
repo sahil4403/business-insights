@@ -170,7 +170,8 @@
         </a>
         <a href="{% url 'core:overdue_reminders' %}"
            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[12px] font-bold no-underline transition active:opacity-70"
-           style="background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;">
+           style="background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;"
+           onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
             🔔 Overdue Reminders
         </a>
     </div>
