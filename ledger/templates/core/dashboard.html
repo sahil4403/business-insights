@@ -250,13 +250,14 @@
 
 {% block scripts %}
 <script>
-    function clearDashboardFilter() {
-        const fromInput = document.getElementById('from_date');
-        const toInput = document.getElementById('to_date');
-        if (fromInput) fromInput.value = '';
-        if (toInput) toInput.value = '';
-        window.location.href = "{% url 'core:dashboard' %}";
-    }
+function clearDashboardFilter() {
+    var pl = document.getElementById('page-loader-overlay'); if(pl) pl.classList.add('active');
+    const fromInput = document.getElementById('from_date');
+    const toInput = document.getElementById('to_date');
+    if (fromInput) fromInput.value = '';
+    if (toInput) toInput.value = '';
+    window.location.href = "{% url 'core:dashboard' %}";
+}
     const filterPanel = document.getElementById('filter-panel');
     const filterToggle = document.getElementById('filter-toggle');
     const hasActiveFilter = {% if from_date or to_date %}true{% else %}false{% endif %};

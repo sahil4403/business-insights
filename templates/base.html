@@ -544,25 +544,53 @@
             window.addEventListener('pageshow', reset);
 
             var lastHref = '', lastTime = 0;
+            function isNavString(s) {
+                if (!s) return false;
+                return /window\.location|location\.href|\.submit\(|document\.location|\.assign\(|\.replace\(/.test(s);
+            }
             document.addEventListener('click', function (e) {
                 var t = e.target;
                 if (!t || !t.closest) return;
 
-                // Submit buttons: busy-lock whole form
-                var btn = t.closest('button[type="submit"], input[type="submit"]');
-                if (btn) {
+                // Explicit opt-out
+                if (t.closest('[data-no-loader="1"]')) return;
+
+                // Buttons inside forms (submit + implicit): busy-lock whole form
+                var btn = t.closest('button, input[type="submit"]');
+                if (btn && btn.closest('form')) {
                     var f = btn.closest('form');
-                    if (f) {
+                    var isSubmit = btn.type === 'submit' ||
+                        (btn.tagName === 'BUTTON' && !btn.type) ||
+                        btn.tagName === 'INPUT';
+                    if (isSubmit) {
                         var lock = f.getAttribute('data-busy');
                         if (lock === '1') { e.preventDefault(); return; }
                         f.setAttribute('data-busy', '1');
                         Array.prototype.forEach.call(
-                            f.querySelectorAll('button[type="submit"],input[type="submit"]'),
+                            f.querySelectorAll('button[type="submit"],button:not([type]),input[type="submit"]'),
                             function (b) { b.classList.add('btn-busy'); }
                         );
                         start();
+                        return;
                     }
-                    return;
+                }
+
+                // Buttons outside forms: check for data-href / data-url
+                if (btn && !btn.closest('form')) {
+                    var dh = btn.dataset.href || btn.dataset.url;
+                    if (dh) {
+                        var now = Date.now();
+                        if (dh === lastHref && now - lastTime < 1500) { e.preventDefault(); return; }
+                        lastHref = dh; lastTime = now;
+                        start();
+                        return;
+                    }
+                    // Check onclick for navigation patterns
+                    var oc = btn.getAttribute('onclick');
+                    if (oc && isNavString(oc)) {
+                        start();
+                        return;
+                    }
                 }
 
                 // Internal links
@@ -574,12 +602,12 @@
                 if (a.target === '_blank' || a.hasAttribute('download')) return;
                 if (a.dataset.noLoader === '1') return;
 
-                var now = Date.now();
-                if (href === lastHref && now - lastTime < 1500) {
+                var now2 = Date.now();
+                if (href === lastHref && now2 - lastTime < 1500) {
                     e.preventDefault();
                     return;
                 }
-                lastHref = href; lastTime = now;
+                lastHref = href; lastTime = now2;
                 start();
             }, true);
         })();
@@ -623,6 +651,10 @@
 
             var safety = 0;
             function show() {
+                // Don't show if page-loader-overlay is already active (avoids
+                // two competing overlays on mobile where backdrop-filter may fail)
+                var plo = document.getElementById('page-loader-overlay');
+                if (plo && plo.classList.contains('active')) return;
                 clearTimeout(safety);
                 ov.classList.add('on');
                 safety = setTimeout(hide, 8000); // failsafe

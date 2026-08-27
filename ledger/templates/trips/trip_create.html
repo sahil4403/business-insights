@@ -544,6 +544,7 @@ function closeStatementModal() {
 }
 
 function confirmSaveAndViewStatement(shouldSave) {
+    var pl = document.getElementById('page-loader-overlay'); if(pl) pl.classList.add('active');
     const customerSelect = document.getElementById("id_customer");
     const customerId = customerSelect ? customerSelect.value : "";
     if (!customerId) return;

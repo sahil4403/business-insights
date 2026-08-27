@@ -200,7 +200,49 @@ nav.lq-bar {
     transition: transform .22s cubic-bezier(.34,1.56,.64,1);
 }
 
-/* ---------- 13. Chip hover states ---------- */
+/* ---------- 13. LIQUID GLASS CHIPS ---------- */
+.app-chip.glass {
+    background: rgba(255, 255, 255, .55) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+    backdrop-filter: blur(14px) saturate(160%) !important;
+    border: 1px solid rgba(255, 255, 255, .78) !important;
+    box-shadow:
+        0 4px 16px -6px rgba(15, 23, 42, .14),
+        inset 0 1px 0 rgba(255, 255, 255, .85) !important;
+    color: #334155 !important;
+}
+.app-chip.glass:hover {
+    background: rgba(255, 255, 255, .78) !important;
+    box-shadow:
+        0 8px 24px -8px rgba(15, 23, 42, .22),
+        inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+}
+.app-chip.glass:active { transform: scale(.94); }
+
+.app-chip.glass.primary {
+    background: linear-gradient(160deg, rgba(23, 112, 99, .88), rgba(17, 82, 72, .82)) !important;
+    border: 1px solid rgba(255, 255, 255, .35) !important;
+    color: #fff !important;
+    box-shadow:
+        0 6px 18px -8px rgba(22, 102, 90, .55),
+        inset 0 1px 0 rgba(255, 255, 255, .25) !important;
+}
+.app-chip.glass.primary:hover {
+    background: linear-gradient(160deg, rgba(23, 112, 99, .95), rgba(13, 66, 58, .92)) !important;
+}
+
+.app-chip.glass.danger {
+    background: linear-gradient(160deg, rgba(220, 38, 38, .88), rgba(185, 28, 28, .82)) !important;
+    border: 1px solid rgba(255, 255, 255, .35) !important;
+    color: #fff !important;
+    box-shadow:
+        0 6px 18px -8px rgba(220, 38, 38, .45),
+        inset 0 1px 0 rgba(255, 255, 255, .25) !important;
+}
+.app-chip.glass.danger:hover {
+    background: linear-gradient(160deg, rgba(220, 38, 38, .95), rgba(153, 27, 27, .92)) !important;
+}
+
 .app-chip:hover { background: #e2e8f0 !important; }
 
 /* ---------- 15. LIQUID GLASS BUTTONS (Export / Preview) ---------- */

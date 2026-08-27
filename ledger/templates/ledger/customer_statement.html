@@ -18,7 +18,7 @@
 {% block scrolltopbar %}
 <div class="flex items-center gap-2 px-3 py-2">
     <a href="{% url 'core:customer_report' %}"
-       class="shrink-0 h-9 px-3 rounded-full border border-slate-200 bg-white text-slate-600 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
+       class="shrink-0 h-9 px-3 rounded-full app-chip glass text-xs font-bold flex items-center gap-1">
         ← Back
     </a>
     <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ customer.name }}</span>
@@ -31,22 +31,22 @@
 <!-- PAGE HEADER -->
 <div class="mb-5 md:mb-6">
     <div class="hidden md:flex items-center gap-2 mb-5">
-        <a href="{% url 'core:customer_report' %}" class="app-chip">← Customers</a>
-        <a href="{% url 'core:dashboard' %}" class="app-chip">Dashboard</a>
+        <a href="{% url 'core:customer_report' %}" class="app-chip glass">← Customers</a>
+        <a href="{% url 'core:dashboard' %}" class="app-chip glass">Dashboard</a>
     </div>
 
     <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
                 <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">{{ customer.name }}</h1>
-                <span class="app-chip active-soft sm">{{ customer.customer_code }}</span>
+                <span class="app-chip glass active-soft sm">{{ customer.customer_code }}</span>
             </div>
             <div class="flex flex-wrap items-center gap-2 mt-2">
                 {% if customer.mobile %}
                     <span class="text-sm text-slate-500">{{ customer.mobile }}</span>
                 {% endif %}
                 {% if customer.is_vendor %}
-                    <span class="app-chip sm amber">Vendor / Supplier</span>
+                    <span class="app-chip sm glass amber">Vendor / Supplier</span>
                 {% endif %}
             </div>
 
@@ -178,10 +178,10 @@
     {% endif %}
 
     <div class="app-tabs px-3 pt-3 pb-2">
-        <a href="#" data-preset="all" class="app-chip">All</a>
-        <a href="#" data-preset="month" class="app-chip">This Month</a>
-        <a href="#" data-preset="30" class="app-chip">Last 30 Days</a>
-        <a href="#" data-preset="year" class="app-chip">This Year</a>
+        <a href="#" data-preset="all" class="app-chip glass">All</a>
+        <a href="#" data-preset="month" class="app-chip glass">This Month</a>
+        <a href="#" data-preset="30" class="app-chip glass">Last 30 Days</a>
+        <a href="#" data-preset="year" class="app-chip glass">This Year</a>
     </div>
 
     <details id="filter-details" class="border-t border-slate-100">
@@ -275,16 +275,16 @@
 
                         {% if transaction.type == 'SALE' or transaction.type == 'VENDOR_SUPPLY' %}
                             <div class="flex items-center gap-2 mt-2">
-                                <a href="{% url 'trips:detail' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm">View</a>
+                                <a href="{% url 'trips:detail' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass">View</a>
                                 {% if transaction.outstanding > 0 %}
-                                    <a href="{% url 'trips:payment_create' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm primary">Pay ₹{{ transaction.outstanding|floatformat:0 }}</a>
+                                    <a href="{% url 'trips:payment_create' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass primary">Pay ₹{{ transaction.outstanding|floatformat:0 }}</a>
                                 {% endif %}
                             </div>
                         {% elif transaction.type == 'PAYMENT' %}
                             {% if transaction.payment_group %}
                                 <div class="flex items-center gap-2 mt-2">
-                                    <a href="{% url 'ledger:customer_payment_group_edit' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm">Edit</a>
-                                    <a href="{% url 'ledger:customer_payment_group_delete' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger">Delete</a>
+                                    <a href="{% url 'ledger:customer_payment_group_edit' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass">Edit</a>
+                                    <a href="{% url 'ledger:customer_payment_group_delete' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass danger">Delete</a>
                                 </div>
                                 {% if transaction.merged_payments %}
                                     <details class="mt-1.5">
@@ -300,8 +300,8 @@
                                 {% endif %}
                             {% elif transaction.payment_id %}
                                 <div class="flex items-center gap-2 mt-2">
-                                    <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm">Edit</a>
-                                    <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger">Delete</a>
+                                    <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass">Edit</a>
+                                    <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass danger">Delete</a>
                                 </div>
                             {% elif transaction.merged_payments %}
                                 <details class="mt-1.5">
@@ -311,8 +311,8 @@
                                             <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5">
                                                 <span class="text-[12px] font-semibold text-slate-700 truncate">₹{{ mp.amount|floatformat:2 }}{% if mp.trip_code %} <span class="text-slate-400 font-medium">· {{ mp.trip_code }}</span>{% endif %}</span>
                                                 <span class="flex gap-1 shrink-0">
-                                                    <a href="{% url 'trips:payment_edit' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-brand-600 font-bold text-[12px] px-1">Edit</a>
-                                                    <a href="{% url 'trips:payment_delete' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 font-bold text-[12px] px-1">Del</a>
+                                                    <a href="{% url 'trips:payment_edit' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-brand-600 font-bold text-[12px] px-1 glass">Edit</a>
+                                                    <a href="{% url 'trips:payment_delete' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 font-bold text-[12px] px-1 glass">Del</a>
                                                 </span>
                                             </div>
                                         {% endfor %}
@@ -393,17 +393,17 @@
                             <td class="px-5 py-3 text-right whitespace-nowrap">
                                 <div class="inline-flex items-center gap-1.5">
                                     {% if transaction.type == 'SALE' or transaction.type == 'VENDOR_SUPPLY' %}
-                                        <a href="{% url 'trips:detail' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm" title="View Trip Details">View</a>
+                                        <a href="{% url 'trips:detail' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass" title="View Trip Details">View</a>
                                         {% if transaction.outstanding > 0 %}
-                                            <a href="{% url 'trips:payment_create' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm primary" title="Record Payment for this Trip">Pay ₹{{ transaction.outstanding|floatformat:0 }}</a>
+                                            <a href="{% url 'trips:payment_create' transaction.trip_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass primary" title="Record Payment for this Trip">Pay ₹{{ transaction.outstanding|floatformat:0 }}</a>
                                         {% endif %}
                                     {% elif transaction.type == 'PAYMENT' %}
                                         {% if transaction.payment_group %}
-                                            <a href="{% url 'ledger:customer_payment_group_edit' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm" title="Edit Payment">Edit</a>
-                                            <a href="{% url 'ledger:customer_payment_group_delete' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger" title="Delete Payment">Delete</a>
+                                            <a href="{% url 'ledger:customer_payment_group_edit' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass" title="Edit Payment">Edit</a>
+                                            <a href="{% url 'ledger:customer_payment_group_delete' transaction.payment_group %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass danger" title="Delete Payment">Delete</a>
                                             {% if transaction.merged_payments %}
                                                 <details class="inline-block">
-                                                    <summary class="app-chip sm">{{ transaction.merged_payments|length }} trips ▾</summary>
+                                                    <summary class="app-chip sm glass">{{ transaction.merged_payments|length }} trips ▾</summary>
                                                     <div class="mt-1.5 space-y-1 text-left">
                                                         {% for mp in transaction.merged_payments %}
                                                             <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 whitespace-nowrap">
@@ -414,18 +414,18 @@
                                                 </details>
                                             {% endif %}
                                         {% elif transaction.payment_id %}
-                                            <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm" title="Edit Payment">Edit</a>
-                                            <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm danger" title="Delete Payment">Delete</a>
+                                            <a href="{% url 'trips:payment_edit' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass" title="Edit Payment">Edit</a>
+                                            <a href="{% url 'trips:payment_delete' transaction.payment_id %}?next={{ request.get_full_path|urlencode }}" class="app-chip sm glass danger" title="Delete Payment">Delete</a>
                                         {% elif transaction.merged_payments %}
                                             <details class="inline-block">
-                                                <summary class="app-chip sm">{{ transaction.merged_payments|length }} Payments ▾</summary>
+                                                <summary class="app-chip sm glass">{{ transaction.merged_payments|length }} Payments ▾</summary>
                                                 <div class="mt-1.5 space-y-1 text-left">
                                                     {% for mp in transaction.merged_payments %}
                                                         <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 whitespace-nowrap">
                                                             <span class="text-[12px] font-semibold text-slate-700">₹{{ mp.amount|floatformat:2 }}{% if mp.trip_code %} <span class="text-slate-400 font-medium">· {{ mp.trip_code }}</span>{% endif %}</span>
                                                             <span class="flex gap-1 shrink-0 ml-2">
-                                                                <a href="{% url 'trips:payment_edit' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-brand-600 font-bold text-[12px] px-1">Edit</a>
-                                                                <a href="{% url 'trips:payment_delete' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 font-bold text-[12px] px-1">Del</a>
+                                                                <a href="{% url 'trips:payment_edit' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-brand-600 font-bold text-[12px] px-1 glass">Edit</a>
+                                                                <a href="{% url 'trips:payment_delete' mp.id %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 font-bold text-[12px] px-1 glass">Del</a>
                                                             </span>
                                                         </div>
                                                     {% endfor %}

@@ -636,29 +636,30 @@ document.addEventListener("DOMContentLoaded", function() {
         if (modal) modal.style.display = "none";
     }
 
-    function confirmSaveAndViewStatement(shouldSave) {
-        const customerSelect = document.getElementById("id_customer");
-        const customerId = customerSelect ? customerSelect.value : "";
-        if (!customerId) return;
+function confirmSaveAndViewStatement(shouldSave) {
+    var pl = document.getElementById('page-loader-overlay'); if(pl) pl.classList.add('active');
+    const customerSelect = document.getElementById("id_customer");
+    const customerId = customerSelect ? customerSelect.value : "";
+    if (!customerId) return;
 
-        if (shouldSave) {
-            const form = customerSelect.closest("form");
-            if (form) {
-                let hiddenInput = document.getElementById("save_and_view_statement_input");
-                if (!hiddenInput) {
-                    hiddenInput = document.createElement("input");
-                    hiddenInput.type = "hidden";
-                    hiddenInput.id = "save_and_view_statement_input";
-                    hiddenInput.name = "save_and_view_statement";
-                    form.appendChild(hiddenInput);
-                }
-                hiddenInput.value = "1";
-                form.submit();
+    if (shouldSave) {
+        const form = customerSelect.closest("form");
+        if (form) {
+            let hiddenInput = document.getElementById("save_and_view_statement_input");
+            if (!hiddenInput) {
+                hiddenInput = document.createElement("input");
+                hiddenInput.type = "hidden";
+                hiddenInput.id = "save_and_view_statement_input";
+                hiddenInput.name = "save_and_view_statement";
+                form.appendChild(hiddenInput);
             }
-        } else {
-            window.location.href = `/ledger/customer/${customerId}/`;
+            hiddenInput.value = "1";
+            form.submit();
         }
+    } else {
+        window.location.href = `/ledger/customer/${customerId}/`;
     }
+}
 </script>
 <script>
     // ============ JCB SECTION VISIBILITY ============

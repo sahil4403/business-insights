@@ -186,21 +186,22 @@
         return /^[a-z0-9]{2,5}$/.test(ext) ? ext : (fallback || 'pdf');
     }
 
-    async function downloadDoc(url, filename, saveBase) {
-        const saveName = (saveBase || 'document') + '.' + __extOf(filename);
-        try {
-            const blob = await __fetchBlob(url);
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = saveName;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-        } catch (e) {
-            window.open(url, '_blank');
-        }
+async function downloadDoc(url, filename, saveBase) {
+    var pl = document.getElementById('page-loader-overlay'); if(pl) pl.classList.add('active');
+    const saveName = (saveBase || 'document') + '.' + __extOf(filename);
+    try {
+        const blob = await __fetchBlob(url);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = saveName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    } catch (e) {
+        window.open(url, '_blank');
     }
+}
 
     async function shareDoc(url, filename, saveBase, msgText) {
         const saveName = (saveBase || 'document') + '.' + __extOf(filename);

@@ -754,6 +754,10 @@
 
             var safety = 0;
             function show() {
+                // Don't show if page-loader-overlay is already active (avoids
+                // two competing overlays on mobile where backdrop-filter may fail)
+                var plo = document.getElementById('page-loader-overlay');
+                if (plo && plo.classList.contains('active')) return;
                 clearTimeout(safety);
                 ov.classList.add('on');
                 safety = setTimeout(hide, 8000); // failsafe

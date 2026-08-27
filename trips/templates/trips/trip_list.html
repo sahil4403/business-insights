@@ -627,14 +627,15 @@
             });
         }
 
-        function clearTripSearch() {
-            const form = document.getElementById('tripFiltersForm');
-            if (!form) return;
-            const el = form.elements['search'];
-            if (el) el.value = '';
-            showNavLoader();
-            form.submit();
-        }
+function clearTripSearch() {
+    var pl = document.getElementById('page-loader-overlay'); if(pl) pl.classList.add('active');
+    const form = document.getElementById('tripFiltersForm');
+    if (!form) return;
+    const el = form.elements['search'];
+    if (el) el.value = '';
+    showNavLoader();
+    form.submit();
+}
 
         // EXPORT + PREVIEW: current filters (month/year, date range, search,
         // material, driver, payment status, category...) ke saath
@@ -674,27 +675,30 @@
             document.body.style.overflow = '';
         }
 
-        function downloadExport(qs) {
-            const query = qs !== undefined && qs !== '' ? qs : buildExportQuery('');
-            showNavLoader();
-            window.location.href = "{% url 'trips:export' %}" + (query ? '?' + query : '');
-        }
+function downloadExport(qs) {
+    var pl = document.getElementById('page-loader-overlay'); if(pl) pl.classList.add('active');
+    const query = qs !== undefined && qs !== '' ? qs : buildExportQuery('');
+    showNavLoader();
+    window.location.href = "{% url 'trips:export' %}" + (query ? '?' + query : '');
+}
 
-        function downloadExportCsv() {
-            const query = buildExportQuery('');
-            showNavLoader();
-            window.location.href = "{% url 'trips:export' %}?format=csv" + (query ? '&' + query : '');
-        }
+function downloadExportCsv() {
+    var pl = document.getElementById('page-loader-overlay'); if(pl) pl.classList.add('active');
+    const query = buildExportQuery('');
+    showNavLoader();
+    window.location.href = "{% url 'trips:export' %}?format=csv" + (query ? '&' + query : '');
+}
 
         // QUICK DATE-SORT: chip tap -> select flip -> filters apply
-        function toggleDateSort() {
-            const sel = document.getElementById('sort');
-            if (!sel) return;
-            sel.value = (sel.value === 'oldest') ? 'newest' : 'oldest';
-            showNavLoader();
-            const form = document.getElementById('tripFiltersForm');
-            if (form) form.submit();
-        }
+function toggleDateSort() {
+    var pl = document.getElementById('page-loader-overlay'); if(pl) pl.classList.add('active');
+    const sel = document.getElementById('sort');
+    if (!sel) return;
+    sel.value = (sel.value === 'oldest') ? 'newest' : 'oldest';
+    showNavLoader();
+    const form = document.getElementById('tripFiltersForm');
+    if (form) form.submit();
+}
 
         // ============ EXPORT SUMMARY DROPDOWN — Floating UI powered ============
         (function () {
