@@ -140,7 +140,8 @@
 <div id="scroll-topbar" class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-[#eef1f6] shadow-sm" style="transform: translateY(-110%); transition: transform 0.28s ease;">
     <div class="flex items-center gap-2 px-3 py-2 max-w-7xl mx-auto">
         <a href="{% url 'core:dashboard' %}"
-           class="shrink-0 h-9 px-3 rounded-full border border-[#eef1f6] bg-white text-slate-600 text-xs font-bold flex items-center gap-1 active:bg-slate-50">
+           class="shrink-0 h-9 px-3 rounded-full border border-[#eef1f6] bg-white text-slate-600 text-xs font-bold flex items-center gap-1 active:bg-slate-50"
+           onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
             Back
         </a>
@@ -162,7 +163,8 @@
     <!-- BACK -->
     <div class="flex items-center gap-2 mb-2 md:mb-4">
         <a href="{% url 'core:dashboard' %}"
-           class="inline-flex items-center gap-1.5 -ml-1 px-2.5 py-1.5 rounded-full bg-white border border-slate-200 text-[12px] font-bold text-slate-600 hover:text-brand-700 hover:border-brand-300 active:bg-slate-50 transition no-underline">
+           class="inline-flex items-center gap-1.5 -ml-1 px-2.5 py-1.5 rounded-full bg-white border border-slate-200 text-[12px] font-bold text-slate-600 hover:text-brand-700 hover:border-brand-300 active:bg-slate-50 transition no-underline"
+           onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
             Back to Dashboard
         </a>
@@ -357,7 +359,8 @@
                     Customers <span class="text-brand-600">{{ showing_count }}</span>
                 </div>
                 <a href="{% url 'core:dashboard' %}"
-                   class="app-chip h-10 border border-[#eef1f6]">
+                   class="app-chip h-10 border border-[#eef1f6]"
+                   onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                     Back to Business Dashboard
                 </a>
