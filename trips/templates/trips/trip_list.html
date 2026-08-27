@@ -35,7 +35,7 @@
         <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search trip, customer or vehicle..."
                class="w-full h-9 pl-3 pr-8 rounded-lg border border-slate-300 bg-slate-50 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition">
     </form>
-    <span class="shrink-0 text-xs font-bold text-brand-600">{{ summary.total_qty|floatformat:0 }}</span>
+    <span class="shrink-0 text-xs font-bold text-brand-600">{% if summary.is_internal_stock %}{{ summary.total_qty|floatformat:0 }}{% else %}{{ summary.total_count }}{% endif %}</span>
 </div>
 {% endblock %}
 
@@ -367,14 +367,14 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3 mb-4 md:mb-5">
         <div class="app-stat">
             <span class="lbl">Total Trips</span>
-            <span class="val">{{ summary.total_qty|floatformat:0 }}</span>
+            <span class="val">{% if summary.is_internal_stock %}{{ summary.total_qty|floatformat:0 }}{% else %}{{ summary.total_count }}{% endif %}</span>
             <span class="block text-[11px] font-semibold text-slate-400 mt-1">
                 {{ summary.paid_count }} Paid · {{ summary.pending_count }} Pending
             </span>
         </div>
         {% if selected_transaction_type == 'INTERNAL_STOCK' %}
             <div class="app-stat col-span-2 md:col-span-3">
-                <span class="lbl">📦 Internal Stock Trips</span>
+                <span class="lbl">📦 Internal Stock</span>
                 <span class="val">{{ summary.total_qty|floatformat:0 }}</span>
                 <span class="block text-[11px] font-semibold text-slate-400 mt-1">
                     Stock transfer — no payment tracking
@@ -400,7 +400,7 @@
     <div class="app-surface overflow-hidden">
         <div id="tripsHeader" class="px-4 py-3 md:px-5 md:py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
             <div class="font-bold text-slate-900 text-base">
-                Trips <span class="text-[13px] font-medium text-slate-500">({{ summary.total_qty|floatformat:0 }} trips)</span>
+                Trips <span class="text-[13px] font-medium text-slate-500">({% if summary.is_internal_stock %}{{ summary.total_qty|floatformat:0 }}{% else %}{{ summary.total_count }}{% endif %} trips)</span>
             </div>
             <div class="hidden md:flex gap-2">
                 <button type="button" onclick="scrollToTop()"
