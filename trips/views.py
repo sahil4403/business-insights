@@ -405,12 +405,12 @@ def trip_list(request):
 
     trips_list = list(trips)
     summary = {
-        'total_count': int(sum((t.quantity or 0) for t in trips_list)) if trips_list else 0,
+        'total_count': len(trips_list),
         'total_revenue': sum(t.total_amount for t in trips_list) if trips_list else Decimal('0'),
         'total_received': sum((t.calculated_received or Decimal('0')) for t in trips_list) if trips_list else Decimal('0'),
         'total_pending': sum((t.outstanding_amount or Decimal('0')) for t in trips_list) if trips_list else Decimal('0'),
-        'paid_count': int(sum((t.quantity or 0) for t in trips_list if t.calculated_status == 'PAID')),
-        'pending_count': int(sum((t.quantity or 0) for t in trips_list if t.calculated_status in ['UNPAID', 'PARTIAL'])),
+        'paid_count': len([t for t in trips_list if t.calculated_status == 'PAID']),
+        'pending_count': len([t for t in trips_list if t.calculated_status in ['UNPAID', 'PARTIAL']]),
     }
 
     context = {
