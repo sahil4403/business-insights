@@ -1,7 +1,6 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models.deletion import ProtectedError
-from django.db.models import OuterRef, Subquery
 from django.http import HttpResponse
 from django.utils import timezone
 from django.db.models.functions import ExtractYear, Coalesce
@@ -30,12 +29,6 @@ def _filtered_trips(request):
     """
     Shared queryset builder — trip_list aur trip_export dono SAME filters use karte hain.
     Returns (filtered+annotated queryset, filters dict for context/filename).
-
-    CUSTOMER-LEVEL NET OUTSTANDING:
-    - outward_amount: total of all outward trips for this customer
-    - inward_amount:  total of all inward (VENDOR_SUPPLY) trips for this customer
-    - customer_payments: total payments received from this customer
-    - net_outstanding: outward - inward - payments (min 0)
     """
     trips = Trip.objects.select_related(
         'customer',
@@ -62,57 +55,6 @@ def _filtered_trips(request):
             ),
             default=Value('PAID'),
             output_field=CharField(),
-        ),
-    )
-
-    # --- CUSTOMER-LEVEL NET OUTSTANDING (subqueries) ---
-    outward_agg = Trip.objects.filter(
-        customer=OuterRef('customer'),
-        transaction_type='CUSTOMER_DELIVERY',
-    ).values('customer').annotate(
-        total=Sum('total_amount')
-    ).values('total')
-
-    inward_agg = Trip.objects.filter(
-        customer=OuterRef('customer'),
-        transaction_type='VENDOR_SUPPLY',
-    ).values('customer').annotate(
-        total=Sum('total_amount')
-    ).values('total')
-
-    payment_agg = TripPayment.objects.filter(
-        trip__customer=OuterRef('customer'),
-        payment_type='RECEIVED',
-    ).values('trip__customer').annotate(
-        total=Sum('amount')
-    ).values('total')
-
-    trips = trips.annotate(
-        customer_outward=Coalesce(
-            Subquery(outward_agg),
-            Value(Decimal('0')),
-            output_field=DecimalField(max_digits=15, decimal_places=2),
-        ),
-        customer_inward=Coalesce(
-            Subquery(inward_agg),
-            Value(Decimal('0')),
-            output_field=DecimalField(max_digits=15, decimal_places=2),
-        ),
-        customer_payments=Coalesce(
-            Subquery(payment_agg),
-            Value(Decimal('0')),
-            output_field=DecimalField(max_digits=15, decimal_places=2),
-        ),
-    ).annotate(
-        net_outstanding=Case(
-            When(
-                customer_outward__gt=(
-                    F('customer_inward') + F('customer_payments')
-                ),
-                then=F('customer_outward') - F('customer_inward') - F('customer_payments'),
-            ),
-            default=Value(Decimal('0')),
-            output_field=DecimalField(max_digits=15, decimal_places=2),
         ),
     )
 
@@ -167,20 +109,9 @@ def _filtered_trips(request):
     )
 
     if payment_status:
-        # Support multiple comma-separated values (e.g., "UNPAID,PARTIAL")
-        status_list = [s.strip().upper() for s in payment_status.split(',') if s.strip()]
-
-        if status_list and set(status_list) != {'UNPAID', 'PARTIAL', 'PAID'}:
-            # Build Q objects for selected statuses
-            q = Q()
-            if 'UNPAID' in status_list:
-                q |= Q(net_outstanding__gt=0)
-            if 'PARTIAL' in status_list:
-                q |= Q(calculated_status='PARTIAL')
-            if 'PAID' in status_list:
-                q |= Q(net_outstanding__lte=0)
-            if q:
-                trips = trips.filter(q)
+        trips = trips.filter(
+            calculated_status=payment_status
+        )
 
     material_id = request.GET.get('material', '').strip()
     if material_id:
