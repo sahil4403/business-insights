@@ -553,23 +553,10 @@
                 // Explicit opt-out
                 if (t.closest('[data-no-loader="1"]')) return;
 
-                // Buttons inside forms (submit + implicit): busy-lock whole form, NO loading screen
+                // Buttons inside forms (submit + implicit): allow normal form submit
                 var btn = t.closest('button, input[type="submit"]');
                 if (btn && btn.closest('form')) {
-                    var f = btn.closest('form');
-                    var isSubmit = btn.type === 'submit' ||
-                        (btn.tagName === 'BUTTON' && !btn.type) ||
-                        btn.tagName === 'INPUT';
-                    if (isSubmit) {
-                        var lock = f.getAttribute('data-busy');
-                        if (lock === '1') { e.preventDefault(); return; }
-                        f.setAttribute('data-busy', '1');
-                        Array.prototype.forEach.call(
-                            f.querySelectorAll('button[type="submit"],button:not([type]),input[type="submit"]'),
-                            function (b) { b.classList.add('btn-busy'); }
-                        );
-                        return;
-                    }
+                    return;
                 }
 
                 // Buttons outside forms: check for data-href / data-url
