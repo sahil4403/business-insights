@@ -293,6 +293,51 @@
         <button type="submit" class="btn btn-primary flex-1 md:flex-none">Create Trip</button>
     </div>
 
+<script>
+document.getElementById('trip-form').addEventListener('submit', function(e) {
+    var valid = true;
+    var firstInvalid = null;
+
+    // Clear old errors
+    document.querySelectorAll('.field-error-msg').forEach(function(el) { el.remove(); });
+    document.querySelectorAll('.field-error').forEach(function(el) { el.classList.remove('field-error'); });
+
+    // Customer validation
+    var custInput = document.getElementById('customer_typeahead');
+    var custHidden = document.getElementById('id_customer');
+    var transType = document.getElementById('id_transaction_type').value;
+    if (transType !== 'INTERNAL_STOCK' && (!custHidden.value || custHidden.value === '')) {
+        custInput.classList.add('field-error');
+        var msg = document.createElement('div');
+        msg.className = 'error field-error-msg';
+        msg.textContent = '⚠️ Customer name is required.';
+        custInput.parentNode.appendChild(msg);
+        if (!firstInvalid) firstInvalid = custInput;
+        valid = false;
+    }
+
+    // Driver validation
+    var vehicle = document.getElementById('id_vehicle').value;
+    var driverChecks = document.querySelectorAll('.driver-checkbox:checked');
+    if (vehicle && transType !== 'INTERNAL_STOCK' && transType !== 'VENDOR_SUPPLY' && driverChecks.length === 0) {
+        var box = document.getElementById('driver_allocation_box');
+        box.classList.add('field-error');
+        var msg = document.createElement('div');
+        msg.className = 'error field-error-msg';
+        msg.textContent = '⚠️ At least one Driver is required when a Vehicle is selected.';
+        box.parentNode.appendChild(msg);
+        if (!firstInvalid) firstInvalid = box;
+        valid = false;
+    }
+
+    if (!valid) {
+        e.preventDefault();
+        if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstInvalid.focus();
+    }
+});
+</script>
+
 </form>
 
 <!-- STATEMENT CONFIRMATION MODAL -->
