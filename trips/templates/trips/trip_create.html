@@ -310,6 +310,33 @@
     </div>
 </div>
 
+<!-- QUICK ADD CUSTOMER MODAL -->
+<div id="quick_customer_modal" style="display:none;" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-5 md:p-6 shadow-2xl border border-slate-200">
+        <h3 class="mt-0 text-lg font-bold" style="color: #16665a;">+ Add New Customer</h3>
+        <p class="text-slate-500 text-sm mt-1 mb-4">Quick add — only name required. Edit full details later.</p>
+        <div id="quick_customer_error" style="display:none;" class="mb-3 p-2 rounded-lg bg-red-50 text-red-700 text-sm font-semibold"></div>
+        <div class="space-y-3">
+            <div>
+                <label class="label" style="font-size:13px; font-weight:600; color:#334155;">Customer Name *</label>
+                <input type="text" id="qc_name" class="w-full h-11 px-3 rounded-xl border border-slate-300 text-sm" placeholder="e.g. Sharma Construction">
+            </div>
+            <div>
+                <label class="label" style="font-size:13px; font-weight:600; color:#334155;">Mobile (Optional)</label>
+                <input type="tel" id="qc_mobile" class="w-full h-11 px-3 rounded-xl border border-slate-300 text-sm" placeholder="e.g. 9876543210">
+            </div>
+            <div>
+                <label class="label" style="font-size:13px; font-weight:600; color:#334155;">City (Optional)</label>
+                <input type="text" id="qc_city" class="w-full h-11 px-3 rounded-xl border border-slate-300 text-sm" placeholder="e.g. Pune">
+            </div>
+        </div>
+        <div class="flex gap-2.5 mt-5">
+            <button type="button" onclick="closeQuickCustomerModal()" class="btn btn-secondary flex-1">Cancel</button>
+            <button type="button" id="qc_save_btn" onclick="saveQuickCustomer()" class="btn btn-primary flex-1">Save & Select</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -327,7 +354,6 @@
         custSelect.value = value;
         searchInput.value = text;
         sugBox.style.display = 'none';
-        // Existing listeners (quickfill, visibility) ko trigger karo
         custSelect.dispatchEvent(new Event('change'));
     }
 
@@ -338,8 +364,23 @@
             return o.text.toLowerCase().indexOf(q) !== -1;
         }).slice(0, 8);
 
-        if (!matches.length) {
-            sugBox.innerHTML = '<div style="padding:10px 14px; font-size:13px; color:#94a3b8;">Koi customer nahi mila</div>';
+        if (!matches.length && q.length > 0) {
+            // No matches — show "Add New Customer" option
+            var addDiv = document.createElement('div');
+            addDiv.style.cssText = 'padding:12px 14px; cursor:pointer; font-size:14px; font-weight:700; color:#16665a; border-bottom:1px solid #f1f5f9; background:#f0fdf9;';
+            addDiv.innerHTML = '+ Add New Customer "<b>' + q + '</b>"';
+            addDiv.addEventListener('mouseenter', function () { addDiv.style.background = '#dcfce7'; });
+            addDiv.addEventListener('mouseleave', function () { addDiv.style.background = '#f0fdf9'; });
+            addDiv.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                openQuickCustomerModal(q);
+            });
+            sugBox.appendChild(addDiv);
+        } else if (!matches.length) {
+            var hint = document.createElement('div');
+            hint.style.cssText = 'padding:10px 14px; font-size:13px; color:#94a3b8;';
+            hint.textContent = 'Type customer name to search or add new...';
+            sugBox.appendChild(hint);
         } else {
             matches.forEach(function (o) {
                 var div = document.createElement('div');
@@ -353,6 +394,22 @@
                 });
                 sugBox.appendChild(div);
             });
+            // Also show "Add New Customer" at bottom if search text doesn't match exactly
+            if (q.length > 0) {
+                var exactMatch = allOptions.some(function (o) { return o.text.toLowerCase() === q; });
+                if (!exactMatch) {
+                    var addDiv2 = document.createElement('div');
+                    addDiv2.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:13px; font-weight:700; color:#16665a; background:#f0fdf9; border-top:2px solid #e2e8f0;';
+                    addDiv2.textContent = '+ Add New Customer "' + searchInput.value + '"';
+                    addDiv2.addEventListener('mouseenter', function () { addDiv2.style.background = '#dcfce7'; });
+                    addDiv2.addEventListener('mouseleave', function () { addDiv2.style.background = '#f0fdf9'; });
+                    addDiv2.addEventListener('mousedown', function (e) {
+                        e.preventDefault();
+                        openQuickCustomerModal(searchInput.value);
+                    });
+                    sugBox.appendChild(addDiv2);
+                }
+            }
         }
         sugBox.style.display = 'block';
     }
@@ -365,6 +422,10 @@
         }
         renderSuggestions(searchInput.value);
     });
+    searchInput.addEventListener('blur', function () {
+        setTimeout(function () { sugBox.style.display = 'none'; }, 200);
+    });
+    });
     document.addEventListener('click', function (e) {
         if (e.target !== searchInput && !sugBox.contains(e.target)) sugBox.style.display = 'none';
     });
@@ -375,6 +436,82 @@
         if (sel) searchInput.value = sel.text;
     }
 })();
+
+// ============ QUICK ADD CUSTOMER MODAL ============
+var _lastQuickCustomerSearch = '';
+function openQuickCustomerModal(name) {
+    _lastQuickCustomerSearch = name || '';
+    document.getElementById('qc_name').value = name || '';
+    document.getElementById('qc_mobile').value = '';
+    document.getElementById('qc_city').value = '';
+    document.getElementById('quick_customer_error').style.display = 'none';
+    document.getElementById('quick_customer_modal').style.display = 'flex';
+    setTimeout(function() { document.getElementById('qc_name').focus(); }, 100);
+}
+function closeQuickCustomerModal() {
+    document.getElementById('quick_customer_modal').style.display = 'none';
+}
+function saveQuickCustomer() {
+    var name = document.getElementById('qc_name').value.trim();
+    var mobile = document.getElementById('qc_mobile').value.trim();
+    var city = document.getElementById('qc_city').value.trim();
+    var errEl = document.getElementById('quick_customer_error');
+    var btn = document.getElementById('qc_save_btn');
+
+    if (!name) {
+        errEl.textContent = 'Customer name is required.';
+        errEl.style.display = 'block';
+        document.getElementById('qc_name').focus();
+        return;
+    }
+
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+    errEl.style.display = 'none';
+
+    var fd = new FormData();
+    fd.append('name', name);
+    fd.append('mobile', mobile);
+    fd.append('city', city);
+
+    fetch('/customers/quick-add/', {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            // Add new option to hidden select
+            var custSelect = document.getElementById('id_customer');
+            var opt = document.createElement('option');
+            opt.value = data.id;
+            opt.text = data.name;
+            custSelect.add(opt);
+            custSelect.value = data.id;
+
+            // Update search input
+            var searchInput = document.getElementById('customer_typeahead');
+            searchInput.value = data.name;
+
+            // Trigger change for visibility logic
+            custSelect.dispatchEvent(new Event('change'));
+
+            closeQuickCustomerModal();
+        } else {
+            errEl.textContent = data.error || 'Failed to save.';
+            errEl.style.display = 'block';
+        }
+    })
+    .catch(function() {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+    })
+    .finally(function() {
+        btn.textContent = 'Save & Select';
+        btn.disabled = false;
+    });
+}
 
 // ============ CUSTOMER VISIBILITY (INTERNAL_STOCK hide) ============
 document.addEventListener("DOMContentLoaded", function() {
