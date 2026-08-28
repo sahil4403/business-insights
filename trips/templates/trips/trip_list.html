@@ -12,13 +12,15 @@
         #tripsHeader { transition: box-shadow .2s ease; }
     }
     /* Filter dropdown: prevent overflow on short laptop screens */
-    #filter-details > div {
-        max-height: calc(100vh - 8rem);
-        overflow-y: auto;
+    #filter-details[open] > div,
+    details#filter-details[open] > div {
+        max-height: calc(100vh - 9rem) !important;
+        max-height: min(calc(100vh - 9rem), 720px) !important;
+        overflow-y: auto !important;
         overscroll-behavior: contain;
     }
-    #filter-details > div::-webkit-scrollbar { width: 6px; }
-    #filter-details > div::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    #filter-details[open] > div::-webkit-scrollbar { width: 6px; }
+    #filter-details[open] > div::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 </style>
 {% endblock %}
 
