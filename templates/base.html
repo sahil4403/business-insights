@@ -553,7 +553,7 @@
                 // Explicit opt-out
                 if (t.closest('[data-no-loader="1"]')) return;
 
-                // Buttons inside forms (submit + implicit): busy-lock whole form
+                // Buttons inside forms (submit + implicit): busy-lock whole form, NO loading screen
                 var btn = t.closest('button, input[type="submit"]');
                 if (btn && btn.closest('form')) {
                     var f = btn.closest('form');
@@ -568,7 +568,6 @@
                             f.querySelectorAll('button[type="submit"],button:not([type]),input[type="submit"]'),
                             function (b) { b.classList.add('btn-busy'); }
                         );
-                        start();
                         return;
                     }
                 }
