@@ -2366,14 +2366,17 @@ def quick_add_customer(request):
         if not customer_type:
             customer_type = CustomerType.objects.create(code='CUSTOMER', name='Customer')
 
-    # Generate customer_code
+    # Generate customer_code (next sequential after highest existing)
     prefix = "CUST-"
-    next_id = Customer.objects.count() + 1
-    while True:
-        code = f"{prefix}{next_id:03d}"
-        if not Customer.objects.filter(customer_code=code).exists():
-            break
-        next_id += 1
+    last = Customer.objects.exclude(customer_code='').order_by('-customer_code').values_list('customer_code', flat=True).first()
+    if last and last.startswith(prefix):
+        try:
+            next_id = int(last[len(prefix):]) + 1
+        except ValueError:
+            next_id = Customer.objects.count() + 1
+    else:
+        next_id = Customer.objects.count() + 1
+    code = f"{prefix}{next_id:03d}"
 
     try:
         customer = Customer.objects.create(
