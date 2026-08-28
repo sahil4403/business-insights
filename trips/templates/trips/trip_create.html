@@ -956,9 +956,11 @@ function confirmSaveAndViewStatement(shouldSave) {
             var qty = document.getElementById('id_quantity');
             if (!qty.value || parseFloat(qty.value) <= 0) markError('id_quantity', 'Quantity must be greater than zero.');
 
-            // 7. Rate
-            var rate = document.getElementById('id_rate');
-            if (!rate.value || parseFloat(rate.value) < 0) markError('id_rate', 'Rate is required.');
+            // 7. Rate (skip for INTERNAL_STOCK)
+            if (transType !== 'INTERNAL_STOCK') {
+                var rate = document.getElementById('id_rate');
+                if (!rate.value || parseFloat(rate.value) < 0) markError('id_rate', 'Rate is required.');
+            }
 
             // 8. Driver (skip for JCB, INTERNAL_STOCK, VENDOR_SUPPLY)
             var driverChecks = document.querySelectorAll('.driver-checkbox:checked');
