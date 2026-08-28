@@ -425,7 +425,6 @@
     searchInput.addEventListener('blur', function () {
         setTimeout(function () { sugBox.style.display = 'none'; }, 200);
     });
-    });
     document.addEventListener('click', function (e) {
         if (e.target !== searchInput && !sugBox.contains(e.target)) sugBox.style.display = 'none';
     });
