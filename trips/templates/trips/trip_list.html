@@ -12,15 +12,39 @@
         #tripsHeader { transition: box-shadow .2s ease; }
     }
     /* Filter dropdown: prevent overflow on short laptop screens */
+    #filter-details[open] {
+        position: relative;
+    }
     #filter-details[open] > div,
     details#filter-details[open] > div {
-        max-height: calc(100vh - 9rem) !important;
-        max-height: min(calc(100vh - 9rem), 720px) !important;
+        max-height: calc(100vh - 7rem) !important;
+        max-height: min(calc(100vh - 7rem), 640px) !important;
         overflow-y: auto !important;
         overscroll-behavior: contain;
+        display: flex;
+        flex-direction: column;
     }
-    #filter-details[open] > div::-webkit-scrollbar { width: 6px; }
-    #filter-details[open] > div::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    /* Make the grid area scrollable but keep Apply/Clear sticky at bottom */
+    #filter-details[open] > div > .grid {
+        overflow-y: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+    /* Sticky footer for Apply/Clear */
+    #filter-details[open] .filter-actions {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        z-index: 2;
+        box-shadow: 0 -4px 8px -4px rgba(0,0,0,0.08);
+        margin: 0.625rem -0.875rem -0.875rem -0.875rem;
+        padding: 0.625rem 0.875rem 0.875rem 0.875rem;
+        border-top: 1px solid #f1f5f9;
+    }
+    #filter-details[open] > div::-webkit-scrollbar,
+    #filter-details[open] > div > .grid::-webkit-scrollbar { width: 6px; }
+    #filter-details[open] > div::-webkit-scrollbar-thumb,
+    #filter-details[open] > div > .grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 </style>
 {% endblock %}
 
@@ -357,7 +381,7 @@
                             </div>
                         </div>
 
-                        <div class="col-span-2 md:col-span-3 flex flex-col sm:flex-row gap-2.5 pt-2.5 mt-1 border-t border-slate-100">
+                        <div class="col-span-2 md:col-span-3 flex flex-col sm:flex-row gap-2.5 pt-2.5 mt-1 border-t border-slate-100 filter-actions">
                             <button type="submit"
                                     class="h-11 md:h-10 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
                                 🔍 Apply
