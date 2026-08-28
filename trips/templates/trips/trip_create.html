@@ -78,7 +78,7 @@
     </div>
 {% endif %}
 
-<form method="post" id="trip-form" class="space-y-3 md:space-y-5">
+<form method="post" id="trip-form" class="space-y-3 md:space-y-5" novalidate>
 
     {% csrf_token %}
 
@@ -901,17 +901,37 @@ function confirmSaveAndViewStatement(shouldSave) {
         if (startInput) startInput.addEventListener("input", updateJcbCalculations);
         if (endInput) endInput.addEventListener("input", updateJcbCalculations);
 
-        // === FORM VALIDATION: Customer & Driver required ===
+        // === FORM VALIDATION: ALL required fields ===
         document.getElementById('trip-form').addEventListener('submit', function(e) {
             var valid = true;
             var firstInvalid = null;
+            var transType = document.getElementById('id_transaction_type').value;
 
+            // Clear old errors
             document.querySelectorAll('.field-error-msg').forEach(function(el) { el.remove(); });
             document.querySelectorAll('.field-error').forEach(function(el) { el.classList.remove('field-error'); });
 
+            function markError(fieldId, msg) {
+                var el = document.getElementById(fieldId);
+                if (!el) return;
+                el.classList.add('field-error');
+                var div = document.createElement('div');
+                div.className = 'error field-error-msg';
+                div.textContent = msg;
+                el.parentNode.appendChild(div);
+                if (!firstInvalid) firstInvalid = el;
+                valid = false;
+            }
+
+            // 1. Trip Date
+            var tripDate = document.getElementById('id_trip_date');
+            if (!tripDate.value) markError('id_trip_date', 'Trip Date is required.');
+
+            // 2. Transaction Type (always has value, skip)
+
+            // 3. Customer (skip for INTERNAL_STOCK)
             var custInput = document.getElementById('customer_typeahead');
             var custHidden = document.getElementById('id_customer');
-            var transType = document.getElementById('id_transaction_type').value;
             if (transType !== 'INTERNAL_STOCK' && (!custHidden.value || custHidden.value === '')) {
                 custInput.classList.add('field-error');
                 var msg = document.createElement('div');
@@ -922,23 +942,48 @@ function confirmSaveAndViewStatement(shouldSave) {
                 valid = false;
             }
 
-            var vehicle = document.getElementById('id_vehicle').value;
+            // 4. Material
+            var material = document.getElementById('id_material');
+            if (!material.value) markError('id_material', 'Material is required.');
+
+            // 5. Vehicle (skip for VENDOR_SUPPLY & INTERNAL_STOCK)
+            var vehicle = document.getElementById('id_vehicle');
+            if (transType !== 'VENDOR_SUPPLY' && transType !== 'INTERNAL_STOCK' && !vehicle.value) {
+                markError('id_vehicle', 'Vehicle is required.');
+            }
+
+            // 6. Quantity
+            var qty = document.getElementById('id_quantity');
+            if (!qty.value || parseFloat(qty.value) <= 0) markError('id_quantity', 'Quantity must be greater than zero.');
+
+            // 7. Rate
+            var rate = document.getElementById('id_rate');
+            if (!rate.value || parseFloat(rate.value) < 0) markError('id_rate', 'Rate is required.');
+
+            // 8. Driver (skip for JCB, INTERNAL_STOCK, VENDOR_SUPPLY)
             var driverChecks = document.querySelectorAll('.driver-checkbox:checked');
-            if (vehicle && transType !== 'INTERNAL_STOCK' && transType !== 'VENDOR_SUPPLY' && driverChecks.length === 0) {
-                var box = document.getElementById('driver_allocation_box');
-                box.classList.add('field-error');
-                var msg = document.createElement('div');
-                msg.className = 'error field-error-msg';
-                msg.textContent = 'At least one Driver is required when a Vehicle is selected.';
-                box.parentNode.appendChild(msg);
-                if (!firstInvalid) firstInvalid = box;
-                valid = false;
+            if (transType !== 'INTERNAL_STOCK' && transType !== 'VENDOR_SUPPLY') {
+                var vehicleCat = document.getElementById('id_vehicle_category');
+                var isJcb = vehicleCat && vehicleCat.value === 'JCB';
+                if (!isJcb && vehicle.value && driverChecks.length === 0) {
+                    var box = document.getElementById('driver_allocation_box');
+                    box.classList.add('field-error');
+                    var div = document.createElement('div');
+                    div.className = 'error field-error-msg';
+                    div.textContent = 'At least one Driver is required when a Vehicle is selected.';
+                    box.parentNode.appendChild(div);
+                    if (!firstInvalid) firstInvalid = box;
+                    valid = false;
+                }
             }
 
             if (!valid) {
                 e.preventDefault();
-                if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                firstInvalid.focus();
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(function() { firstInvalid.focus(); }, 300);
+                }
+                return false;
             }
         });
     });
