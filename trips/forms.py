@@ -85,6 +85,25 @@ class TripForm(forms.ModelForm):
             'trip_date': forms.DateInput(
                 attrs={
                     'type': 'date',
+                    'required': 'required',
+                }
+            ),
+
+            'transaction_type': forms.Select(
+                attrs={
+                    'required': 'required',
+                }
+            ),
+
+            'vehicle': forms.Select(
+                attrs={
+                    'required': 'required',
+                }
+            ),
+
+            'material': forms.Select(
+                attrs={
+                    'required': 'required',
                 }
             ),
 
@@ -98,6 +117,7 @@ class TripForm(forms.ModelForm):
                 attrs={
                     'step': '0.01',
                     'min': '0.01',
+                    'required': 'required',
                 }
             ),
 
@@ -106,6 +126,7 @@ class TripForm(forms.ModelForm):
                     'step': '0.01',
                     'min': '0',
                     'placeholder': 'Per hour / trip rate',
+                    'required': 'required',
                 }
             ),
 
