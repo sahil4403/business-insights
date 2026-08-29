@@ -40,4 +40,10 @@ urlpatterns = [
         views.update_customer_opening_balance,
         name='update_customer_opening_balance'
     ),
+
+    path(
+        'statements/book/',
+        views.customer_statements_book,
+        name='customer_statements_book'
+    ),
 ]

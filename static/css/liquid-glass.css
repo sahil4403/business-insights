@@ -22,11 +22,17 @@ body {
 /* ---------- 2. CARDS — solid translucent (NO blur) ---------- */
 .app-surface,
 .export-sheet {
-    background: #fff !important;
-    border: 1px solid #eef1f6 !important;
+    background: rgba(255, 255, 255, .88) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    border: none !important;
+    border-top: 1px solid rgba(255, 255, 255, .75) !important;
     box-shadow:
-        0 8px 26px -16px rgba(15, 23, 42, .25),
-        inset 0 1px 0 rgba(255, 255, 255, .85) !important;
+        0 -12px 34px -10px rgba(15, 23, 42, .3),
+        inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .export-sheet { background: rgba(255, 255, 255, .98) !important; }
 }
 
 /* ---------- 3. DESKTOP NAVBAR — solid (no glass) ---------- */

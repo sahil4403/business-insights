@@ -284,7 +284,7 @@
 <!-- QUICK-ACCESS CATEGORIES -->
 <div class="mb-4 md:mb-6 {% if from_date or to_date %}hidden md:block{% endif %}" data-animate>
     <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Quick Access by Transport Type</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
 
         <a href="{% url 'trips:list' %}?category=hyva{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
             <div class="h-14 w-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
@@ -316,6 +316,19 @@
             </div>
             <div class="font-bold text-slate-900">JCB</div>
             <div class="text-[11px] text-slate-500 mt-1 leading-snug">View and manage JCB excavator operations</div>
+        </a>
+
+        <a href="{% url 'labour:list' %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
+            <div class="h-14 w-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
+                <svg class="icon-xl" aria-hidden="true"><use href="#i-hard-hat"/></svg>
+            </div>
+            <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                Labour
+                <span class="text-[10px] font-bold text-slate-400 num">{{ labour_count }}</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1 leading-snug">
+                Trip entries &amp; settlements
+            </div>
         </a>
 
     </div>

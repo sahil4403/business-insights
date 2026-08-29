@@ -30,6 +30,8 @@ from django.utils.http import urlencode
 from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.admin.forms import AdminAuthenticationForm
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from core.utils import get_safe_next
 from core.rate_limit import (
     login_rate_limit_check,
@@ -99,7 +101,7 @@ from trips.models import (
 
 from master_data.models import PaymentMethod, VehicleType
 from vehicles.models import Vehicle
-from labour.models import Labour
+from labour.models import Labour, LabourOldBalance
 from django.db.models.functions import Coalesce
 from django.db.models import (
     Case,
@@ -465,6 +467,9 @@ def dashboard(request):
         'monthly_business': monthly_business,
         'trips': trips.select_related('customer', 'vehicle', 'material').prefetch_related('drivers').order_by('-trip_date', '-id'),
         'is_admin_user': request.user.is_authenticated and request.user.is_superuser,
+
+        'labour_count': Labour.objects.filter(is_active=True).count(),
+        'labour_outstanding': LabourOldBalance.objects.aggregate(t=Sum('amount'))['t'] or 0,
     }
 
     return render(
@@ -545,7 +550,16 @@ def customer_report(request):
     # -----------------------------------
 
     customers_list = list(
-        customers.order_by('name').values('id', 'name', 'opening_balance')
+        customers.order_by('name').values(
+            'id',
+            'name',
+            'customer_code',
+            'mobile',
+            'billing_address',
+            'city',
+            'state',
+            'opening_balance',
+        )
     )
 
     customer_ids = [c['id'] for c in customers_list]
@@ -661,6 +675,19 @@ def customer_report(request):
 
             'customer_name':
                 info['name'],
+
+            'customer_code':
+                info.get('customer_code') or '',
+
+            'customer_mobile':
+                info.get('mobile') or '',
+
+            'customer_address':
+                (
+                    f"{info.get('billing_address') or ''} "
+                    f"{info.get('city') or ''} "
+                    f"{info.get('state') or ''}"
+                ).strip(),
 
             'opening_balance':
                 effective_opening,
@@ -850,8 +877,33 @@ def customer_report(request):
 
             jcb_label = f'{float(jcb_hrs):.1f}h' if jcb_cnt else '—'
 
+            name_cell = str(customer['customer_name'] or '—')
+            sub_lines = []
+            if customer.get('customer_code'):
+                sub_lines.append(f"Code: {customer['customer_code']}")
+            if customer.get('customer_mobile'):
+                sub_lines.append(f"Ph: {customer['customer_mobile']}")
+            if customer.get('customer_address'):
+                sub_lines.append(customer['customer_address'][:46])
+
+            def _esc(value):
+                return (
+                    str(value).replace('&', '&amp;')
+                    .replace('<', '&lt;').replace('>', '&gt;')
+                )
+
+            customer_cell = Paragraph(_esc(name_cell), body_style)
+            if sub_lines:
+                customer_cell = Paragraph(
+                    f"{_esc(name_cell)}"
+                    f"<br/><font color='#64748B' size='7'>"
+                    f"{'<br/>'.join(_esc(line) for line in sub_lines)}"
+                    f"</font>",
+                    body_style,
+                )
+
             data.append([
-                Paragraph(str(customer['customer_name'] or '—'), body_style),
+                customer_cell,
                 Paragraph(f'₹{opening_bal:,.2f}', right_body_style),
                 Paragraph(str(trips_cnt), center_body_style),
                 Paragraph(jcb_label, center_body_style),
@@ -874,7 +926,7 @@ def customer_report(request):
         table = Table(
             data,
             repeatRows=1,
-            colWidths=[160, 95, 65, 90, 105, 105, 105],
+            colWidths=[195, 90, 62, 80, 98, 98, 98],
         )
 
         apply_data_table_style(table, total_row=True)
@@ -899,6 +951,9 @@ def customer_report(request):
 
         headers = [
             'Customer',
+            'Code',
+            'Mobile',
+            'Address',
             'Opening Balance',
             'Trips',
             'JCB Work (trips · hrs)',
@@ -944,6 +999,9 @@ def customer_report(request):
 
             worksheet.append([
                 customer['customer_name'],
+                customer.get('customer_code') or '',
+                customer.get('customer_mobile') or '',
+                customer.get('customer_address') or '',
                 opening_bal,
                 customer['total_trips'],
                 jcb_label,
@@ -957,15 +1015,17 @@ def customer_report(request):
         # CURRENCY FORMAT
         # -----------------------------------
 
+        money_columns = {5, 8, 9, 10}
+
         for row in worksheet.iter_rows(
             min_row=2,
             min_col=2,
-            max_col=6
+            max_col=10
         ):
 
             for cell in row:
 
-                if cell.column not in (3, 4):  # Skip 'Trips' and 'JCB Work' columns
+                if cell.column in money_columns:
                     cell.number_format = (
                         '₹#,##0.00'
                     )
@@ -1055,6 +1115,9 @@ def customer_report(request):
 
         writer.writerow([
             'Customer',
+            'Code',
+            'Mobile',
+            'Address',
             'Opening Balance',
             'Total Trips',
             'Revenue',
@@ -1073,6 +1136,9 @@ def customer_report(request):
 
             writer.writerow([
                 customer['customer_name'],
+                customer.get('customer_code') or '',
+                customer.get('customer_mobile') or '',
+                customer.get('customer_address') or '',
                 customer['opening_balance'],
                 customer['total_trips'],
                 customer['total_revenue'],
@@ -2587,3 +2653,21 @@ def overdue_reminders(request):
     }
 
     return render(request, 'core/overdue_reminders.html', context)
+
+
+# ----------------------------------------------------------------------------
+# JS error beacon (diagnostic)
+# ----------------------------------------------------------------------------
+
+@csrf_exempt
+@require_POST
+def js_error_beacon(request):
+    import logging
+    logger = logging.getLogger('django.request')
+    kind = request.POST.get('kind', '')
+    msg = request.POST.get('msg', '')
+    info = request.POST.get('info', '')
+    loc = request.POST.get('loc', '')
+    logger.warning('JS-ERRREPORT kind=%s msg=%s info=%s loc=%s', kind, msg, info, loc)
+    print('JS-ERRREPORT kind=%s msg=%s info=%s loc=%s' % (kind, msg, info, loc), flush=True)
+    return HttpResponse('ok')

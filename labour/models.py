@@ -36,6 +36,11 @@ class Labour(models.Model):
         default=True
     )
 
+    is_driver = models.BooleanField(
+        default=False,
+        help_text="Mark if this labour also gets Driver Payment"
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )
@@ -49,6 +54,11 @@ class Labour(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def current_old_balance(self):
+        ob = LabourOldBalance.objects.filter(labour=self).first()
+        return ob.amount if ob else 0
 
 
 class LabourTypeAssignment(models.Model):
@@ -373,4 +383,240 @@ class LabourSalaryPeriod(models.Model):
                 name='unique_labour_salary_period'
             )
         ]
+
+
+# =========================================================================
+# NEW LABOUR FEATURE MODELS — flexible per-trip groups, advances,
+# extras, driver payments, old balance & settlement.
+# Existing Labour model above is shared (with added is_driver flag).
+# =========================================================================
+
+
+class LabourTripGroup(models.Model):
+    """
+    One row per "group" of labourers who worked a batch of trips together.
+    A single day can have any number of these rows — owner creates a new
+    row every time the worker group changes.
+    """
+    FILL_TYPE_CHOICES = [
+        ('HAND', 'Hand'),
+        ('JCB', 'JCB'),
+    ]
+
+    date = models.DateField()
+    trip_count = models.PositiveIntegerField()
+    rate_per_trip = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=450,
+        help_text="Per-trip rate (default ₹450)",
+    )
+    fill_type = models.CharField(
+        max_length=10,
+        choices=FILL_TYPE_CHOICES,
+        default='HAND',
+    )
+    total_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        editable=False,
+    )
+    labourers = models.ManyToManyField(
+        Labour,
+        related_name='trip_groups',
+    )
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', '-id']
+
+    def save(self, *args, **kwargs):
+        self.total_amount = self.trip_count * self.rate_per_trip
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        names = ', '.join(self.labourers.values_list('name', flat=True)[:3])
+        return f"{self.date} · {self.trip_count} trips · {names}"
+
+    @property
+    def per_labour_share(self):
+        n = self.labourers.count()
+        if not n:
+            return 0
+        return self.total_amount / n
+
+
+class LabourExtraPayment(models.Model):
+    """Optional extra work payment (variable bonus)."""
+    labour = models.ForeignKey(
+        Labour,
+        on_delete=models.CASCADE,
+        related_name='extra_payments',
+    )
+    date = models.DateField()
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-id']
+
+    def __str__(self):
+        return f"{self.labour.name} · {self.date} · ₹{self.amount}"
+
+
+class LabourAdvance(models.Model):
+    """Daily cash advance (only created if advance was actually taken)."""
+    labour = models.ForeignKey(
+        Labour,
+        on_delete=models.CASCADE,
+        related_name='advances',
+    )
+    date = models.DateField()
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['labour', 'date'],
+                name='unique_advance_per_labour_per_day',
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.labour.name} · {self.date} · ₹{self.amount}"
+
+
+class LabourDriverPayment(models.Model):
+    """Manual driver payment for a settlement period (labour.is_driver=True)."""
+    labour = models.ForeignKey(
+        Labour,
+        on_delete=models.CASCADE,
+        related_name='driver_payments',
+    )
+    period_start = models.DateField()
+    period_end = models.DateField()
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-period_end', '-id']
+
+    def __str__(self):
+        return f"{self.labour.name} driver · {self.period_start}→{self.period_end} · ₹{self.amount}"
+
+
+class LabourOldBalance(models.Model):
+    """
+    Running outstanding balance owed BY the labour TO the owner.
+    Positive = labour still owes owner.
+    """
+    labour = models.OneToOneField(
+        Labour,
+        on_delete=models.CASCADE,
+        related_name='old_balance',
+    )
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+    )
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.labour.name} old balance ₹{self.amount}"
+
+
+class LabourSettlement(models.Model):
+    """Settlement record. Snapshot of totals + owner-entered deductions."""
+    labour = models.ForeignKey(
+        Labour,
+        on_delete=models.CASCADE,
+        related_name='settlements',
+    )
+    settlement_date = models.DateField()
+    period_start = models.DateField()
+    period_end = models.DateField()
+
+    # Calculated snapshots
+    total_salary = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Trip shares + extras + driver payment",
+    )
+    total_advance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+    )
+    net_payable = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="total_salary - total_advance",
+    )
+    old_balance_before = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+    )
+
+    # Owner-entered
+    old_balance_deducted = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+    )
+    cash_paid = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+    )
+
+    # Calculated: old_balance_before + net_payable - old_balance_deducted - cash_paid
+    final_old_balance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+    )
+
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-settlement_date', '-id']
+
+    def __str__(self):
+        return f"{self.labour.name} settle {self.settlement_date}"
+
+    def recalculate(self):
+        """Recompute all calculated fields and write to LabourOldBalance."""
+        from django.db.models import Sum, Q
+        from decimal import Decimal
+
+        period_q = Q(date__gte=self.period_start, date__lte=self.period_end)
+
+        # Trip shares for this labour
+        trip_total = Decimal('0')
+        for grp in LabourTripGroup.objects.filter(date__gte=self.period_start,
+                                                  date__lte=self.period_end):
+            n = grp.labourers.count()
+            if n and grp.labourers.filter(pk=self.labour.pk).exists():
+                trip_total += grp.total_amount / n
+
+        extra_total = LabourExtraPayment.objects.filter(
+            labour=self.labour, date__gte=self.period_start, date__lte=self.period_end
+        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+        driver_total = LabourDriverPayment.objects.filter(
+            labour=self.labour,
+            period_start__lte=self.period_end,
+            period_end__gte=self.period_start,
+        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+        advance_total = LabourAdvance.objects.filter(
+            labour=self.labour, date__gte=self.period_start, date__lte=self.period_end
+        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+        self.total_salary = trip_total + extra_total + driver_total
+        self.total_advance = advance_total
+        self.net_payable = self.total_salary - self.total_advance
+        self.final_old_balance = (
+            self.old_balance_before + self.net_payable
+            - self.old_balance_deducted - self.cash_paid
+        )
+        return self
 

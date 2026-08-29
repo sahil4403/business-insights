@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ labour.name }} · Labour{% endblock %}
+
+{% block head %}
+<style>
+    .summary-card { background: #fff; border: 1px solid #eef1f6; border-radius: 1rem; padding: 0.85rem 1rem; }
+    .summary-card .lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; }
+    .summary-card .val { font-size: 1.1rem; font-weight: 800; color: #0f172a; margin-top: 2px; line-height: 1.1; }
+    .summary-card .val.neg { color: #b91c1c; }
+    .summary-card .val.pos { color: #047857; }
+    .due-banner { background: linear-gradient(135deg, #fff7f7 0%, #fef2f2 100%); border: 1px solid #fecaca; border-radius: 1rem; padding: 0.95rem 1rem; }
+    .clear-banner { background: linear-gradient(135deg, #f0fdf6 0%, #ecfdf5 100%); border: 1px solid #a7f3d0; border-radius: 1rem; padding: 0.95rem 1rem; }
+    .due-icon, .clear-icon { width: 2.6rem; height: 2.6rem; border-radius: 0.85rem; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; font-weight: 900; }
+    .due-icon { background: #fee2e2; color: #b91c1c; }
+    .clear-icon { background: #d1fae5; color: #047857; }
+    .due-label, .clear-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.9; }
+    .due-label { color: #dc2626; }
+    .clear-label { color: #047857; }
+    .due-amount, .clear-amount { font-size: 1.3rem; font-weight: 900; line-height: 1.15; margin-top: 2px; }
+    .due-amount { color: #b91c1c; }
+    .clear-amount { color: #047857; }
+    .due-updated, .clear-updated { font-size: 10.5px; margin-top: 3px; }
+    .due-updated { color: #f87171; }
+    .clear-updated { color: #6ee7b7; }
+
+    /* compact action pills */
+    .qa { display: inline-flex; align-items: center; gap: 5px; height: 2.3rem; padding: 0 0.9rem; border-radius: 999px; font-size: 12.5px; font-weight: 800; letter-spacing: 0.01em; white-space: nowrap; }
+
+    /* LIQUID GLASS — frosted, translucent, shine sweep on tap */
+    .glass {
+        position: relative; overflow: hidden;
+        background: linear-gradient(135deg, rgba(255,255,255,0.72), rgba(255,255,255,0.28));
+        -webkit-backdrop-filter: blur(14px) saturate(160%);
+        backdrop-filter: blur(14px) saturate(160%);
+        border: 1px solid rgba(255,255,255,0.75) !important;
+        box-shadow: 0 4px 16px rgba(15,23,42,0.10), inset 0 1px 0 rgba(255,255,255,0.85);
+        color: #0f172a; text-decoration: none;
+    }
+    .glass::before {
+        content: ""; position: absolute; top: 0; left: -85%; width: 55%; height: 100%;
+        background: linear-gradient(100deg, transparent, rgba(255,255,255,0.6), transparent);
+        transform: skewX(-20deg); pointer-events: none; transition: left .5s ease;
+    }
+    .glass:active::before, .glass:hover::before { left: 130%; }
+    .glass-tint {
+        background: linear-gradient(135deg, rgba(22,102,90,0.92), rgba(13,66,58,0.86));
+        -webkit-backdrop-filter: blur(14px) saturate(160%);
+        backdrop-filter: blur(14px) saturate(160%);
+        border-color: rgba(255,255,255,0.35) !important;
+        color: #fff;
+    }
+    .glass-panel {
+        background: linear-gradient(135deg, rgba(255,255,255,0.78), rgba(248,250,252,0.5));
+        -webkit-backdrop-filter: blur(16px) saturate(160%);
+        backdrop-filter: blur(16px) saturate(160%);
+        border: 1px solid rgba(255,255,255,0.8);
+        box-shadow: 0 6px 20px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+    .glass-btn-note { font-size: 10px; display: block; opacity: 0.75; font-weight: 600; }
+    /* date-range fields */
+    .date-cell { background: rgba(255,255,255,0.65); border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.45rem 0.7rem 0.5rem; transition: border-color .18s ease, box-shadow .18s ease; }
+    .date-cell-label { display: block; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: #94a3b8; margin-bottom: 1px; }
+    .date-input { background: transparent; border: 0; outline: none; width: 100%; font-size: 13px; font-weight: 700; color: #0f172a; padding: 0; height: 1.6rem; line-height: 1.6rem; }
+    .date-cell:focus-within { border-color: #4d9480; box-shadow: 0 0 0 3px rgba(22,102,90,0.08); }
+    @media (max-width: 767px) {
+        .date-cell { padding: 0.4rem 0.55rem 0.45rem; }
+        .date-input { font-size: 12.5px; }
+    }
+    @media (max-width: 767px) {
+        .glass .glass-btn-note { font-size: 9px; }
+    }
+    @media (max-width: 767px) {
+        .summary-card { padding: 0.7rem 0.8rem; }
+        .summary-card .val { font-size: 0.95rem; }
+        .summary-card .lbl { font-size: 9.5px; }
+        .due-banner, .clear-banner { padding: 0.8rem 0.85rem; }
+        .due-icon, .clear-icon { width: 2.3rem; height: 2.3rem; font-size: 1rem; }
+        .due-amount, .clear-amount { font-size: 1.12rem; }
+        .due-label, .clear-label { font-size: 9px; }
+        .qa { height: 2.25rem; font-size: 12px; padding: 0 0.8rem; }
+        .btn { height: 2.25rem; font-size: 0.8125rem; padding: 0 0.95rem; border-radius: 0.6rem; }
+        .btn-primary, .btn-secondary { box-shadow: none; }
+        .input { height: 2.5rem; font-size: 0.8125rem; }
+        .label { font-size: 10px; margin-bottom: 4px; }
+    }
+</style>
+{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'labour:list' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ labour.name }}</span>
+    <a href="{% url 'labour:settle' labour.id %}" class="shrink-0 h-9 px-3 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center gap-1">Settle</a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-4 md:mb-6">
+    <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+            <h1 class="text-xl md:text-3xl font-extrabold text-slate-900 truncate">{{ labour.name }}</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                {% if labour.is_driver %}🚗 Driver &nbsp;·&nbsp;{% endif %}
+                Per-trip labour settlement
+            </p>
+        </div>
+        <form method="post" action="{% url 'labour:remove' labour.id %}"
+              onsubmit="return confirm('Remove this labour? Historical records will be kept safe and they can be re-activated later from admin.');"
+              class="shrink-0">
+            {% csrf_token %}
+            <button type="submit"
+                    class="h-9 px-3 rounded-lg border border-red-300 bg-white text-red-600 text-xs font-bold hover:bg-red-50 inline-flex items-center gap-1">
+                🗑 Remove
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Outstanding balance banner -->
+{% if old_balance.amount > 0 %}
+    <div class="due-banner mb-4" data-animate>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="due-icon">₹</div>
+                <div class="min-w-0">
+                    <div class="due-label">Outstanding · Labour owes owner</div>
+                    <div class="due-amount num">₹{{ old_balance.amount|floatformat:2 }}</div>
+                    <div class="due-updated">Updated {{ old_balance.last_updated|date:"d-M-Y H:i" }}</div>
+                </div>
+            </div>
+            <a href="{% url 'labour:settle' labour.id %}" class="btn btn-primary !bg-red-600 hover:!bg-red-700 shrink-0">Settle Now</a>
+        </div>
+    </div>
+{% else %}
+    <div class="clear-banner mb-4" data-animate>
+        <div class="flex items-center gap-3">
+            <div class="clear-icon">✓</div>
+            <div class="min-w-0">
+                <div class="clear-label">All Clear</div>
+                <div class="clear-amount num">₹0.00</div>
+                <div class="clear-updated">No outstanding balance</div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Quick actions -->
+<div class="flex flex-wrap items-center justify-center gap-2 mb-4" data-animate>
+    <a href="{% url 'labour:trip_add' %}" class="qa glass glass-tint">🚜 Trip Entry</a>
+    <a href="{% url 'labour:extra_add_for' labour.id %}" class="qa glass">💰 Extra</a>
+    <a href="{% url 'labour:advance_add_for' labour.id %}" class="qa glass">💸 Advance</a>
+    {% if labour.is_driver %}
+        <a href="{% url 'labour:driver_add_for' labour.id %}" class="qa glass">🚗 Driver</a>
+    {% endif %}
+</div>
+
+<!-- Set outstanding -->
+<details class="app-surface glass-panel p-3 md:p-4 mb-4" data-animate>
+    <summary class="cursor-pointer list-none text-sm font-bold text-slate-800 flex items-center justify-between py-1">
+        <span>🏷 Set Outstanding Balance</span>
+        <span class="text-slate-400 text-xs">▾</span>
+    </summary>
+    <form method="post" action="{% url 'labour:outstanding_set' labour.id %}" class="mt-3 flex flex-wrap items-end gap-2">
+        {% csrf_token %}
+        <div class="flex-1 min-w-[140px]">
+            <label class="label">Outstanding (₹)</label>
+            <input type="number" name="outstanding_amount" value="{{ old_balance.amount|floatformat:2 }}" min="0" step="0.01" class="input" placeholder="e.g. 500">
+        </div>
+        <button type="submit" class="btn glass glass-tint">Set</button>
+    </form>
+    <p class="text-[11px] text-slate-400 mt-2">Positive amount = labour owes you (prior dues). Enter 0 to clear.</p>
+</details>
+
+<!-- Date range filter -->
+<form method="get" class="app-surface glass-panel p-3 md:p-4 mb-4" data-animate>
+    <div class="flex items-center justify-between mb-2.5">
+        <div class="text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-slate-400">📅 Date Range</div>
+        {% if request.GET.from_date or request.GET.to_date %}
+            <a href="{% url 'labour:detail' labour.id %}" class="text-[11px] font-bold text-brand-600 hover:underline">Reset</a>
+        {% endif %}
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+        <div class="date-cell">
+            <span class="date-cell-label">From</span>
+            <input type="date" name="from_date" value="{{ period_start|date:'Y-m-d' }}" class="date-input">
+        </div>
+        <div class="date-cell">
+            <span class="date-cell-label">To</span>
+            <input type="date" name="to_date" value="{{ period_end|date:'Y-m-d' }}" class="date-input">
+        </div>
+    </div>
+    <div class="mt-2 flex gap-2">
+        <button type="submit" class="qa glass glass-tint flex-1 justify-center">Apply</button>
+        <a href="{% url 'labour:detail' labour.id %}" class="qa glass">All</a>
+    </div>
+</form>
+
+<!-- Daily table -->
+<div class="app-surface overflow-hidden mb-4">
+    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100">
+        <div class="font-bold text-slate-900 text-[15px]">Daily Activity</div>
+        <div class="text-[12px] text-slate-500 mt-0.5">Trip shares are split across the group automatically</div>
+    </div>
+
+    {% if rows %}
+        <!-- Desktop table -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="text-left bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3">Date</th>
+                        <th class="px-4 py-3 text-right">Trips Amount</th>
+                        <th class="px-4 py-3 text-right">Extra</th>
+                        <th class="px-4 py-3 text-right">Total (T+E)</th>
+                        <th class="px-4 py-3 text-right">Advance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rows %}
+                        <tr class="border-t border-slate-100">
+                            <td class="px-4 py-3 font-semibold text-slate-800">{{ r.date|date:"d-M-Y" }}</td>
+                            <td class="px-4 py-3 text-right num">₹{{ r.trips_amount|floatformat:2 }}</td>
+                            <td class="px-4 py-3 text-right num">₹{{ r.extra_amount|floatformat:2 }}</td>
+                            <td class="px-4 py-3 text-right num font-bold">₹{{ r.trips_amount|add:r.extra_amount|floatformat:2 }}</td>
+                            <td class="px-4 py-3 text-right num text-red-600">₹{{ r.advance_amount|floatformat:2 }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile rows -->
+        <div class="md:hidden px-4 py-2">
+            {% for r in rows %}
+                <div class="border-b border-slate-100 last:border-0 py-2.5">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <div class="font-semibold text-slate-800 text-[13px]">{{ r.date|date:"d-M-Y" }}</div>
+                        <div class="text-[11px] text-slate-400 num">Total ₹{{ r.trips_amount|add:r.extra_amount|floatformat:0 }}</div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-[12px]">
+                        <div>
+                            <div class="text-[10px] uppercase text-slate-400 font-bold">Trips</div>
+                            <div class="num font-semibold text-slate-700">₹{{ r.trips_amount|floatformat:0 }}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase text-slate-400 font-bold">Extra</div>
+                            <div class="num font-semibold text-slate-700">₹{{ r.extra_amount|floatformat:0 }}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase text-slate-400 font-bold">Advance</div>
+                            <div class="num font-semibold text-red-600">₹{{ r.advance_amount|floatformat:0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="py-12 text-center text-slate-500 text-sm">No activity in this date range.</div>
+    {% endif %}
+</div>
+
+<!-- Summary block (mirrors Excel layout) -->
+<div class="app-surface p-4 md:p-5 mb-4" data-animate>
+    <div class="font-bold text-slate-900 text-[15px] mb-3">Settlement Summary · {{ period_start|date:"d-M-Y" }} → {{ period_end|date:"d-M-Y" }}</div>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+        <div class="summary-card">
+            <div class="lbl">Total Trip Wages</div>
+            <div class="val num">₹{{ trip_total|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="lbl">Total Extra</div>
+            <div class="val num">₹{{ extra_total|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="lbl">Driver Payment</div>
+            <div class="val num">₹{{ driver_total|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card" style="background: #eef7f5; border-color: #d5ebe6;">
+            <div class="lbl" style="color: #115248;">Total Salary</div>
+            <div class="val num" style="color: #115248;">₹{{ total_salary|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="lbl">Total Advance</div>
+            <div class="val num text-red-600">₹{{ advance_total|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card" style="background: #f0f9ff; border-color: #bae6fd;">
+            <div class="lbl" style="color: #075985;">Payment (Salary − Adv)</div>
+            <div class="val num" style="color: #075985;">₹{{ payment|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="lbl">Old Balance (owed to owner)</div>
+            <div class="val num">₹{{ old_balance.amount|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card" style="background: #fef3c7; border-color: #fde68a;">
+            <div class="lbl" style="color: #92400e;">Final Amount</div>
+            {% if final_amount < 0 %}
+                <div class="val num neg">Outstanding ₹{{ final_amount|stringformat:'r'|cut:'-'|floatformat:2 }}</div>
+                <div class="text-[10px] text-red-500 font-semibold mt-0.5">Labour still owes owner</div>
+            {% elif final_amount == 0 %}
+                <div class="val num pos">₹0.00</div>
+            {% else %}
+                <div class="val num pos">₹{{ final_amount|floatformat:2 }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col md:flex-row md:items-center gap-2">
+        <a href="{% url 'labour:settle' labour.id %}" class="btn btn-primary w-full md:w-auto">🧾 Settle This Period</a>
+        <div class="flex gap-2 w-full md:w-auto">
+            <a href="{% url 'labour:statement_export' labour.id %}?export=pdf{% if period_start %}&from_date={{ period_start|date:'Y-m-d' }}{% endif %}{% if period_end %}&to_date={{ period_end|date:'Y-m-d' }}{% endif %}"
+               class="btn btn-ghost flex-1 md:flex-none">📄 Statement PDF</a>
+            <a href="{% url 'labour:statement_export' labour.id %}?export=excel{% if period_start %}&from_date={{ period_start|date:'Y-m-d' }}{% endif %}{% if period_end %}&to_date={{ period_end|date:'Y-m-d' }}{% endif %}"
+               class="btn btn-ghost flex-1 md:flex-none">📗 Statement Excel</a>
+        </div>
+    </div>
+</div>
+
+<!-- Recent settlements -->
+{% if settlements %}
+<div class="app-surface overflow-hidden">
+    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100">
+        <div class="font-bold text-slate-900 text-[15px]">Settlements in Range</div>
+    </div>
+    {% for s in settlements %}
+        <div class="px-4 py-3 border-b border-slate-100 last:border-0">
+            <div class="flex items-center justify-between gap-2">
+                <div>
+                    <div class="font-semibold text-slate-800 text-sm">{{ s.settlement_date|date:"d-M-Y" }}</div>
+                    <div class="text-[11px] text-slate-500">Period {{ s.period_start|date:"d-M" }} → {{ s.period_end|date:"d-M" }}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-[12px] text-slate-500">Cash paid: <span class="num font-bold text-slate-800">₹{{ s.cash_paid|floatformat:0 }}</span></div>
+                    <div class="text-[11px] text-slate-400">New old balance: <span class="num font-bold">₹{{ s.final_old_balance|floatformat:0 }}</span></div>
+                </div>
+            </div>
+            {% if s.id == latest_settlement_id %}
+                <div class="mt-2 flex gap-2">
+                    <a href="{% url 'labour:settlement_edit' s.id %}" class="qa glass flex-1 justify-center">✏️ Edit</a>
+                    <form method="post" action="{% url 'labour:settlement_revert' s.id %}" class="flex-1"
+                          onsubmit="return confirm('Is settlement ko revert karein? Old balance ₹{{ s.old_balance_before }} restore hoga aur record delete hoga.');">
+                        {% csrf_token %}
+                        <button type="submit" class="qa glass flex-1 justify-center" style="color:#b91c1c;">↩ Revert</button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

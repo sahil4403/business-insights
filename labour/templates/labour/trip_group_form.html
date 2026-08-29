@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block head %}
+<style>
+    .rate-chip {
+        display: inline-flex; align-items: center; justify-content: center;
+        height: 2.5rem; min-width: 3.5rem; padding: 0 0.85rem;
+        border-radius: 999px; background: #f1f5f9; color: #334155;
+        font-weight: 700; font-size: 0.9rem; cursor: pointer;
+        transition: all 0.15s ease; border: 1.5px solid transparent;
+    }
+    .rate-chip:hover { background: #e2e8f0; }
+    .rate-chip.active { background: #16665a; color: #fff; border-color: #115248; box-shadow: 0 2px 8px rgba(22,102,90,0.3); }
+
+    .labour-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+    @media (min-width: 640px) { .labour-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .labour-pill {
+        display: flex; align-items: center; gap: 8px;
+        padding: 0.7rem 0.85rem; background: #f8fafc; border: 1.5px solid #e2e8f0;
+        border-radius: 0.85rem; cursor: pointer; user-select: none;
+        transition: all 0.15s ease;
+    }
+    .labour-pill:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .labour-pill input { width: 18px; height: 18px; accent-color: #16665a; }
+    .labour-pill.checked { background: #eef7f5; border-color: #16665a; }
+    .labour-pill .pname { font-weight: 600; font-size: 13.5px; color: #0f172a; }
+
+    .search-row { display: flex; gap: 0.5rem; }
+    .total-preview {
+        background: linear-gradient(135deg, #16665a 0%, #115248 100%);
+        color: #fff; border-radius: 1rem; padding: 1rem 1.1rem;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .total-preview .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }
+    .total-preview .val { font-size: 1.6rem; font-weight: 800; }
+</style>
+{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'labour:list' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">Trip Entry</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">{{ page_title }}</h1>
+    <p class="text-sm text-slate-500 mb-4">{% if editing_group %}Change trips/rate/labourers — total aur sabke hisse apne aap update honge{% else %}Group of labourers who worked this batch of trips together{% endif %}</p>
+
+    <form method="post" class="space-y-4" id="trip-group-form">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="app-surface p-4 md:p-5 space-y-4">
+            <div>
+                <label class="label">Date</label>
+                {{ form.date }}
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="label">Trip Count</label>
+                    {{ form.trip_count }}
+                </div>
+                <div>
+                    <label class="label">Fill Type</label>
+                    {{ form.fill_type }}
+                </div>
+            </div>
+
+            <div>
+                <label class="label">Rate per Trip (₹)</label>
+                <div class="flex flex-wrap gap-2 mb-2" id="rate-chips">
+                    <button type="button" class="rate-chip" data-rate="100">₹100</button>
+                    <button type="button" class="rate-chip" data-rate="400">₹400</button>
+                    <button type="button" class="rate-chip" data-rate="450" id="chip-450">₹450</button>
+                    <button type="button" class="rate-chip" data-rate="500">₹500</button>
+                </div>
+                {{ form.rate_per_trip }}
+            </div>
+        </div>
+
+        <div class="app-surface p-4 md:p-5">
+            <div class="flex items-center justify-between mb-3">
+                <label class="label !mb-0">Labourers in this group</label>
+                <button type="button" id="select-all" class="app-chip h-8 text-[12px]">Select All</button>
+            </div>
+            <div class="search-row mb-3">
+                <input type="search" id="labour-search" placeholder="🔍 Search labour..." class="input">
+            </div>
+            <div class="labour-grid" id="labour-grid">
+                {% for l in form.labourers.field.queryset %}
+                    <label class="labour-pill" data-name="{{ l.name|lower }}">
+                        <input type="checkbox" name="labourers" value="{{ l.id }}"{% if l.id in selected_labourer_ids %} checked{% endif %}>
+                        <span class="pname">{{ l.name }}{% if l.is_driver %} <span class="text-[10px] text-blue-600 font-bold">🚗</span>{% endif %}</span>
+                    </label>
+                {% empty %}
+                    <div class="col-span-2 text-center text-slate-500 text-sm py-4">No labour added yet. <a href="{% url 'labour:create' %}" class="text-brand-600 font-bold">Add first →</a></div>
+                {% endfor %}
+            </div>
+            {% if form.labourers.errors %}
+                <p class="text-xs text-red-600 mt-2">{{ form.labourers.errors|join:", " }}</p>
+            {% endif %}
+        </div>
+
+        <div class="app-surface p-4">
+            <label class="label">Note (optional)</label>
+            {{ form.note }}
+        </div>
+
+        <!-- Live total preview -->
+        <div class="total-preview" id="total-preview">
+            <div>
+                <div class="lbl">Estimated Total</div>
+                <div class="text-[12px] opacity-85" id="per-labour-hint">Add labourers to see per-head share</div>
+            </div>
+            <div class="val num">₹<span id="total-val">0</span></div>
+        </div>
+
+        <div class="flex gap-2 sticky bottom-2">
+            {% if editing_group %}
+                <form method="post" action="{% url 'labour:trip_delete' editing_group.id %}"
+                      onsubmit="return confirm('Delete this trip entry? Sab labour ke hisse se ye entry ab hat jayegi.');" class="shrink-0">
+                    {% csrf_token %}
+                    <button type="submit" class="h-10 px-3 rounded-xl border border-red-300 bg-white text-red-600 text-[13px] font-bold">🗑 Delete</button>
+                </form>
+                <button type="submit" class="btn btn-primary flex-1">💾 Save Changes</button>
+            {% else %}
+                <a href="{% url 'labour:list' %}" class="btn btn-ghost">Cancel</a>
+                <button type="submit" name="add_another" value="1" class="btn btn-secondary flex-1">＋ Save & Add Another</button>
+                <button type="submit" class="btn btn-primary flex-1">Save</button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    var chips = document.querySelectorAll('.rate-chip');
+    var rateInput = document.getElementById('rate-input');
+    var tripInput = document.querySelector('input[name="trip_count"]');
+
+    function updateTotal() {
+        var rate = parseFloat(rateInput.value) || 0;
+        var count = parseInt(tripInput.value) || 0;
+        var total = rate * count;
+        document.getElementById('total-val').textContent = total.toFixed(0);
+        var n = document.querySelectorAll('.labour-pill input:checked').length;
+        var hint = document.getElementById('per-labour-hint');
+        if (n > 0 && total > 0) {
+            hint.textContent = 'Divided across ' + n + ' labourer' + (n > 1 ? 's' : '') + ' · ₹' + (total / n).toFixed(0) + ' each';
+        } else {
+            hint.textContent = 'Add labourers to see per-head share';
+        }
+        // Active chip state
+        chips.forEach(function (c) {
+            if (parseFloat(c.dataset.rate) === rate) c.classList.add('active');
+            else c.classList.remove('active');
+        });
+    }
+
+    chips.forEach(function (c) {
+        c.addEventListener('click', function () {
+            rateInput.value = c.dataset.rate;
+            updateTotal();
+        });
+    });
+
+    if (rateInput) rateInput.addEventListener('input', updateTotal);
+    if (tripInput) tripInput.addEventListener('input', updateTotal);
+
+    // Pill state
+    document.querySelectorAll('.labour-pill input').forEach(function (cb) {
+        function sync() {
+            if (cb.checked) cb.parentElement.classList.add('checked');
+            else cb.parentElement.classList.remove('checked');
+            updateTotal();
+        }
+        cb.addEventListener('change', sync);
+        sync();
+    });
+
+    // Select all
+    var selAll = document.getElementById('select-all');
+    if (selAll) {
+        selAll.addEventListener('click', function () {
+            var boxes = document.querySelectorAll('.labour-pill:not([style*="display: none"]) input');
+            var allChecked = true;
+            boxes.forEach(function (b) { if (!b.checked) allChecked = false; });
+            boxes.forEach(function (b) {
+                b.checked = !allChecked;
+                b.dispatchEvent(new Event('change'));
+            });
+        });
+    }
+
+    // Search
+    var search = document.getElementById('labour-search');
+    if (search) {
+        search.addEventListener('input', function () {
+            var q = search.value.toLowerCase();
+            document.querySelectorAll('.labour-pill').forEach(function (p) {
+                p.style.display = p.dataset.name.indexOf(q) !== -1 ? '' : 'none';
+            });
+        });
+    }
+
+    updateTotal();
+})();
+</script>
+{% endblock %}

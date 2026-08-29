@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Trip Entries{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'labour:list' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">Trip Entries</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="flex items-center justify-between gap-3 mb-4">
+        <div class="min-w-0">
+            <h1 class="text-xl md:text-3xl font-extrabold text-slate-900">Trip Entries</h1>
+            <p class="text-sm text-slate-500 mt-1">Tap Edit to fix a wrong entry — sabke hisse apne aap recalculate honge</p>
+        </div>
+        <a href="{% url 'labour:trip_add' %}" class="btn btn-primary shrink-0">＋ Add</a>
+    </div>
+
+    {% if rows %}
+        <div class="app-surface overflow-hidden">
+            {% for r in rows %}
+                <div class="px-4 py-3 border-b border-slate-100 last:border-0">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold text-slate-800 text-[14px]">{{ r.group.date|date:"d-M-Y" }}</span>
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md
+                                    {% if r.group.fill_type == 'JCB' %}bg-amber-50 text-amber-700{% else %}bg-slate-100 text-slate-500{% endif %}">{{ r.group.fill_type }}</span>
+                            </div>
+                            <div class="text-[12px] text-slate-500 mt-0.5 num">
+                                {{ r.group.trip_count }} trips × ₹{{ r.group.rate_per_trip|floatformat:0 }}
+                            </div>
+                            <div class="text-[12px] text-slate-600 mt-0.5">
+                                {% for l in r.labourers %}<span class="inline-block bg-[#eef7f5] text-[#115248] rounded-md px-1.5 py-0.5 text-[11px] font-semibold mr-1 mb-0.5">{% if l.is_driver %}🚗 {% endif %}{{ l.name }}</span>{% endfor %}
+                                {% if r.group.note %}<div class="text-[11px] text-slate-400 mt-0.5">🗒 {{ r.group.note }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="font-extrabold text-slate-900 text-[15px] num">₹{{ r.group.total_amount|floatformat:0 }}</div>
+                            {% if r.labourers %}
+                                <div class="text-[10px] text-slate-400 num">₹{{ r.per_head|floatformat:0 }} / head</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        <a href="{% url 'labour:trip_edit' r.group.id %}" class="app-chip h-8 text-[12px] text-[#115248]">
+                            ✏️ Edit
+                        </a>
+                        <form method="post" action="{% url 'labour:trip_delete' r.group.id %}"
+                              onsubmit="return confirm('Delete this trip entry? Sab labour ke hisse se ye entry ab hat jayegi.');">
+                            {% csrf_token %}
+                            <button type="submit" class="app-chip h-8 text-[12px] text-red-600">🗑 Delete</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <p class="text-center text-[11px] text-slate-400 mt-3">Recent {{ rows|length }} entries shown</p>
+    {% else %}
+        <div class="app-surface p-10 text-center">
+            <div class="text-4xl mb-3">🚜</div>
+            <p class="text-slate-500 text-sm">No trip entries yet.</p>
+            <a href="{% url 'labour:trip_add' %}" class="btn btn-primary mt-4 inline-flex">＋ Add Trip Entry</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

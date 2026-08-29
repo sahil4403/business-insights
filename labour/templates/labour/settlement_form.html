@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} · {{ labour.name }}{% endblock %}
+
+{% block head %}
+<style>
+    .calc-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.85rem; padding: 0.7rem 0.9rem; }
+    .calc-card .lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
+    .calc-card .val { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-top: 2px; line-height: 1.1; }
+    .calc-card.final { background: #fef3c7; border-color: #fde68a; }
+    .calc-card.final .lbl { color: #92400e; }
+    .calc-card.final .val { color: #78350f; font-size: 1.3rem; }
+    .calc-card.final .val.neg { color: #b91c1c; }
+    .calc-card.final .val.pos { color: #047857; }
+    .period-row { display: flex; gap: 0.5rem; align-items: end; }
+    .period-row > div { flex: 1; }
+</style>
+{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'labour:detail' labour.id %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">Settle · {{ labour.name }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    {% if editing %}
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">Edit Settlement</h1>
+        <p class="text-sm text-slate-500 mb-4">{{ labour.name }}{% if labour.is_driver %} · Driver{% endif %} · Period locked</p>
+    {% else %}
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">Settle Payment</h1>
+        <p class="text-sm text-slate-500 mb-4">{{ labour.name }}{% if labour.is_driver %} · Driver{% endif %}</p>
+    {% endif %}
+
+    <form method="post" class="space-y-4" id="settle-form">
+        {% csrf_token %}
+
+        <!-- Date pickers -->
+        <div class="app-surface p-4 md:p-5 space-y-3">
+            <div>
+                <label class="label">Settlement Date</label>
+                {{ form.settlement_date }}
+            </div>
+            {% if editing %}
+                <div class="period-row">
+                    <div>
+                        <label class="label">Period From</label>
+                        <div class="text-sm font-extrabold text-slate-800 py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-lg">{{ settlement.period_start|date:"Y-m-d" }}</div>
+                    </div>
+                    <div>
+                        <label class="label">Period To</label>
+                        <div class="text-sm font-extrabold text-slate-800 py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-lg">{{ settlement.period_end|date:"Y-m-d" }}</div>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-500">Period change nahi ho sakta — sirf amounts/date/note badal kar Save karo.</p>
+            {% else %}
+                <div class="period-row">
+                    <div>
+                        <label class="label">Period From</label>
+                        {{ form.period_start }}
+                    </div>
+                    <div>
+                        <label class="label">Period To</label>
+                        {{ form.period_end }}
+                    </div>
+                </div>
+            {% endif %}
+            <div>
+                <label class="label">Note (optional)</label>
+                {{ form.note }}
+            </div>
+        </div>
+
+        <!-- Calculated preview (read-only) -->
+        <div class="app-surface p-4 md:p-5">
+            <div class="font-bold text-slate-900 text-base mb-3">Calculated (read-only)</div>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                <div class="calc-card">
+                    <div class="lbl">Total Salary</div>
+                    <div class="val num">₹{{ preview.total_salary|floatformat:0 }}</div>
+                </div>
+                <div class="calc-card">
+                    <div class="lbl">Total Advance</div>
+                    <div class="val num text-red-600">₹{{ preview.total_advance|floatformat:0 }}</div>
+                </div>
+                <div class="calc-card">
+                    <div class="lbl">Net Payable</div>
+                    <div class="val num">₹{{ preview.net_payable|floatformat:0 }}</div>
+                </div>
+                <div class="calc-card">
+                    <div class="lbl">Old Balance Before</div>
+                    <div class="val num">₹{{ old_balance.amount|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Owner-entered amounts -->
+        <div class="app-surface p-4 md:p-5 space-y-3">
+            <div class="font-bold text-slate-900 text-base mb-1">Owner enters</div>
+            <div>
+                <label class="label">Old Balance to Deduct (₹)</label>
+                {{ form.old_balance_deducted }}
+                <p class="text-[11px] text-slate-500 mt-1">How much of the existing outstanding you want to recover this time</p>
+            </div>
+            <div>
+                <label class="label">Cash Paid (₹)</label>
+                {{ form.cash_paid }}
+                <p class="text-[11px] text-slate-500 mt-1">Actual amount handed over to the labour</p>
+            </div>
+        </div>
+
+        <!-- Live preview of new old balance -->
+        <div class="calc-card final" id="final-card">
+            <div class="lbl">New Old Balance (live preview)</div>
+            <div class="val num" id="final-old-balance">₹0</div>
+            <div class="text-[11px] mt-1" id="final-explain">—</div>
+        </div>
+
+        <div class="flex gap-2 sticky bottom-2">
+            <a href="{% url 'labour:detail' labour.id %}" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary flex-1">{% if editing %}Save Changes{% else %}Confirm Settlement{% endif %}</button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    var obBefore = parseFloat("{{ old_balance.amount|floatformat:2|default:'0' }}") || 0;
+    var netPayable = parseFloat("{{ preview.net_payable|floatformat:2|default:'0' }}") || 0;
+    var obInput = document.getElementById('id_old_balance_deducted');
+    var cashInput = document.getElementById('id_cash_paid');
+    var finalEl = document.getElementById('final-old-balance');
+    var explain = document.getElementById('final-explain');
+    var finalCard = document.getElementById('final-card');
+
+    function fmt(n) {
+        return '₹' + (Math.round(n * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    }
+    function update() {
+        var obDeduct = parseFloat(obInput.value) || 0;
+        var cash = parseFloat(cashInput.value) || 0;
+        var newOB = obBefore + netPayable - obDeduct - cash;
+        finalEl.classList.remove('neg', 'pos');
+        if (newOB < -0.01) {
+            finalEl.classList.add('neg');
+            finalEl.textContent = 'Outstanding ' + fmt(Math.abs(newOB));
+            explain.textContent = 'Labour still owes owner this much (will carry forward)';
+        } else if (Math.abs(newOB) < 0.01) {
+            finalEl.textContent = '₹0 · All settled';
+            explain.textContent = 'No balance carried forward';
+        } else {
+            finalEl.classList.add('pos');
+            finalEl.textContent = fmt(newOB);
+            explain.textContent = 'Owner still owes labour this much';
+        }
+    }
+    obInput.addEventListener('input', update);
+    cashInput.addEventListener('input', update);
+    update();
+})();
+</script>
+{% endblock %}

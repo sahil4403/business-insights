@@ -13,6 +13,10 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse, Http404
 from django.db import transaction
 
+from openpyxl import Workbook
+from openpyxl.styles import Alignment as XlsAlignment, Font as XlsFont, PatternFill
+from openpyxl.utils import get_column_letter
+
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -23,6 +27,8 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
+    PageBreak,
+    KeepTogether,
 )
 
 from customers.models import Customer
@@ -1300,3 +1306,427 @@ def update_customer_opening_balance(request, customer_id):
             messages.error(request, "Invalid opening balance amount.")
 
     return redirect(next_url)
+
+# ============================================================================
+# CUSTOMER STATEMENTS BOOK — saare customers ke statements ek saath
+# PDF (book) ya Excel (har customer ka apna sheet) me export karo.
+# Customer Statement format hi base hai — har customer ka: header info,
+# summary cards (Opening / Sales / Received / Closing), debit-credit-balance
+# ki full transaction table.
+# ============================================================================
+
+def _parse_statements_date(raw, default):
+    if not raw:
+        return default
+    try:
+        return datetime.strptime(raw, '%Y-%m-%d').date()
+    except ValueError:
+        return default
+
+
+def _statement_data_for_customer(customer, from_date, to_date, today_date):
+    """Return opening, transactions, totals, closing for one customer."""
+    customer_trips = Trip.objects.filter(
+        customer=customer
+    ).select_related('material', 'vehicle')
+
+    customer_payments = TripPayment.objects.filter(
+        Q(customer=customer) | Q(trip__customer=customer)
+    ).annotate(
+        effective_date=Coalesce('payment_date', 'trip__trip_date')
+    ).select_related('trip', 'payment_method')
+
+    opening_balance = customer.opening_balance or Decimal('0')
+
+    if from_date:
+        previous_trips = customer_trips.filter(trip_date__lt=from_date)
+        previous_payments = customer_payments.filter(effective_date__lt=from_date)
+        opening_sales = sum(
+            trip.total_amount if trip.transaction_type != 'VENDOR_SUPPLY' else -trip.total_amount
+            for trip in previous_trips
+        )
+        opening_received = sum(
+            payment.amount if payment.payment_type != 'PAID' else -payment.amount
+            for payment in previous_payments
+        )
+        opening_balance += opening_sales - opening_received
+
+    period_trips = customer_trips
+    period_payments = customer_payments
+
+    if from_date:
+        period_trips = period_trips.filter(trip_date__gte=from_date)
+        period_payments = period_payments.filter(effective_date__gte=from_date)
+    if to_date:
+        period_trips = period_trips.filter(trip_date__lte=to_date)
+        period_payments = period_payments.filter(effective_date__lte=to_date)
+
+    transactions = []
+
+    for trip in period_trips:
+        material_name = trip.material.name if trip.material else '—'
+        if trip.transaction_type == 'VENDOR_SUPPLY':
+            transactions.append({
+                'date': trip.trip_date,
+                'type': 'INWARD',
+                'description': (
+                    f"Inward Supply ({material_name} - "
+                    f"{trip.quantity} × ₹{trip.rate})"
+                ),
+                'debit': Decimal('0'),
+                'credit': trip.total_amount,
+                'reference': trip.trip_code,
+                'destination': trip.destination or '',
+            })
+        else:
+            transactions.append({
+                'date': trip.trip_date,
+                'type': 'SALE',
+                'description': (
+                    f"{material_name} - "
+                    f"{trip.quantity} × ₹{trip.rate}"
+                ),
+                'debit': trip.total_amount,
+                'credit': Decimal('0'),
+                'reference': trip.trip_code,
+                'destination': trip.destination or '',
+            })
+
+    transactions.extend(_payment_transactions(period_payments, today_date))
+
+    transactions.sort(key=lambda t: (t['date'], t['type'] == 'PAYMENT'))
+
+    running_balance = opening_balance
+    for transaction in transactions:
+        running_balance += (transaction['debit'] - transaction['credit'])
+        transaction['balance'] = running_balance
+
+    total_sales = sum((t['debit'] for t in transactions), Decimal('0'))
+    total_received = sum((t['credit'] for t in transactions), Decimal('0'))
+    closing_balance = opening_balance + total_sales - total_received
+
+    return {
+        'customer': customer,
+        'transactions': transactions,
+        'opening_balance': opening_balance,
+        'total_sales': total_sales,
+        'total_received': total_received,
+        'closing_balance': closing_balance,
+        'trip_count': period_trips.count(),
+        'payment_count': period_payments.count(),
+    }
+
+
+@login_required(login_url='/login/')
+def customer_statements_book(request):
+    today_date = timezone.localdate()
+
+    from_date = _parse_statements_date(request.GET.get('from_date'), None)
+    to_date = _parse_statements_date(request.GET.get('to_date'), today_date)
+
+    if from_date and to_date and from_date > to_date:
+        from_date, to_date = to_date, from_date
+
+    export = request.GET.get('export')
+
+    customers = list(
+        Customer.objects.filter(is_active=True)
+        .order_by('name')
+    )
+
+    statements = [
+        _statement_data_for_customer(c, from_date, to_date, today_date)
+        for c in customers
+    ]
+
+    if export == 'excel':
+        return _statements_book_excel(statements, from_date, to_date)
+
+    return _statements_book_pdf(statements, from_date, to_date)
+
+
+def _statements_book_excel(statements, from_date, to_date):
+    from openpyxl.styles import PatternFill as PF, Font as F, Alignment as A
+    from openpyxl.utils import get_column_letter as gcl
+
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+
+    header_fill = PF(start_color='16665A', end_color='16665A', fill_type='solid')
+    header_font = F(color='FFFFFF', bold=True)
+    total_font = F(bold=True)
+    total_fill = PF(start_color='EEF7F5', end_color='EEF7F5', fill_type='solid')
+
+    if not statements:
+        ws = workbook.create_sheet(title='No Data')
+        ws.cell(row=1, column=1, value='No active customers found.').font = F(bold=True)
+        return _workbook_response(workbook, 'customer_statements_book.xlsx')
+
+    for st in statements:
+        cust = st['customer']
+        sheet_name = cust.customer_code or cust.name
+        sheet_name = ''.join(c for c in sheet_name if c not in r'[]:*?/\\')
+        sheet_name = (sheet_name or 'Customer')[:31]
+
+        ws = workbook.create_sheet(title=sheet_name)
+
+        ws.cell(row=1, column=2, value='CUSTOMER ACCOUNT STATEMENT').font = F(bold=True, size=13)
+
+        rows_written = [
+            (2, 'Customer', cust.name or '—'),
+            (3, 'Code', cust.customer_code or '—'),
+            (4, 'Mobile', cust.mobile or '—'),
+            (5, 'Address', f"{cust.billing_address or ''} {cust.city or ''} {cust.state or ''}".strip() or '—'),
+        ]
+        for r, label, val in rows_written:
+            ws.cell(row=r, column=1, value=label).font = F(bold=True)
+            ws.cell(row=r, column=2, value=val)
+
+        if from_date:
+            period_label = f"{from_date:%d-%b-%Y} to {to_date:%d-%b-%Y}"
+        else:
+            period_label = 'All Transactions'
+        ws.cell(row=6, column=1, value='Period').font = F(bold=True)
+        ws.cell(row=6, column=2, value=period_label)
+
+        # Summary
+        summary_row = 8
+        summary_items = [
+            ('Opening Balance', st['opening_balance']),
+            ('Period Sales', st['total_sales']),
+            ('Period Received', st['total_received']),
+            ('Closing Balance', st['closing_balance']),
+        ]
+        for i, (label, value) in enumerate(summary_items):
+            col = 1 + i * 2
+            cell = ws.cell(row=summary_row, column=col, value=label)
+            cell.font = F(bold=True, color='2563EB')
+            ws.cell(row=summary_row, column=col + 1, value=f"₹{value:,.2f}")
+
+        # Transactions table
+        head_row = 10
+        headers = ['Date', 'Type', 'Description', 'Destination', 'Debit (₹)', 'Credit (₹)', 'Balance (₹)']
+        for col, h in enumerate(headers, start=1):
+            cell = ws.cell(row=head_row, column=col, value=h)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = A(horizontal='center', vertical='center')
+
+        r = head_row + 1
+        for t in st['transactions']:
+            ws.cell(row=r, column=1, value=t['date'].strftime('%d-%b-%Y'))
+            ws.cell(row=r, column=2, value=t['type'])
+            ws.cell(row=r, column=3, value=t['description'])
+            ws.cell(row=r, column=4, value=t['destination'])
+            ws.cell(row=r, column=5, value=float(t['debit']) or None)
+            ws.cell(row=r, column=6, value=float(t['credit']) or None)
+            ws.cell(row=r, column=7, value=float(t['balance']))
+            r += 1
+
+        for col in range(5, 8):
+            ws.column_dimensions[gcl(col)].width = 14
+
+        ws.cell(row=r, column=1, value='TOTAL').font = total_font
+        ws.cell(row=r, column=2, value=f"{st['trip_count']} trips / {st['payment_count']} payments")
+        ws.cell(row=r, column=5, value=float(st['total_sales'])).font = total_font
+        ws.cell(row=r, column=6, value=float(st['total_received'])).font = total_font
+        ws.cell(row=r, column=7, value=float(st['closing_balance'])).font = total_font
+        for col in range(1, 8):
+            ws.cell(row=r, column=col).fill = total_fill
+
+        ws.column_dimensions['A'].width = 16
+        ws.column_dimensions['B'].width = 10
+        ws.column_dimensions['C'].width = 42
+        ws.column_dimensions['D'].width = 20
+
+    return _workbook_response(workbook, 'customer_statements_book.xlsx')
+
+
+def _workbook_response(workbook, filename):
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    workbook.save(response)
+    return response
+
+
+def _statements_book_pdf(statements, from_date, to_date):
+    from core.pdf_utils import (
+        get_registered_font,
+        build_pdf_header_elements,
+        get_indian_current_time_str,
+        build_summary_cards,
+        apply_data_table_style,
+        finish_document,
+        build_thankyou_note,
+    )
+    font_name = get_registered_font()
+
+    buffer = BytesIO()
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=9 * mm,
+        leftMargin=9 * mm,
+        topMargin=11 * mm,
+        bottomMargin=11 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+
+    header_style = ParagraphStyle(
+        'HeaderStyle', parent=styles['Normal'],
+        fontName=font_name, fontSize=8.5, leading=10,
+        textColor=colors.white,
+    )
+    header_center = ParagraphStyle('HeaderCenter', parent=header_style, alignment=1)
+    header_right = ParagraphStyle('HeaderRight', parent=header_style, alignment=2)
+
+    body_style = ParagraphStyle(
+        'BodyStyle', parent=styles['Normal'],
+        fontName=font_name, fontSize=7.5, leading=9.5,
+        textColor=colors.HexColor('#0F172A'),
+    )
+    right_body = ParagraphStyle('RightBody', parent=body_style, alignment=2)
+    center_body = ParagraphStyle('CenterBody', parent=body_style, alignment=1)
+
+    if from_date:
+        book_period = f"{from_date.strftime('%d-%b-%Y')} to {to_date.strftime('%d-%b-%Y')}"
+    else:
+        book_period = 'All Transactions'
+
+    elements = build_pdf_header_elements(
+        font_name=font_name,
+        report_title="Customer Statements Book",
+        report_subtitle=(
+            f"All customers · {book_period} · "
+            f"Generated on {get_indian_current_time_str()}"
+        ),
+    )
+
+    total_opening = Decimal('0')
+    total_sales = Decimal('0')
+    total_received = Decimal('0')
+    total_closing = Decimal('0')
+
+    for i, st in enumerate(statements):
+        cust = st['customer']
+
+        cust_header = ParagraphStyle(
+            'CustomerHeader', parent=body_style,
+            fontSize=11, leading=14, textColor=colors.HexColor('#115248'),
+        )
+
+        contact_parts = [
+            f"Code: {cust.customer_code or '—'}",
+            f"Mobile: {cust.mobile or '—'}",
+            f"Period: {book_period}",
+        ]
+        address = f"{cust.billing_address or ''} {cust.city or ''} {cust.state or ''}".strip()
+        if address:
+            contact_parts.append(f"Address: {address}")
+
+        block = [
+            Paragraph(f"<b>{cust.name}</b>", cust_header),
+            Paragraph('  |  '.join(contact_parts), body_style),
+            Spacer(1, 5),
+        ]
+
+        summary_cards = build_summary_cards(
+            [
+                {'label': 'Opening Balance', 'value': f"₹{st['opening_balance']:,.2f}", 'color': '#2563eb'},
+                {'label': 'Period Sales', 'value': f"₹{st['total_sales']:,.2f}", 'color': '#16665a'},
+                {'label': 'Period Received', 'value': f"₹{st['total_received']:,.2f}", 'color': '#059669'},
+                {
+                    'label': 'Closing Balance',
+                    'value': f"₹{st['closing_balance']:,.2f}",
+                    'color': '#dc2626' if st['closing_balance'] > 0 else '#059669',
+                    'sub': 'Amount Payable' if st['closing_balance'] > 0 else 'Settled / Advance',
+                },
+            ],
+            font_name=font_name,
+        )
+        block.append(summary_cards)
+        block.append(Spacer(1, 8))
+
+        table_data = [
+            [
+                Paragraph('<b>Date</b>', header_style),
+                Paragraph('<b>Type</b>', header_center),
+                Paragraph('<b>Description</b>', header_style),
+                Paragraph('<b>Destination</b>', header_style),
+                Paragraph('<b>Debit (₹)</b>', header_right),
+                Paragraph('<b>Credit (₹)</b>', header_right),
+                Paragraph('<b>Balance (₹)</b>', header_right),
+            ]
+        ]
+
+        for t in st['transactions']:
+            table_data.append([
+                Paragraph(t['date'].strftime('%d-%b-%Y'), body_style),
+                Paragraph(str(t['type']), center_body),
+                Paragraph('' if t['type'] == 'PAYMENT' else str(t['description']), body_style),
+                Paragraph('' if t['type'] == 'PAYMENT' else str(t.get('destination') or '—'), body_style),
+                Paragraph(f"₹{t['debit']:,.2f}" if t['debit'] else '-', right_body),
+                Paragraph(f"₹{t['credit']:,.2f}" if t['credit'] else '-', right_body),
+                Paragraph(f"₹{t['balance']:,.2f}", right_body),
+            ])
+
+        table_data.append([
+            Paragraph('<b>TOTAL</b>', body_style),
+            Paragraph('', center_body),
+            Paragraph('', body_style),
+            Paragraph(f"{st['trip_count']} trips / {st['payment_count']} pays", body_style),
+            Paragraph(f"<b>₹{st['total_sales']:,.2f}</b>", right_body),
+            Paragraph(f"<b>₹{st['total_received']:,.2f}</b>", right_body),
+            Paragraph(f"<b>₹{st['closing_balance']:,.2f}</b>", right_body),
+        ])
+
+        statement_table = Table(
+            table_data,
+            repeatRows=1,
+            colWidths=[21 * mm, 17 * mm, 72 * mm, 22 * mm, 21 * mm, 21 * mm, 21 * mm],
+        )
+        apply_data_table_style(statement_table, total_row=True)
+        block.append(statement_table)
+
+        total_opening += st['opening_balance']
+        total_sales += st['total_sales']
+        total_received += st['total_received']
+        total_closing += st['closing_balance']
+
+        elements.append(KeepTogether(block))
+
+        if i < len(statements) - 1:
+            elements.append(Spacer(1, 18))
+            elements.append(PageBreak())
+
+    # Grand summary
+    grand_cards = build_summary_cards(
+        [
+            {'label': 'Total Opening', 'value': f"₹{total_opening:,.2f}", 'color': '#2563eb'},
+            {'label': 'Total Sales', 'value': f"₹{total_sales:,.2f}", 'color': '#16665a'},
+            {'label': 'Total Received', 'value': f"₹{total_received:,.2f}", 'color': '#059669'},
+            {
+                'label': 'Total Closing (Payable)',
+                'value': f"₹{total_closing:,.2f}",
+                'color': '#dc2626' if total_closing > 0 else '#059669',
+            },
+        ],
+        font_name=font_name,
+    )
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph('<b>GRAND SUMMARY — All Customers</b>', body_style))
+    elements.append(grand_cards)
+    elements.extend(build_thankyou_note(
+        "Books prepared from the customer ledger. For any query, contact us.",
+        font_name=font_name,
+    ))
+
+    finish_document(document, elements, font_name=font_name)
+    buffer.seek(0)
+
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="customer_statements_book.pdf"'
+    return response
