@@ -47,6 +47,20 @@
     .help-text { margin-top: 6px; font-size: 12px; color: #6b7280; }
     .non-field-errors { margin-bottom: 20px; padding: 12px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; color: #b91c1c; font-size: 13px; font-weight: 600; }
     .field-error { border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important; }
+    .driver-allocation-details { margin: 0; }
+    .driver-allocation-details > summary { display: none; list-style: none; cursor: pointer; }
+    .driver-allocation-details > summary::-webkit-details-marker { display: none; }
+    .driver-allocation-details.jcb-mode > summary {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 1rem; height: 3rem;
+        background: #fff; border: 1px solid #cbd5e1; border-radius: 0.75rem;
+        font-size: 15px; font-weight: 600; color: #0f172a;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+    .driver-allocation-details.jcb-mode > summary:active { background: #f8fafc; }
+    .dd-caret { color: #94a3b8; transition: transform 0.15s ease; }
+    .driver-allocation-details.jcb-mode[open] .dd-caret { transform: rotate(180deg); }
+    .driver-allocation-details.jcb-mode[open] .driver-allocation-box { border-color: #16665a; box-shadow: 0 0 0 3px rgba(22, 102, 90, 0.15); }
     .form-section-title { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 12px; }
     @media (min-width: 768px) {
         #trip-form input:not([type="checkbox"]):not([type="hidden"]):not(.customer-search-input):not(.driver-count-input),
@@ -222,21 +236,28 @@
             {{ form.drivers }}
         </div>
 
-        <div id="driver_allocation_box" class="flex flex-col gap-2 sm:gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200">
-            {% for driver in form.fields.drivers.queryset %}
-                <div class="driver-allocation-row flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-2.5 rounded-xl bg-white border border-slate-200" data-driver-name="{{ driver.name }}">
-                    <label class="flex items-center gap-2.5 text-sm font-semibold text-slate-800 cursor-pointer" style="margin: 0;">
-                        <input type="checkbox" class="driver-checkbox h-5 w-5 shrink-0 cursor-pointer" data-driver-id="{{ driver.id }}" style="accent-color: #16665a;">
-                        {{ driver.name }}
-                    </label>
-                    <div class="driver-count-wrap flex items-center justify-between sm:justify-end gap-2">
-                        <span class="text-[13px] text-slate-500">Trips Done:</span>
-                        <input type="number" name="driver_count_{{ driver.id }}" class="driver-count-input w-20 h-10 px-2 rounded-lg border border-slate-300 text-center text-sm font-semibold text-brand-600" data-driver-id="{{ driver.id }}" min="1" step="1" placeholder="e.g. 3">
-                        <span class="text-[13px] font-semibold text-slate-600">Trips</span>
+        <!-- JCB me lambi driver list -> collapsible dropdown (non-JCB pe pehle jaisa expanded list) -->
+        <details id="driver_allocation_details" class="driver-allocation-details" open>
+            <summary class="driver-dd-summary">
+                <span>👷 Select Drivers (JCB)</span>
+                <span class="dd-caret">▾</span>
+            </summary>
+            <div id="driver_allocation_box" class="driver-allocation-box flex flex-col gap-2 sm:gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200" style="margin-top: 10px;">
+                {% for driver in form.fields.drivers.queryset %}
+                    <div class="driver-allocation-row flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-2.5 rounded-xl bg-white border border-slate-200" data-driver-name="{{ driver.name }}">
+                        <label class="flex items-center gap-2.5 text-sm font-semibold text-slate-800 cursor-pointer" style="margin: 0;">
+                            <input type="checkbox" class="driver-checkbox h-5 w-5 shrink-0 cursor-pointer" data-driver-id="{{ driver.id }}" style="accent-color: #16665a;">
+                            {{ driver.name }}
+                        </label>
+                        <div class="driver-count-wrap flex items-center justify-between sm:justify-end gap-2">
+                            <span class="text-[13px] text-slate-500">Trips Done:</span>
+                            <input type="number" name="driver_count_{{ driver.id }}" class="driver-count-input w-20 h-10 px-2 rounded-lg border border-slate-300 text-center text-sm font-semibold text-brand-600" data-driver-id="{{ driver.id }}" min="1" step="1" placeholder="e.g. 3">
+                            <span class="text-[13px] font-semibold text-slate-600">Trips</span>
+                        </div>
                     </div>
-                </div>
-            {% endfor %}
-        </div>
+                {% endfor %}
+            </div>
+        </details>
 
         {% for error in form.drivers.errors %}
             <div class="error">{{ error }}</div>
@@ -816,6 +837,21 @@ function confirmSaveAndViewStatement(shouldSave) {
             if (materialGroup) materialGroup.style.display = "flex";
             const driverBhattaInput = document.getElementById("id_driver_bhatta");
             if (driverBhattaInput) driverBhattaInput.value = "0.00";
+        }
+
+        toggleDriverUi(isJcb);
+    }
+
+    // JCB: lambi driver list collapsed dropdown me / non-JCB: khula list
+    function toggleDriverUi(isJcb) {
+        const detailsEl = document.getElementById("driver_allocation_details");
+        if (!detailsEl) return;
+        if (isJcb) {
+            detailsEl.classList.add("jcb-mode");
+            detailsEl.open = false;
+        } else {
+            detailsEl.classList.remove("jcb-mode");
+            detailsEl.open = true;
         }
     }
 
