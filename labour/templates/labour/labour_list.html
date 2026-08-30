@@ -21,6 +21,30 @@
         .app-stat { padding: 0.7rem 0.85rem; }
         .app-stat .val { font-size: 1.1rem; }
     }
+    @media (min-width: 768px) {
+        .lab-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+        .lab-toolbar .btn { height: 2.5rem; padding: 0 1rem; white-space: nowrap; }
+        .exp-dd { position: relative; }
+        .exp-dd > summary { list-style: none; cursor: pointer; }
+        .exp-dd > summary::-webkit-details-marker { display: none; }
+        .exp-dd[open] .exp-dd-menu {
+            display: block; position: absolute; right: 0; top: calc(100% + 8px);
+            min-width: 210px; background: #fff; border: 1px solid #e2e8f0;
+            border-radius: 0.85rem; box-shadow: 0 14px 30px rgba(15,23,42,0.14);
+            z-index: 50; padding: 6px;
+        }
+        .exp-dd-menu a {
+            display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+            font-size: 13px; font-weight: 600; color: #334155;
+            text-decoration: none; border-radius: 0.5rem;
+        }
+        .exp-dd-menu a:hover { background: #f1f5f9; }
+        .exp-dd-menu .exp-dd-title {
+            padding: 7px 12px 4px; font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;
+        }
+        .exp-dd-menu .exp-dd-title:not(:first-child) { margin-top: 4px; border-top: 1px solid #f1f5f9; }
+    }
 </style>
 {% endblock %}
 
@@ -41,17 +65,30 @@
             <h1 class="text-xl md:text-3xl font-extrabold text-slate-900">Labour</h1>
             <p class="text-sm text-slate-500 mt-1">Tap a labour to view details, add trips/extras/advances or settle</p>
         </div>
-        <div class="hidden md:flex items-center gap-2">
-            <a href="?export=csv" class="btn btn-ghost">CSV</a>
-            <a href="?export=excel" class="btn btn-ghost">Excel</a>
-            <a href="?export=pdf&preview=true" target="_blank" class="btn btn-ghost">Preview PDF</a>
-            <a href="?export=pdf" class="btn btn-ghost">Download PDF</a>
-            <a href="{% url 'labour:book' %}?export=pdf" class="btn btn-ghost">📕 All Labour PDF</a>
-            <a href="{% url 'labour:book' %}?export=excel" class="btn btn-ghost">📕 Book Excel</a>
-            <a href="{% url 'labour:advance_multi' %}" class="btn btn-ghost">⚡ Quick Advances</a>
-            <a href="{% url 'labour:driver_add' %}" class="btn btn-ghost">🚗 Driver Payment</a>
-            <a href="{% url 'labour:create' %}" class="btn btn-ghost">＋ Add Labour</a>
-            <a href="{% url 'labour:trips' %}" class="btn btn-ghost">🛠 Trip Entries</a>
+        <div class="hidden md:block">
+            <div class="lab-toolbar">
+                <details class="exp-dd">
+                    <summary class="btn btn-ghost">Export <span class="text-slate-400">▾</span></summary>
+                    <div class="exp-dd-menu">
+                        <a href="?export=csv">🟢 CSV</a>
+                        <a href="?export=excel">🔵 Excel</a>
+                        <div class="exp-dd-title">PDF</div>
+                        <a href="?export=pdf&preview=true" target="_blank">Preview PDF</a>
+                        <a href="?export=pdf">Download PDF</a>
+                    </div>
+                </details>
+                <details class="exp-dd">
+                    <summary class="btn btn-ghost">📕 Book <span class="text-slate-400">▾</span></summary>
+                    <div class="exp-dd-menu">
+                        <a href="{% url 'labour:book' %}?export=pdf">All Labour PDF</a>
+                        <a href="{% url 'labour:book' %}?export=excel">Book Excel</a>
+                    </div>
+                </details>
+                <a href="{% url 'labour:advance_multi' %}" class="btn btn-ghost">⚡ Quick Advances</a>
+                <a href="{% url 'labour:driver_add' %}" class="btn btn-ghost">🚗 Driver Payment</a>
+                <a href="{% url 'labour:create' %}" class="btn btn-ghost">＋ Add Labour</a>
+                <a href="{% url 'labour:trips' %}" class="btn btn-ghost">🛠 Trip Entries</a>
+            </div>
         </div>
     </div>
 </div>
