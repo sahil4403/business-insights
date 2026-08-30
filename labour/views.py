@@ -319,6 +319,24 @@ def labour_create(request):
     })
 
 
+@login_required(login_url='/login/')
+def labour_edit(request, labour_id):
+    labour = get_object_or_404(Labour, pk=labour_id)
+    if request.method == 'POST':
+        form = LabourForm(request.POST, instance=labour)
+        if form.is_valid():
+            obj = form.save()
+            messages.success(request, f'Labour "{obj.name}" updated.')
+            return redirect('labour:detail', labour_id=obj.id)
+    else:
+        form = LabourForm(instance=labour)
+
+    return render(request, 'labour/labour_form.html', {
+        'form': form,
+        'page_title': f'Edit {labour.name}',
+    })
+
+
 # ----------------------------------------------------------------------------
 # Detail
 # ----------------------------------------------------------------------------

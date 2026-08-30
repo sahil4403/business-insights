@@ -7,6 +7,7 @@ app_name = 'labour'
 urlpatterns = [
     path('', views.labour_list, name='list'),
     path('add/', views.labour_create, name='create'),
+    path('<int:labour_id>/edit/', views.labour_edit, name='edit'),
     path('<int:labour_id>/', views.labour_detail, name='detail'),
     path('<int:labour_id>/remove/', views.labour_deactivate, name='remove'),
     path('<int:labour_id>/outstanding/set/', views.labour_set_outstanding, name='outstanding_set'),

@@ -109,15 +109,18 @@
                 Per-trip labour settlement
             </p>
         </div>
-        <form method="post" action="{% url 'labour:remove' labour.id %}"
-              onsubmit="return confirm('Remove this labour? Historical records will be kept safe and they can be re-activated later from admin.');"
-              class="shrink-0">
-            {% csrf_token %}
-            <button type="submit"
-                    class="h-9 px-3 rounded-lg border border-red-300 bg-white text-red-600 text-xs font-bold hover:bg-red-50 inline-flex items-center gap-1">
-                🗑 Remove
-            </button>
-        </form>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{% url 'labour:edit' labour.id %}"
+               class="h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold inline-flex items-center gap-1 hover:bg-slate-50 no-underline">✏️ Edit</a>
+            <form method="post" action="{% url 'labour:remove' labour.id %}"
+                  onsubmit="return confirm('Remove this labour? Historical records will be kept safe and they can be re-activated later from admin.');">
+                {% csrf_token %}
+                <button type="submit"
+                        class="h-9 px-3 rounded-lg border border-red-300 bg-white text-red-600 text-xs font-bold hover:bg-red-50 inline-flex items-center gap-1">
+                    🗑 Remove
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 
