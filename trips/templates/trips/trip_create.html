@@ -1078,9 +1078,11 @@ function confirmSaveAndViewStatement(shouldSave) {
                 valid = false;
             }
 
-            // 4. Material
+            // 4. Material (JCB ke liye server khud 'JCB Work' set karta hai)
             var material = document.getElementById('id_material');
-            if (!material.value) markError('id_material', 'Material is required.');
+            var vehicleCatEl = document.getElementById('id_vehicle_category');
+            var isJcbMat = vehicleCatEl && vehicleCatEl.value === 'JCB';
+            if (!isJcbMat && !material.value) markError('id_material', 'Material is required.');
 
             // 5. Vehicle (skip for VENDOR_SUPPLY & INTERNAL_STOCK)
             var vehicle = document.getElementById('id_vehicle');
