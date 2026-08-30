@@ -523,6 +523,7 @@
 
         // Prevent double-submission of forms (slow network / double tap)
         document.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) return; // e.g. onsubmit="return confirm(...)" cancelled
             const form = e.target;
             if (form.dataset.submitting === '1') {
                 e.preventDefault();
