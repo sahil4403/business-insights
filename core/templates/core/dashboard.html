@@ -17,6 +17,13 @@
 
 {% block content %}
 
+<style>
+/* Mobile: filtered trip list ko bottom-nav ke peechhe jaane se bachao.
+   (Tailwind compiled hai — arbitrary classes yahan kaam nahi karti.) */
+#dashTripScroll { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+@media (min-width: 768px) { #dashTripScroll { padding-bottom: 0; } }
+</style>
+
 <!-- VEHICLE DOCUMENT EXPIRY ALERTS -->
 {% if expiry_alerts %}
 <div id="expiryAlertsBanner" class="mb-5 rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-4 overflow-hidden" data-animate>
@@ -143,7 +150,7 @@
         </div>
 
         <!-- SCROLL + FREEZE PANEL -->
-        <div id="dashTripScroll" class="max-h-[75vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
+        <div id="dashTripScroll" class="max-h-[75vh] md:max-h-[560px] overflow-y-auto overscroll-contain scroll-smooth">
 
             <!-- MOBILE TRIPS LIST -->
             <div class="md:hidden px-3">
