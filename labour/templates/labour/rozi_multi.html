@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block head %}
+<style>
+    .roz-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; }
+    .roz-row:last-child { border-bottom: none; }
+    .roz-row .pname { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; color: #0f172a; }
+    .roz-row .base-rate { font-size: 11px; color: #94a3b8; font-weight: 600; white-space: nowrap; }
+    .roz-row select { width: 10rem; height: 2.25rem; font-size: 13px; }
+    .sticky-save { position: sticky; bottom: 0; background: #fff; padding-top: 0.5rem; border-top: 1px solid #e2e8f0; }
+</style>
+{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'labour:list' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ page_title }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">{{ page_title }}</h1>
+    <p class="text-sm text-slate-500 mb-4">Har labour ke liye day type chuno — amount khud base rate se nikal jayega.
+        {% if category_filter %}{{ category_filter }} category ke sirf labour dikh rahe hain.{% endif %}</p>
+
+    <div class="app-surface p-3 mb-4 text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-xl">
+        Full Day = 1 × rate · One &amp; Half = 1.5 × rate · Half Day = 0.5 × rate
+        {% if category_filter == 'MISTRI' %} &nbsp;·&nbsp; <span class="font-bold">Mistri = ₹800 fixed</span>{% endif %}
+    </div>
+
+    <form method="post" class="app-surface p-4 md:p-5 space-y-4">
+        {% csrf_token %}
+
+        <div>
+            <label class="label">Date</label>
+            <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="input"
+                   onchange="window.location.href = '?{% if category_filter %}category={{ category_filter }}&{% endif %}date=' + encodeURIComponent(this.value);">
+        </div>
+
+        <div class="text-[12px] text-slate-500 font-semibold uppercase tracking-wider">
+            {% if labours %}{{ labours|length }} labourers{% else %}No labour added yet{% endif %}
+        </div>
+
+        {% if labour_rows %}
+            <div class="divide-y divide-slate-100">
+                {% for l, day_type, has_existing in labour_rows %}
+                    <div class="roz-row">
+                        <div class="pname truncate">
+                            {{ l.name }}
+                            {% if l.is_driver %}<span class="text-[10px] text-blue-600 font-bold ml-1">🚗</span>{% endif %}
+                            {% if has_existing %}
+                                <span class="text-[10px] text-emerald-600 font-bold ml-1">✓</span>
+                            {% endif %}
+                        </div>
+                        <span class="base-rate">
+                            {% if l.category == 'MISTRI' and l.sub_category == 'MISTRI' %}₹{{ MISTRI_RATES.FULL|floatformat:0 }}/d
+                            {% else %}₹{{ l.base_daily_rate|floatformat:0 }}/d{% endif %}
+                        </span>
+                        <select name="day_type_{{ l.id }}" class="input">
+                            <option value="">—</option>
+                            {% for code, label in DAY_TYPE_CHOICES %}
+                                <option value="{{ code }}" {% if day_type == code %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="py-8 text-center text-slate-500 text-sm">
+                No labour added yet. <a href="{% url 'labour:create' %}" class="text-brand-600 font-bold">Add first →</a>
+            </div>
+        {% endif %}
+
+        {% if labours %}
+            <div class="sticky-save">
+                <div class="flex gap-2">
+                    <a href="{% url 'labour:list' %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary flex-1">Save Rozi</button>
+                </div>
+            </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% if labour %}{% url 'labour:detail' labour.id %}{% else %}{% url 'labour:list' %}{% endif %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ page_title }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-4">{{ page_title }}</h1>
+
+    <div class="app-surface p-4 mb-4 text-sm text-slate-600 bg-amber-50 border border-amber-200 rounded-xl">
+        Rozi amount auto-calculates from the labourer's base daily rate.<br>
+        Full Day = 1 × rate · One &amp; Half = 1.5 × rate · Half Day = 0.5 × rate.
+    </div>
+
+    <form method="post" class="app-surface p-4 md:p-5 space-y-4">
+        {% csrf_token %}
+
+        <div>
+            <label class="label">Labourer</label>
+            {{ form.labour }}
+        </div>
+
+        <div>
+            <label class="label">Date</label>
+            {{ form.date }}
+        </div>
+
+        <div>
+            <label class="label">Rozi (Day Type)</label>
+            {{ form.day_type }}
+        </div>
+
+        <div>
+            <label class="label">Note (optional)</label>
+            {{ form.note }}
+        </div>
+
+        <div class="flex gap-2 pt-2">
+            <a href="{% if labour %}{% url 'labour:detail' labour.id %}{% else %}{% url 'labour:list' %}{% endif %}" class="btn btn-ghost flex-1">Cancel</a>
+            <button type="submit" class="btn btn-primary flex-1">Save Rozi</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -105,8 +105,8 @@
                class="hidden md:inline-flex items-center gap-1.5 mb-2 text-[13px] font-bold text-slate-500 hover:text-brand-600 no-underline">← Back to Labour</a>
             <h1 class="text-xl md:text-3xl font-extrabold text-slate-900 truncate">{{ labour.name }}</h1>
             <p class="text-sm text-slate-500 mt-1">
-                {% if labour.is_driver %}🚗 Driver &nbsp;·&nbsp;{% endif %}
-                Per-trip labour settlement
+                {% if labour.is_driver and labour.category != 'HYVA_DRIVER' %}🚗 Driver &nbsp;·&nbsp;{% endif %}
+                {{ cat_icon }} {{ labour.get_category_display }} · Per-trip settlement
             </p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
@@ -154,13 +154,41 @@
 
 <!-- Quick actions -->
 <div class="flex flex-wrap items-center justify-center gap-2 mb-4" data-animate>
-    <a href="{% url 'labour:trip_add' %}" class="qa glass glass-tint">🚜 Trip Entry</a>
-    <a href="{% url 'labour:extra_add_for' labour.id %}" class="qa glass">💰 Extra</a>
+    {% if trip_action.coming_soon %}
+        <button type="button" onclick="openComingSoon()" class="qa glass glass-tint">{{ trip_action.icon }} {{ trip_action.label }}</button>
+    {% else %}
+        <a href="{% url trip_action.url %}?{% if trip_action.rozi %}category=MISTRI{% elif trip_action.query %}{{ trip_action.query }}{% endif %}" class="qa glass glass-tint">{{ trip_action.icon }} {{ trip_action.label }}</a>
+    {% endif %}
+    <a href="{% url 'labour:extra_add_for' labour.id %}" class="qa glass">💰 {% if labour.category == 'HYVA_DRIVER' %}Bhatta / Rozi{% else %}Extra{% endif %}</a>
+    {% if labour.category != 'TRACTOR' %}
+        <a href="{% url 'labour:rozi_add_for' labour.id %}" class="qa glass">👷 Add Rozi</a>
+    {% endif %}
     <a href="{% url 'labour:advance_add_for' labour.id %}" class="qa glass">💸 Advance</a>
-    {% if labour.is_driver %}
+    {% if labour.category == 'TRACTOR' %}
+        <a href="{% url 'labour:advance_multi' %}?category=TRACTOR" class="qa glass">⚡ Quick Advance</a>
+    {% endif %}
+    {% if labour.is_driver and labour.category != 'HYVA_DRIVER' %}
         <a href="{% url 'labour:driver_add_for' labour.id %}" class="qa glass">🚗 Driver</a>
     {% endif %}
 </div>
+
+<!-- Coming Soon popup -->
+<div id="coming-soon" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+    <div class="app-surface w-full max-w-sm p-6 text-center rounded-2xl">
+        <div class="text-4xl mb-3">🚧</div>
+        <h2 class="text-xl font-extrabold text-slate-900 mb-1">Coming Soon</h2>
+        <p class="text-sm text-slate-500 mb-5">JCB Operator ka Trip Entry feature abhi aa raha hai. Jald hi available hoga.</p>
+        <button type="button" onclick="closeComingSoon()" class="app-chip h-10 px-5">← Back</button>
+    </div>
+</div>
+
+<script>
+function openComingSoon() { document.getElementById('coming-soon').classList.remove('hidden'); document.getElementById('coming-soon').classList.add('flex'); }
+function closeComingSoon() { document.getElementById('coming-soon').classList.add('hidden'); document.getElementById('coming-soon').classList.remove('flex'); }
+document.getElementById('coming-soon').addEventListener('click', function(e) { if (e.target === this) closeComingSoon(); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeComingSoon(); });
+</script>
+
 
 <!-- Set outstanding -->
 <details class="app-surface glass-panel p-3 md:p-4 mb-4" data-animate>
@@ -218,7 +246,7 @@
                     <tr>
                         <th class="px-4 py-3">Date</th>
                         <th class="px-4 py-3 text-right">Trips Amount</th>
-                        <th class="px-4 py-3 text-right">Extra</th>
+                        <th class="px-4 py-3 text-right">{% if labour.category == 'HYVA_DRIVER' %}Bhatta / Rozi{% else %}Extra{% endif %}</th>
                         <th class="px-4 py-3 text-right">Total (T+E)</th>
                         <th class="px-4 py-3 text-right">Advance</th>
                     </tr>
@@ -251,7 +279,7 @@
                             <div class="num font-semibold text-slate-700">₹{{ r.trips_amount|floatformat:0 }}</div>
                         </div>
                         <div>
-                            <div class="text-[10px] uppercase text-slate-400 font-bold">Extra</div>
+                            <div class="text-[10px] uppercase text-slate-400 font-bold">{% if labour.category == 'HYVA_DRIVER' %}Bhatta / Rozi{% else %}Extra{% endif %}</div>
                             <div class="num font-semibold text-slate-700">₹{{ r.extra_amount|floatformat:0 }}</div>
                         </div>
                         <div>
@@ -267,61 +295,138 @@
     {% endif %}
 </div>
 
-<!-- Summary block (mirrors Excel layout) -->
-<div class="app-surface p-4 md:p-5 mb-4" data-animate>
-    <div class="font-bold text-slate-900 text-[15px] mb-3">Settlement Summary · {{ period_start|date:"d-M-Y" }} → {{ period_end|date:"d-M-Y" }}</div>
-    <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
-        <div class="summary-card">
-            <div class="lbl">Total Trip Wages</div>
-            <div class="val num">₹{{ trip_total|floatformat:2 }}</div>
-        </div>
-        <div class="summary-card">
-            <div class="lbl">Total Extra</div>
-            <div class="val num">₹{{ extra_total|floatformat:2 }}</div>
-        </div>
-        <div class="summary-card">
-            <div class="lbl">Driver Payment</div>
-            <div class="val num">₹{{ driver_total|floatformat:2 }}</div>
-        </div>
-        <div class="summary-card" style="background: #eef7f5; border-color: #d5ebe6;">
-            <div class="lbl" style="color: #115248;">Total Salary</div>
-            <div class="val num" style="color: #115248;">₹{{ total_salary|floatformat:2 }}</div>
-        </div>
-        <div class="summary-card">
-            <div class="lbl">Total Advance</div>
-            <div class="val num text-red-600">₹{{ advance_total|floatformat:2 }}</div>
-        </div>
-        <div class="summary-card" style="background: #f0f9ff; border-color: #bae6fd;">
-            <div class="lbl" style="color: #075985;">Payment (Salary − Adv)</div>
-            <div class="val num" style="color: #075985;">₹{{ payment|floatformat:2 }}</div>
-        </div>
-        <div class="summary-card">
-            <div class="lbl">Old Balance (owed to owner)</div>
-            <div class="val num">₹{{ old_balance.amount|floatformat:2 }}</div>
-        </div>
-        <div class="summary-card" style="background: #fef3c7; border-color: #fde68a;">
-            <div class="lbl" style="color: #92400e;">Final Amount</div>
-            {% if final_amount < 0 %}
-                <div class="val num neg">Outstanding ₹{{ final_amount|stringformat:'r'|cut:'-'|floatformat:2 }}</div>
-                <div class="text-[10px] text-red-500 font-semibold mt-0.5">Labour still owes owner</div>
-            {% elif final_amount == 0 %}
-                <div class="val num pos">₹0.00</div>
-            {% else %}
-                <div class="val num pos">₹{{ final_amount|floatformat:2 }}</div>
-            {% endif %}
-        </div>
+<!-- Per-trip entries grouped by date -->
+<div class="app-surface overflow-hidden mb-4">
+    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100">
+        <div class="font-bold text-slate-900 text-[15px]">Daily Activities & Rollup</div>
+        <div class="text-[12px] text-slate-500 mt-0.5">Har date ka total trip amount, extra payments aur advances.</div>
     </div>
 
-    <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col md:flex-row md:items-center gap-2">
-        <a href="{% url 'labour:settle' labour.id %}" class="btn btn-primary w-full md:w-auto">🧾 Settle This Period</a>
-        <div class="flex gap-2 w-full md:w-auto">
-            <a href="{% url 'labour:statement_export' labour.id %}?export=pdf{% if period_start %}&from_date={{ period_start|date:'Y-m-d' }}{% endif %}{% if period_end %}&to_date={{ period_end|date:'Y-m-d' }}{% endif %}"
-               class="btn btn-ghost flex-1 md:flex-none">📄 Statement PDF</a>
-            <a href="{% url 'labour:statement_export' labour.id %}?export=excel{% if period_start %}&from_date={{ period_start|date:'Y-m-d' }}{% endif %}{% if period_end %}&to_date={{ period_end|date:'Y-m-d' }}{% endif %}"
-               class="btn btn-ghost flex-1 md:flex-none">📗 Statement Excel</a>
+    {% if trip_groups_by_date %}
+        <div class="divide-y divide-slate-100 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar">
+            {% for day in trip_groups_by_date %}
+            <div class="px-4 md:px-5 py-2.5">
+                <div class="flex items-center justify-between gap-2 mb-1.5 pb-1.5 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[12px] font-extrabold text-slate-900">{{ day.date|date:"d-M-Y" }}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-semibold">{{ day.trip_count }} trip{{ day.trip_count|pluralize }}</span>
+                    </div>
+                    <div class="num font-extrabold text-brand-700 text-[13px]">₹{{ day.trip_total|floatformat:2 }}</div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <!-- Trip details removed from here to save space, only day rollup and extras/advances are shown -->
+
+                    {% for e in day.extras %}
+                    <div class="flex items-start justify-between py-1.5 {% if not forloop.last %}border-b border-slate-50{% endif %}">
+                        <div>
+                            <div class="font-bold text-slate-800 text-xs">💰 {% if labour.category == 'HYVA_DRIVER' %}Bhatta / Rozi{% else %}Extra Payment{% endif %}</div>
+                            {% if e.note %}<div class="text-[11px] text-slate-500">{{ e.note }}</div>{% endif %}
+                        </div>
+                        <div class="text-right shrink-0 flex items-center gap-1.5">
+                            <div class="font-bold text-emerald-600 text-[13px] mr-1">+₹{{ e.amount|floatformat:2 }}</div>
+                            <a href="{% if e.is_rozi %}{% url 'labour:rozi_edit' e.id %}{% else %}{% url 'labour:extra_edit' e.id %}{% endif %}" class="app-chip !h-7 !w-7 !p-0 !px-0 !text-slate-600 text-[11px]" title="Edit">✏️</a>
+                            <form method="post" action="{% if e.is_rozi %}{% url 'labour:rozi_delete' e.id %}{% else %}{% url 'labour:extra_delete' e.id %}{% endif %}" class="inline"
+                                  onsubmit="return confirm('{% if labour.category == 'HYVA_DRIVER' %}Bhatta / Rozi{% else %}Extra amount{% endif %} ₹{{ e.amount|floatformat:2 }} delete karna hai?');">
+                                {% csrf_token %}
+                                <button type="submit" class="app-chip !h-7 !w-7 !p-0 !px-0 !text-red-600 text-[11px]" title="Delete">🗑</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% for a in day.advances %}
+                    <div class="flex items-start justify-between py-1.5 {% if not forloop.last %}border-b border-slate-50{% endif %}">
+                        <div>
+                            <div class="font-bold text-red-600 text-xs">💸 Advance Taken</div>
+                            {% if a.note %}<div class="text-[11px] text-slate-500">{{ a.note }}</div>{% endif %}
+                        </div>
+                        <div class="text-right shrink-0 flex items-center gap-1.5">
+                            <div class="font-bold text-red-600 text-[13px] mr-1">-₹{{ a.amount|floatformat:2 }}</div>
+                            <a href="{% url 'labour:advance_edit' a.id %}" class="app-chip !h-7 !w-7 !p-0 !px-0 !text-slate-600 text-[11px]" title="Edit">✏️</a>
+                            <form method="post" action="{% url 'labour:advance_delete' a.id %}" class="inline"
+                                  onsubmit="return confirm('Advance amount ₹{{ a.amount|floatformat:2 }} delete karna hai?');">
+                                {% csrf_token %}
+                                <button type="submit" class="app-chip !h-7 !w-7 !p-0 !px-0 !text-red-600 text-[11px]" title="Delete">🗑</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="py-12 text-center text-slate-500 text-sm">Is date range me koi trip entry nahi.</div>
+    {% endif %}
+</div>
+
+<!-- Summary block (mirrors Excel layout) -->
+<details class="mb-4 app-surface rounded-xl overflow-hidden group" data-animate>
+    <summary class="flex items-center justify-between p-4 md:p-5 cursor-pointer select-none">
+        <span class="font-bold text-slate-900 text-[15px] flex items-center gap-2">
+            🧾 Settlement Summary · <span class="text-slate-500 text-sm font-semibold whitespace-nowrap">{{ period_start|date:"d-M" }} to {{ period_end|date:"d-M" }}</span>
+        </span>
+        <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide group-open:hidden">Show</span>
+            <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide hidden group-open:inline-block">Hide</span>
+            <span class="text-slate-400 text-xs group-open:rotate-180 transition-transform">▼</span>
+        </div>
+    </summary>
+    <div class="px-4 md:px-5 pb-4 md:pb-5 pt-0">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 pt-4 border-t border-slate-100">
+            <div class="summary-card">
+                <div class="lbl">Total Trip Wages</div>
+                <div class="val num">₹{{ trip_total|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="lbl">{% if labour.category == 'HYVA_DRIVER' %}Total Bhatta / Rozi{% else %}Total Extra{% endif %}</div>
+                <div class="val num">₹{{ extra_total|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="lbl">Driver Payment</div>
+                <div class="val num">₹{{ driver_total|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card" style="background: #eef7f5; border-color: #d5ebe6;">
+                <div class="lbl" style="color: #115248;">Total Salary</div>
+                <div class="val num" style="color: #115248;">₹{{ total_salary|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="lbl">Total Advance</div>
+                <div class="val num text-red-600">₹{{ advance_total|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card" style="background: #f0f9ff; border-color: #bae6fd;">
+                <div class="lbl" style="color: #075985;">Payment (Salary − Adv)</div>
+                <div class="val num" style="color: #075985;">₹{{ payment|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="lbl">Old Balance (owed to owner)</div>
+                <div class="val num">₹{{ old_balance.amount|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card" style="background: #fef3c7; border-color: #fde68a;">
+                <div class="lbl" style="color: #92400e;">Final Amount</div>
+                {% if final_amount < 0 %}
+                    <div class="val num neg">Outstanding ₹{{ final_amount|stringformat:'r'|cut:'-'|floatformat:2 }}</div>
+                    <div class="text-[10px] text-red-500 font-semibold mt-0.5">Labour still owes owner</div>
+                {% elif final_amount == 0 %}
+                    <div class="val num pos">₹0.00</div>
+                {% else %}
+                    <div class="val num pos">₹{{ final_amount|floatformat:2 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col md:flex-row md:items-center gap-2">
+            <a href="{% url 'labour:settle' labour.id %}" class="btn btn-primary w-full md:w-auto">🧾 Settle This Period</a>
+            <div class="flex gap-2 w-full md:w-auto">
+                <a href="{% url 'labour:statement_export' labour.id %}?export=pdf{% if period_start %}&from_date={{ period_start|date:'Y-m-d' }}{% endif %}{% if period_end %}&to_date={{ period_end|date:'Y-m-d' }}{% endif %}"
+                   class="btn btn-ghost flex-1 md:flex-none">📄 Statement PDF</a>
+                <a href="{% url 'labour:statement_export' labour.id %}?export=excel{% if period_start %}&from_date={{ period_start|date:'Y-m-d' }}{% endif %}{% if period_end %}&to_date={{ period_end|date:'Y-m-d' }}{% endif %}"
+                   class="btn btn-ghost flex-1 md:flex-none">📗 Statement Excel</a>
+            </div>
         </div>
     </div>
-</div>
+</details>
 
 <!-- Recent settlements -->
 {% if settlements %}

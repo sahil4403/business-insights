@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ category_label }} | Labour{% endblock %}
+
+{% block head %}
+<style>
+    .labour-card {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        background: rgba(255, 255, 255, .62);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        backdrop-filter: blur(18px) saturate(160%);
+        border: 1px solid rgba(255, 255, 255, .78);
+        border-radius: 1rem;
+        padding: 0.95rem 1rem; text-decoration: none; color: inherit;
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+        -webkit-tap-highlight-color: transparent;
+        box-shadow: 0 6px 22px -12px rgba(15,23,42,.22), inset 0 1px 0 rgba(255,255,255,.85);
+        isolation: isolate;
+    }
+    .labour-card:hover, .labour-card:active { transform: translateY(-1px); background: rgba(255,255,255,.85); box-shadow: 0 14px 30px -12px rgba(15,23,42,.28), inset 0 1px 0 rgba(255,255,255,.95); border-color: #e7f3ef; }
+    .labour-card .avatar {
+        width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: #eef7f5; color: #16665a; font-weight: 800; font-size: 1rem;
+    }
+    .labour-card .name { font-weight: 800; color: #0f172a; font-size: 1rem; line-height: 1.25; }
+    .labour-card .meta { font-size: 12px; color: #64748b; margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .labour-card .go { color: #94a3b8; font-weight: 800; font-size: 0.95rem; flex-shrink: 0; transition: transform .18s ease, color .18s ease; }
+    .labour-card:hover .go { transform: translateX(3px); color: #16665a; }
+    .driver-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: #dbeafe; color: #1d4ed8; }
+    .driver-chip::before { content: "🚗"; font-size: 11px; }
+
+    .cat-tabs { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 4px 10px; margin-top: 20px; scrollbar-width: none; }
+    .cat-tabs::-webkit-scrollbar { display: none; }
+    .cat-tab { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 8px 15px; border-radius: 999px; border: 1px solid #e2e8f0; background: #fff; color: #475569; font-size: 12.5px; font-weight: 700; text-decoration: none; transition: all .15s ease; }
+    .cat-tab .cnt { background: #f1f5f9; color: #64748b; border-radius: 999px; padding: 0 7px; font-size: 10.5px; font-weight: 800; }
+    .cat-tab.active { background: #16665a; border-color: #16665a; color: #fff; }
+    .cat-tab.active .cnt { background: rgba(255,255,255,0.2); color: #fff; }
+    .cat-tab:hover:not(.active) { border-color: #16665a; color: #16665a; }
+    @media (max-width: 767px) { .cat-tab { padding: 6px 11px; font-size: 11.5px; } }
+
+    .cat-hero {
+        display: flex; align-items: center; gap: 14px;
+        background: rgba(255, 255, 255, .62);
+        -webkit-backdrop-filter: blur(20px) saturate(170%);
+        backdrop-filter: blur(20px) saturate(170%);
+        border: 1px solid rgba(255, 255, 255, .78);
+        border-radius: 1.15rem;
+        box-shadow: 0 8px 26px -14px rgba(15,23,42,.28), inset 0 1px 0 rgba(255,255,255,.9);
+        padding: 1rem 1.2rem;
+        isolation: isolate;
+    }
+    .cat-hero .big-icon { width: 56px; height: 56px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'labour:list' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ category_label }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="mb-4 md:mb-5" data-animate>
+    <div class="flex items-center justify-between gap-3">
+        <a href="{% url 'labour:list' %}"
+           class="hidden md:inline-flex items-center gap-1.5 mb-2 text-[13px] font-bold text-slate-500 hover:text-brand-600 no-underline">← All Labour</a>
+    </div>
+    <div class="cat-hero">
+        <span class="big-icon" style="background:{{ cat_bg|default:'#eef7f5' }};">{{ cat_icon|default:'👷' }}</span>
+        <div class="min-w-0 flex-1">
+            <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 truncate">{{ category_label }}</h1>
+            <p class="text-sm text-slate-500 mt-0.5">{{ labour_count }} worker{% if labour_count != 1 %}s{% endif %} in this category</p>
+        </div>
+    </div>
+</div>
+<div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-3" data-animate>
+    <a href="{% url 'labour:create' %}?category={{ category_code }}"
+       class="btn btn-ghost w-full sm:w-auto !h-10 shrink-0 justify-center">＋ {{ category_label }}</a>
+    {% if add_url %}
+    <a href="{% url add_url %}{% if add_query %}?{{ add_query }}{% endif %}"
+       class="btn btn-primary w-full sm:w-auto !h-10 shrink-0 justify-center">{{ add_label }}</a>
+    {% endif %}
+    {% if category_code == 'TRACTOR' or category_code == 'HYVA_DRIVER' %}
+    <a href="{% url 'labour:trips' %}?category={{ category_code }}" class="btn btn-ghost w-full sm:w-auto !h-10 shrink-0 justify-center text-slate-600 bg-slate-50 hover:bg-slate-100">🛠 All Trip Entries</a>
+    {% endif %}
+</div>
+
+<!-- Category quick-switch tabs -->
+<div class="cat-tabs mb-4" data-animate>
+    {% for cat in categories_meta %}
+    <a href="{% url 'labour:category_detail' cat.code %}" class="cat-tab {% if cat.code == category_code %}active{% endif %}">
+        {{ cat.label }} <span class="cnt">{{ cat.count }}</span>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- LABOUR LIST -->
+{% if cards %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5" data-animate>
+    {% for c in cards %}
+        <a href="{% url 'labour:detail' c.obj.id %}" class="labour-card">
+            <div class="avatar">{{ c.obj.name|make_list|first|upper }}</div>
+            <div class="min-w-0 flex-1">
+                <div class="name truncate">{{ c.obj.name }}</div>
+                <div class="meta">
+                    {% if c.obj.is_driver and c.obj.category != 'HYVA_DRIVER' %}<span class="driver-chip">Driver</span>{% endif %}
+                    {% if c.month_trip_groups %}<span>{{ c.month_trip_groups }} trip{% if c.month_trip_groups != 1 %}s{% endif %} this month</span>{% endif %}
+                </div>
+            </div>
+            <span class="go">→</span>
+        </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="py-14 text-center rounded-2xl" style="background:rgba(255,255,255,.62);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border:1px solid rgba(255,255,255,.78);box-shadow:0 8px 26px -14px rgba(15,23,42,.28),inset 0 1px 0 rgba(255,255,255,.9);">
+    <div class="text-4xl mb-3">👷</div>
+    <p class="text-slate-500 text-sm">No labour in {{ category_label }} yet.</p>
+    <a href="{% url 'labour:create' %}" class="btn btn-primary mt-4 inline-flex">＋ Add {{ category_label }}</a>
+</div>
+{% endif %}
+
+{% endblock %}

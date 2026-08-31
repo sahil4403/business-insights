@@ -23,13 +23,34 @@
             {% if form.name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.name.errors|join:", " }}</p>{% endif %}
         </div>
 
-        <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
-            {{ form.is_driver }}
-            <div>
-                <div class="font-bold text-slate-900 text-sm">Also works as Driver</div>
-                <div class="text-xs text-slate-500">Mark if this labour is also paid a driver amount during settlement</div>
-            </div>
-        </label>
+        <div>
+            <label class="label" for="{{ form.category.id_for_label }}">Category</label>
+            {{ form.category }}
+            {% if form.category.errors %}<p class="text-xs text-red-600 mt-1">{{ form.category.errors|join:", " }}</p>{% endif %}
+            <p class="text-xs text-slate-400 mt-1">Tractor · Hyva Driver · JCB Operator · Mistri</p>
+        </div>
+
+        <div id="sub-cat-block" class="hidden">
+            <label class="label" for="{{ form.sub_category.id_for_label }}">Mistri Type</label>
+            {{ form.sub_category }}
+            {% if form.sub_category.errors %}<p class="text-xs text-red-600 mt-1">{{ form.sub_category.errors|join:", " }}</p>{% endif %}
+            <p class="text-xs text-slate-400 mt-1">Mistri khud = ₹800/day fixed · Mistri Helper (Labour) = base rate se variable</p>
+        </div>
+
+        <div id="rate-block">
+            <label class="label" for="{{ form.base_daily_rate.id_for_label }}">Full Day Rate (₹)</label>
+            {{ form.base_daily_rate }}
+            {% if form.base_daily_rate.errors %}<p class="text-xs text-red-600 mt-1">{{ form.base_daily_rate.errors|join:", " }}</p>{% endif %}
+            <p class="text-xs text-slate-400 mt-1">Full day ki rozi ka rate. One &amp; Half = 1.5×, Half = 0.5×.</p>
+        </div>
+
+<div class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer" id="driver-block">
+    {{ form.is_driver }}
+    <div>
+        <div class="font-bold text-slate-900 text-sm">Also works as Driver</div>
+        <div class="text-xs text-slate-500">Mark if this labour is also paid a driver amount during settlement</div>
+    </div>
+</div>
 
         <div class="flex gap-2 pt-2">
             <a href="{% url 'labour:list' %}" class="btn btn-ghost flex-1">Cancel</a>
@@ -37,4 +58,38 @@
         </div>
     </form>
 </div>
+
+<script>
+(function(){
+    var catSel = document.getElementById('id_category');
+    var subBlock = document.getElementById('sub-cat-block');
+    var subSel = document.getElementById('id_sub_category');
+    var rateBlock = document.getElementById('rate-block');
+    var driverBlock = document.getElementById('driver-block');
+    var driverBox = driverBlock ? driverBlock.querySelector('input[type=checkbox]') : null;
+    function toggle(){
+        var isMistri = catSel.value === 'MISTRI';
+        var isHyva = catSel.value === 'HYVA_DRIVER';
+        subBlock.classList.toggle('hidden', !isMistri);
+        subSel.disabled = !isMistri;
+        if (isHyva) {
+            // Hyva driver always gets paid via trips/driver payment — no rozi rate.
+            rateBlock.classList.add('hidden');
+            if (driverBlock) driverBlock.classList.add('hidden');
+            if (driverBox) { driverBox.checked = true; driverBox.disabled = false; }
+        } else {
+            rateBlock.classList.remove('hidden');
+            if (driverBlock) driverBlock.classList.remove('hidden');
+            if (driverBox) driverBox.disabled = false;
+            // For a Mistri himself, rate is fixed (hide rate block for the mistri sub-cat only)
+            if (isMistri && subSel.value === 'MISTRI') {
+                rateBlock.classList.add('hidden');
+            }
+        }
+    }
+    subSel.addEventListener('change', toggle);
+    catSel.addEventListener('change', toggle);
+    toggle();
+})();
+</script>
 {% endblock %}

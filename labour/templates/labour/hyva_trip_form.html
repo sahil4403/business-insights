@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block head %}
+<style>
+    .labour-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem; }
+    @media (min-width: 640px) { .labour-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .labour-pill {
+        display: flex; align-items: center; gap: 7px;
+        padding: 0.5rem 0.7rem; background: #f8fafc; border: 1.5px solid #e2e8f0;
+        border-radius: 0.7rem; cursor: pointer; user-select: none;
+        transition: all 0.15s ease;
+    }
+    .labour-pill:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .labour-pill input { width: 17px; height: 17px; accent-color: #16665a; flex-shrink: 0; }
+    .labour-pill.checked { background: #eef7f5; border-color: #16665a; }
+    .labour-pill .pname { font-weight: 600; font-size: 13px; color: #0f172a; }
+
+    .trip-row {
+        display: grid; grid-template-columns: 1fr 4.75rem 2.1rem; gap: 0.4rem; align-items: center;
+        padding: 0.35rem 0.45rem; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 0.7rem;
+    }
+    .trip-row .load-sel { height: 2.35rem; font-size: 13px; padding: 0 0.5rem; }
+    .trip-row .trip-count { height: 2.35rem; font-size: 13px; text-align: center; }
+    .trip-row .rm { height: 2.35rem; border-radius: 0.5rem; border: 0; background: transparent; color: #dc2626; font-weight: 800; font-size: 1.05rem; line-height: 1; }
+    .trip-row .rm:active { background: #fef2f2; }
+    .add-line {
+        width: 100%; margin-top: 0.45rem; padding: 0.5rem; border-radius: 0.7rem;
+        border: 1.5px dashed #16665a; color: #16665a; background: #f0faf8;
+        font-weight: 800; font-size: 12.5px; cursor: pointer;
+    }
+    .add-line:active { background: #e0f5f0; }
+
+    .total-preview {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+        color: #fff; border-radius: 1rem; padding: 0.8rem 1rem;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .total-preview .lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }
+    .total-preview .val { font-size: 1.4rem; font-weight: 800; }
+    .bhatta-chip { display: inline-flex; align-items: center; gap: 8px; }
+    .bhatta-chip input { width: 19px; height: 19px; accent-color: #16665a; }
+
+    .line-sum { font-size: 11px; color: #16665a; font-weight: 700; text-align: right; }
+</style>
+{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'labour:list' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">Hyva Trip</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-4">
+        <a href="{% url 'labour:list' %}"
+           class="hidden md:inline-flex items-center gap-1.5 mb-2 text-[13px] font-bold text-slate-500 hover:text-brand-600 no-underline">← Back to Labour</a>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">Add Hyva Trip</h1>
+        <p class="text-sm text-slate-500 mb-4">Load type chuno aur trips dalo — ek din me multiple lines add kar sakte ho.</p>
+    </div>
+
+    <form method="post" class="space-y-3" id="hyva-form">
+        {% csrf_token %}
+
+        {% if form.non_field_errors or row_error %}
+            <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                {{ form.non_field_errors }}
+                {% if row_error %}{{ row_error }}{% endif %}
+            </div>
+        {% endif %}
+
+        <div class="app-surface p-3.5 md:p-5 space-y-3">
+            <div>
+                <label class="label">Date</label>
+                {{ form.date }}
+                {% if form.date.errors %}<p class="text-xs text-red-600 mt-2">{{ form.date.errors|join:", " }}</p>{% endif %}
+            </div>
+
+            <div>
+                <label class="label">Load Lines <span class="text-slate-400 font-medium">(type + trips)</span></label>
+                <div class="space-y-2" id="rows"></div>
+                <button type="button" class="add-line" id="add-line">＋ Add load line</button>
+            </div>
+
+            <label class="bhatta-chip w-full cursor-pointer py-2.5 px-3 rounded-xl bg-slate-50 border border-slate-200">
+                {{ form.bhatta }}
+                <span class="text-sm font-semibold text-slate-700">Bhatta ₹{{ form.BHATTA_AMOUNT }}/day per worker</span>
+            </label>
+        </div>
+
+        <div class="app-surface p-3.5 md:p-5">
+            <div class="flex items-center justify-between mb-3">
+                <label class="label !mb-0">Hyva Drivers in this group</label>
+                <button type="button" id="select-all" class="app-chip h-8 text-[12px]">Select All</button>
+            </div>
+            <div class="mb-3">
+                <input type="search" id="labour-search" placeholder="🔍 Search driver..." class="input">
+            </div>
+            <div class="labour-grid" id="labour-grid">
+                {% for l in form.fields.labourers.queryset %}
+                    <label class="labour-pill" data-name="{{ l.name|lower }}">
+                        <input type="checkbox" name="labourers" value="{{ l.id }}"{% if preselected_ids and l.id in preselected_ids %} checked{% endif %}>
+                        <span class="pname">{{ l.name }}{% if l.is_driver %} <span class="text-[10px] text-blue-600 font-bold">🚗</span>{% endif %}</span>
+                    </label>
+                {% empty %}
+                    <div class="col-span-2 text-center text-slate-500 text-sm py-4">No Hyva Driver added yet. <a href="{% url 'labour:create' %}" class="text-brand-600 font-bold">Add Hyva Driver →</a></div>
+                {% endfor %}
+            </div>
+            {% if form.labourers.errors %}
+                <p class="text-xs text-red-600 mt-2">{{ form.labourers.errors|join:", " }}</p>
+            {% endif %}
+        </div>
+
+        <div class="app-surface p-4">
+            <label class="label">Note (optional)</label>
+            {{ form.note }}
+        </div>
+
+        <div class="total-preview" id="total-preview">
+            <div>
+                <div class="lbl">Estimated Total</div>
+                <div class="text-[12px] opacity-85" id="per-labour-hint">Load lines & workers chuno</div>
+            </div>
+            <div class="val num">₹<span id="total-val">0</span></div>
+        </div>
+
+        <div class="flex gap-2 sticky bottom-2">
+            <a href="{% url 'labour:list' %}" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary flex-1">💾 Save Hyva Trip</button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    var rateMap = {{ rate_map|safe }};
+    var labelMap = {
+        {% for o in load_options %}'{{ o.code }}': '{{ o.label }}',{% endfor %}
+    };
+    var rowsBox = document.getElementById('rows');
+    var bhattaInput = document.querySelector('input[name="bhatta"]');
+    var lineIdx = 0;
+
+    function makeRow(sel) {
+        var div = document.createElement('div');
+        div.className = 'trip-row';
+        var optHtml = '<option value="">— Load type —</option>';
+        Object.keys(rateMap).forEach(function (c) {
+            var lbl = (labelMap[c] || c) + ' · ₹' + rateMap[c] + '/trip';
+            var selected = (c === sel) ? ' selected' : '';
+            optHtml += '<option value="' + c + '"' + selected + '>' + lbl + '</option>';
+        });
+        div.innerHTML =
+            '<select name="load_type_' + lineIdx + '" class="input load-sel">' + optHtml + '</select>' +
+            '<input type="number" name="trip_count_' + lineIdx + '" min="0" value="0" class="input trip-count" placeholder="Trips">' +
+            '<button type="button" class="rm" tabindex="-1">✕</button>';
+        lineIdx++;
+        return div;
+    }
+
+    function syncRows() {
+        var rows = rowsBox.querySelectorAll('.trip-row');
+        rows.forEach(function (r, i) {
+            r.querySelectorAll('select').forEach(function (s) { s.name = 'load_type_' + i; });
+            r.querySelectorAll('.trip-count').forEach(function (inp) { inp.name = 'trip_count_' + i; });
+            var rm = r.querySelector('.rm');
+            rm.onclick = function () {
+                if (rowsBox.querySelectorAll('.trip-row').length <= 1) return;
+                r.parentNode.removeChild(r);
+                syncRows();
+                updateTotal();
+            };
+            r.querySelector('.load-sel').onchange = updateTotal;
+            r.querySelector('.trip-count').oninput = updateTotal;
+        });
+    }
+
+    document.getElementById('add-line').addEventListener('click', function () {
+        rowsBox.appendChild(makeRow(''));
+        syncRows();
+        updateTotal();
+    });
+
+    function selectedCount() { return document.querySelectorAll('.labour-pill input:checked').length; }
+
+    function updateTotal() {
+        var total = 0;
+        var nLines = 0;
+        rowsBox.querySelectorAll('.trip-row').forEach(function (r) {
+            var code = r.querySelector('.load-sel').value;
+            var cnt = parseInt(r.querySelector('.trip-count').value) || 0;
+            if (code && rateMap[code] && cnt > 0) {
+                total += rateMap[code] * cnt;
+                nLines++;
+            }
+        });
+        var bhattaOn = bhattaInput && bhattaInput.checked;
+        var workers = selectedCount();
+        var bhattaTotal = bhattaOn ? (200 * workers) : 0;
+        document.getElementById('total-val').textContent = (total + bhattaTotal).toFixed(0);
+        var hint = document.getElementById('per-labour-hint');
+        if (nLines === 0) {
+            hint.textContent = 'Load lines & workers chuno';
+        } else {
+            var base = '₹' + total.toFixed(0) + ' / ' + (workers || '?') + ' workers';
+            if (bhattaOn) base += ' · bhatta ₹' + bhattaTotal.toFixed(0);
+            hint.textContent = base;
+        }
+    }
+
+    bhattaInput.addEventListener('change', updateTotal);
+    document.querySelectorAll('.labour-pill input').forEach(function (cb) {
+        function sync() {
+            if (cb.checked) cb.parentElement.classList.add('checked');
+            else cb.parentElement.classList.remove('checked');
+            updateTotal();
+        }
+        cb.addEventListener('change', sync);
+        sync();
+    });
+
+    var selAll = document.getElementById('select-all');
+    if (selAll) {
+        selAll.addEventListener('click', function () {
+            var boxes = document.querySelectorAll('.labour-pill:not([style*="display: none"]) input');
+            var allChecked = true;
+            boxes.forEach(function (b) { if (!b.checked) allChecked = false; });
+            boxes.forEach(function (b) {
+                b.checked = !allChecked;
+                b.dispatchEvent(new Event('change'));
+            });
+        });
+    }
+
+    var search = document.getElementById('labour-search');
+    if (search) {
+        search.addEventListener('input', function () {
+            var q = search.value.toLowerCase();
+            document.querySelectorAll('.labour-pill').forEach(function (p) {
+                p.style.display = p.dataset.name.indexOf(q) !== -1 ? '' : 'none';
+            });
+        });
+    }
+
+    rowsBox.appendChild(makeRow(''));
+    syncRows();
+    updateTotal();
+})();
+</script>
+{% endblock %}

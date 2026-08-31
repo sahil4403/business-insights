@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block head %}
+<style>
+    .act-hero {
+        background: linear-gradient(135deg, #16665a 0%, #0f3d35 100%);
+        border-radius: 1.1rem; padding: 1rem 1.1rem; color: #fff;
+        box-shadow: 0 10px 24px -14px rgba(15,23,42,.5);
+    }
+    .act-hero h1 { font-size: 1.25rem; font-weight: 800; }
+    .act-hero p { font-size: 12px; color: rgba(255,255,255,.8); }
+
+    .stat-card {
+        background: rgba(255,255,255,.72);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
+        backdrop-filter: blur(14px) saturate(150%);
+        border: 1px solid rgba(255,255,255,.8);
+        border-radius: 0.95rem; padding: 0.7rem 0.85rem;
+        box-shadow: 0 4px 14px -10px rgba(15,23,42,.3);
+    }
+    .stat-card .lb { font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+    .stat-card .vl { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
+    .stat-card .sub { font-size: 11px; color: #94a3b8; }
+
+    .day-row { border-bottom: 1px solid rgba(15,23,42,.06); }
+    .day-row:last-child { border-bottom: 0; }
+    .rv { font-weight: 700; color: #0f172a; }
+    .rv.pos { color: #16665a; }
+    .rv.neg { color: #b91c1c; }
+
+    .loadchip {
+        background: #eef7f5; border: 1px solid #d5ece6; color: #0f3d35;
+        border-radius: 0.7rem; padding: 0.4rem 0.6rem; font-size: 12px;
+    }
+
+    .day-row { cursor: pointer; }
+    .day-chev { transition: transform .15s ease; color: #94a3b8; font-size: 12px; }
+    .day-row.open .day-chev { transform: rotate(90deg); }
+    .day-detail { display: none; background: #f8fafc; border-top: 1px dashed #e2e8f0; }
+    .day-row.open + .day-detail { display: block; }
+    .dd-block { padding: 0.5rem 0.75rem; }
+    .dd-block .dd-title { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2px; }
+    .dd-item { font-size: 12.5px; display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+    .dd-item .t { color: #475569; }
+</style>
+{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'labour:list' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">Daily Activity</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <a href="{% url 'labour:list' %}"
+       class="hidden md:inline-flex items-center gap-1.5 mb-2 text-[13px] font-bold text-slate-500 hover:text-brand-600 no-underline">← Back to Labour</a>
+
+    <div class="act-hero mb-4">
+        <div class="flex items-start justify-between gap-2">
+            <div>
+                <h1>📊 Daily Activity</h1>
+                <p>Saari daily transactions — trips, extras, advances, driver pmt, settlement.</p>
+            </div>
+            <div class="relative shrink-0">
+                <details class="group">
+                    <summary class="list-none cursor-pointer bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 border border-white/30 transition-colors select-none">
+                        Export <span class="text-[10px] opacity-70">▼</span>
+                    </summary>
+                    <div class="absolute right-0 mt-1.5 w-32 bg-white rounded-lg shadow-xl border border-slate-100 overflow-hidden z-20 flex flex-col group-open:animate-in group-open:fade-in group-open:slide-in-from-top-2">
+                        <a href="?{{ request.GET.urlencode }}{% if request.GET %}&{% endif %}export=excel" class="px-3 py-2 text-sm text-slate-700 font-bold hover:bg-slate-50 border-b border-slate-50 flex items-center gap-2">🔵 Excel</a>
+                        <a href="?{{ request.GET.urlencode }}{% if request.GET %}&{% endif %}export=csv" class="px-3 py-2 text-sm text-slate-700 font-bold hover:bg-slate-50 flex items-center gap-2">🟢 CSV</a>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="app-surface p-3 mb-3">
+        <form method="get" class="space-y-2" id="filter-form">
+            <!-- Date Range Row -->
+            <div class="flex items-center gap-2">
+                <div class="flex-1">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-0.5">From</div>
+                    <input type="date" name="from_date" value="{{ from_date|date:'Y-m-d' }}" class="input !py-1.5 !px-2 text-sm w-full">
+                </div>
+                <div class="flex-1">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-0.5">To</div>
+                    <input type="date" name="to_date" value="{{ to_date|date:'Y-m-d' }}" class="input !py-1.5 !px-2 text-sm w-full">
+                </div>
+                <div class="self-end shrink-0">
+                    <button type="submit" class="btn btn-primary !py-1.5 !px-3 h-[34px] shadow-sm">GO</button>
+                </div>
+            </div>
+
+            <!-- Month Quick Select Row -->
+            <div class="flex items-center gap-2 pt-1 border-t border-slate-100">
+                <select name="month_preset" id="month-preset-select" class="input !py-1 text-sm flex-1" onchange="this.form.submit()">
+                    <option value="">— Select Month —</option>
+                    {% for m in months %}
+                        <option value="{{ forloop.counter }}"{% if request.GET.month_preset == forloop.counter|stringformat:'s' %} selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+                <a href="{% url 'labour:daily_activity' %}" class="btn btn-ghost !py-1 !px-2 text-xs shrink-0 whitespace-nowrap">This Month</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary stats (Collapsible) -->
+    <details class="mb-3 bg-slate-50/50 border border-slate-200 rounded-xl overflow-hidden group">
+        <summary class="flex items-center justify-between p-3 cursor-pointer select-none">
+            <span class="text-sm text-slate-700 font-bold flex items-center gap-2">
+                📅 {{ data.period_label }}
+            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide group-open:hidden">Show Stats</span>
+                <span class="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide hidden group-open:inline-block">Hide</span>
+                <span class="text-slate-400 text-xs group-open:rotate-180 transition-transform">▼</span>
+            </div>
+        </summary>
+        <div class="p-3 pt-0 border-t border-slate-100 bg-white">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+                <div class="stat-card">
+                    <div class="lb">Trips</div>
+                    <div class="vl">₹{{ data.trip_total|floatformat:0 }}</div>
+                    <div class="sub">{{ data.trip_count_total }} trips</div>
+                </div>
+                <div class="stat-card">
+                    <div class="lb">Rozi/Bhatta</div>
+                    <div class="vl">₹{{ data.extra_total|floatformat:0 }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="lb">Advances</div>
+                    <div class="vl">₹{{ data.advance_total|floatformat:0 }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="lb">Driver Pmt</div>
+                    <div class="vl">₹{{ data.driver_total|floatformat:0 }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="lb">Settle Cash</div>
+                    <div class="vl">₹{{ data.settle_cash|floatformat:0 }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="lb">Settle Deduct</div>
+                    <div class="vl">₹{{ data.settle_deduct|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    {% if data.trips or data.extras or data.advances or data.driver_pmts or data.settlements %}
+
+    <!-- Trips by load type -->
+    {% if data.trip_by_type %}
+    <details class="mb-3 bg-slate-50/50 border border-slate-200 rounded-xl overflow-hidden group">
+        <summary class="flex items-center justify-between p-3 cursor-pointer select-none bg-white">
+            <span class="text-xs text-slate-700 font-bold flex items-center gap-2 uppercase tracking-wide">
+                🚚 Trips by Load Type
+            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-slate-400 text-xs group-open:rotate-180 transition-transform">▼</span>
+            </div>
+        </summary>
+        <div class="p-2 pt-0 border-t border-slate-100 bg-white">
+            <table class="w-full text-[12px]">
+                <tbody>
+                    {% for label, info in data.trip_by_type.items %}
+                    <tr class="border-b border-slate-100 last:border-none">
+                        <td class="py-1.5 pl-1 font-bold text-slate-700">{{ label }}</td>
+                        <td class="py-1.5 text-right text-slate-500">{{ info.count }} trip{{ info.count|pluralize }}</td>
+                        <td class="py-1.5 pr-1 text-right font-bold text-brand-700">₹{{ info.amount|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+    {% endif %}
+
+    <!-- Day-wise rollup (drill-down) -->
+    {% if data.days %}
+    <div class="app-surface p-2 md:p-3 mb-3">
+        <div class="font-bold text-slate-800 text-[13px] px-2 py-1 mb-1">Day-wise Rollup <span class="text-[11px] font-medium text-slate-400">(date tap karke details dekho)</span></div>
+        <div class="max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar">
+            <table class="w-full text-[13px]">
+                <thead class="sticky top-0 bg-white shadow-sm z-10">
+                    <tr class="text-left text-slate-500 text-[11px] uppercase">
+                        <th class="py-1.5 px-2">Date</th><th class="py-1.5 text-right">Trips</th>
+                    <th class="py-1.5 text-right">Rozi/Bhatta</th><th class="py-1.5 text-right">Advance</th>
+                    <th class="py-1.5 text-right"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data.day_list %}
+                <tr class="day-row" onclick="days_toggle(this)">
+                    <td class="py-2 pl-2 font-semibold text-slate-700">{{ row.date|date:'d M Y' }}</td>
+                    <td class="py-2 text-right rv pos">₹{{ row.trips|floatformat:0 }}</td>
+                    <td class="py-2 text-right rv pos">₹{{ row.extra|floatformat:0 }}</td>
+                    <td class="py-2 text-right rv neg">₹{{ row.advance|floatformat:0 }}</td>
+                    <td class="py-2 pr-2 text-right day-chev">›</td>
+                </tr>
+                <tr class="day-detail">
+                    <td colspan="5" class="p-0">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-1">
+                            {% if row.day_trips %}
+                            <div class="dd-block">
+                                <div class="dd-title">Trips ({{ row.day_trips|length }})</div>
+                                {% for g in row.day_trips %}
+                                <div class="dd-item"><span class="t">{{ g.label }} ×{{ g.count }}</span><span class="rv pos">₹{{ g.amount|floatformat:0 }}</span></div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if row.day_extras %}
+                            <div class="dd-block">
+                                <div class="dd-title">Rozi/Bhatta ({{ row.day_extras|length }})</div>
+                                {% for e in row.day_extras %}
+                                <div class="dd-item"><span class="t">💰 {{ e.labour.name }}</span><span class="rv pos">₹{{ e.amount|floatformat:0 }}</span></div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if row.day_advances %}
+                            <div class="dd-block">
+                                <div class="dd-title">Advances ({{ row.day_advances|length }})</div>
+                                {% for a in row.day_advances %}
+                                <div class="dd-item"><span class="t">💸 {{ a.labour.name }}</span><span class="rv neg">₹{{ a.amount|floatformat:0 }}</span></div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if row.day_settlements %}
+                            <div class="dd-block">
+                                <div class="dd-title">Settlements ({{ row.day_settlements|length }})</div>
+                                {% for s in row.day_settlements %}
+                                <div class="dd-item"><span class="t">🤝 {{ s.labour.name }} · Cash ₹{{ s.cash_paid|floatformat:0 }}</span><span class="rv pos">₹{{ s.total_salary|floatformat:0 }}</span></div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if not row.day_trips and not row.day_extras and not row.day_advances and not row.day_settlements %}
+                            <div class="dd-block"><div class="dd-item"><span class="t text-slate-400">No detailed entries</span></div></div>
+                            {% endif %}
+                        </div>
+                        {% if data.driver_pmts %}
+                        <div class="dd-block border-t border-slate-100">
+                            <div class="dd-title">Driver Payments (period range)</div>
+                            {% for d in data.driver_pmts %}
+                            <div class="dd-item"><span class="t">🚗 {{ d.labour.name }} · {{ d.period_start|date:'d M' }} → {{ d.period_end|date:'d M' }}</span><span class="rv pos">₹{{ d.amount|floatformat:0 }}</span></div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="border-t border-slate-200">
+                    <td class="py-2 pl-2 font-bold text-slate-800">TOTAL</td>
+                    <td class="py-2 text-right font-bold text-slate-800">₹{{ data.grand_trips|floatformat:0 }}</td>
+                    <td class="py-2 text-right font-bold text-slate-800">₹{{ data.grand_extra|floatformat:0 }}</td>
+                    <td class="py-2 text-right font-bold text-slate-800">₹{{ data.grand_advance|floatformat:0 }}</td>
+                    <td class="py-2 pr-2"></td>
+                </tr>
+            </tfoot>
+        </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="app-surface p-6 text-center">
+        <div class="text-3xl mb-2">🗓️</div>
+        <div class="font-bold text-slate-700">Is period me koi entry nahi hai</div>
+        <div class="text-sm text-slate-500">Trips, extras, advances, driver payment ya settlement add karke yahan dekh sakte ho.</div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function days_toggle(row) {
+    row.classList.toggle('open');
+}
+</script>
+{% endblock %}

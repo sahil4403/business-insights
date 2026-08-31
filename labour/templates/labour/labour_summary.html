@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block head %}
+<style>
+    .sum-hero {
+        background: linear-gradient(135deg, #16665a 0%, #0f3d35 100%);
+        border-radius: 1.1rem; padding: 1rem 1.1rem; color: #fff;
+        box-shadow: 0 10px 24px -14px rgba(15,23,42,.5);
+    }
+    .sum-hero h1 { font-size: 1.25rem; font-weight: 800; }
+    .sum-hero p { font-size: 12px; color: rgba(255,255,255,.8); }
+
+    .stat-card {
+        background: rgba(255,255,255,.72);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
+        backdrop-filter: blur(14px) saturate(150%);
+        border: 1px solid rgba(255,255,255,.8);
+        border-radius: 0.95rem; padding: 0.7rem 0.85rem;
+        box-shadow: 0 4px 14px -10px rgba(15,23,42,.3);
+    }
+    .stat-card .lb { font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+    .stat-card .vl { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
+
+    .cat-row { border-bottom: 1px solid rgba(15,23,42,.06); }
+    .cat-row:last-child { border-bottom: 0; }
+    .rv { font-weight: 700; color: #0f172a; }
+    .rv.pos { color: #16665a; }
+    .rv.neg { color: #b91c1c; }
+    .total-row { background: #eef7f5; }
+</style>
+{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'labour:list' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">Labour Summary</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <a href="{% url 'labour:list' %}"
+       class="hidden md:inline-flex items-center gap-1.5 mb-2 text-[13px] font-bold text-slate-500 hover:text-brand-600 no-underline">← Back to Labour</a>
+
+    <div class="sum-hero mb-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1>🧾 Labour Summary</h1>
+                <p>Category-wise earnings — Tractor / Hyva / Mistri — advance aur total over-view, date range ya month ke hisaab se.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="app-surface p-3.5 md:p-5 mb-3">
+        <form method="get" class="space-y-3" id="filter-form">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="label">From</label>
+                    <input type="date" name="from_date" value="{{ from_date|date:'Y-m-d' }}" class="input">
+                </div>
+                <div>
+                    <label class="label">To</label>
+                    <input type="date" name="to_date" value="{{ to_date|date:'Y-m-d' }}" class="input">
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary flex-1">Show</button>
+                <a href="{% url 'labour:summary' %}" class="btn btn-ghost">This Month</a>
+            </div>
+            <div class="flex flex-wrap gap-1.5" id="month-presets">
+                <label class="label mt-2 w-full">Quick Select Month</label>
+                <select name="month_preset" id="month-preset-select" class="input" onchange="this.form.submit()">
+                    <option value="">— Select Month —</option>
+                    {% for m in months %}
+                        <option value="{{ forloop.counter }}"{% if request.GET.month_preset == forloop.counter|stringformat:'s' %} selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Export buttons -->
+    <div class="flex gap-2 mb-3">
+        <a href="?{{ request.GET.urlencode }}{% if request.GET %}&{% endif %}export=excel" class="btn btn-primary flex-1">🔵 Export Excel</a>
+        <a href="?{{ request.GET.urlencode }}{% if request.GET %}&{% endif %}export=pdf" class="btn btn-ghost flex-1">📄 Export PDF</a>
+    </div>
+
+    <p class="text-sm text-slate-500 mb-2 font-semibold">{{ data.period_label }}</p>
+
+    <!-- Summary stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+        <div class="stat-card">
+            <div class="lb">Workers</div>
+            <div class="vl">{{ data.grand.workers }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="lb">Total Earned</div>
+            <div class="vl">₹{{ data.grand.total_salary|floatformat:0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="lb">Advance</div>
+            <div class="vl">₹{{ data.grand.advance_total|floatformat:0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="lb">Trips</div>
+            <div class="vl">₹{{ data.grand.trip_total|floatformat:0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="lb">Extra / Rozi</div>
+            <div class="vl">₹{{ data.grand.extra_total|floatformat:0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="lb">Final</div>
+            <div class="vl">₹{{ data.grand.final_amount|floatformat:0 }}</div>
+        </div>
+    </div>
+
+    {% if data.cat_rows %}
+
+    <!-- Category summary -->
+    <div class="app-surface p-3.5 md:p-4 mb-3">
+        <div class="font-bold text-slate-800 text-[13px] mb-2">Category Summary</div>
+        <div class="overflow-x-auto whitespace-nowrap pb-2">
+            <table class="w-full text-[13px]">
+                <thead>
+                    <tr class="text-left text-slate-500 text-[11px] uppercase">
+                        <th class="py-1.5 px-2">Category</th>
+                        <th class="py-1.5 px-2 text-right">Workers</th>
+                        <th class="py-1.5 px-2 text-right">Trips</th>
+                        <th class="py-1.5 px-2 text-right">Extra/Rozi</th>
+                        <th class="py-1.5 px-2 text-right">Driver ₹</th>
+                        <th class="py-1.5 px-2 text-right">Advance</th>
+                        <th class="py-1.5 px-2 text-right">Earned</th>
+                        <th class="py-1.5 px-2 text-right">Final</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in data.cat_rows %}
+                    <tr class="cat-row hover:bg-slate-50 transition-colors">
+                        <td class="py-2 px-2 font-bold text-slate-800">{{ c.label }}</td>
+                        <td class="py-2 px-2 text-right text-slate-600">{{ c.workers }}</td>
+                        <td class="py-2 px-2 text-right rv pos">₹{{ c.trip_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right rv pos">₹{{ c.extra_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right rv pos">₹{{ c.driver_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right rv neg">₹{{ c.advance_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right rv pos">₹{{ c.total_salary|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ c.final_amount|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row border-t border-slate-200">
+                        <td class="py-2 px-2 font-bold text-slate-800">TOTAL</td>
+                        <td class="py-2 px-2 text-right font-bold text-slate-800">{{ data.grand.workers }}</td>
+                        <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.trip_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.extra_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.driver_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.advance_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.total_salary|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.final_amount|floatformat:0 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Per-category labour detail -->
+    {% for c in data.cat_rows %}
+    {% with people=data.per_labour %}
+    <div class="app-surface p-3.5 md:p-4 mb-3">
+        <div class="font-bold text-slate-800 text-[13px] mb-2">{{ c.label }} — Labour Detail</div>
+        <div class="overflow-x-auto whitespace-nowrap pb-2">
+            <table class="w-full text-[13px]">
+                <thead>
+                    <tr class="text-left text-slate-500 text-[11px] uppercase">
+                        <th class="py-1.5 px-2">Labour</th>
+                        <th class="py-1.5 px-2 text-right">Trips</th>
+                        <th class="py-1.5 px-2 text-right">Extra/Rozi</th>
+                        <th class="py-1.5 px-2 text-right">Driver ₹</th>
+                        <th class="py-1.5 px-2 text-right">Advance</th>
+                        <th class="py-1.5 px-2 text-right">Earned</th>
+                        <th class="py-1.5 px-2 text-right">Final</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in people %}{% if p.category == c.code %}
+                    <tr class="cat-row hover:bg-slate-50 transition-colors">
+                        <td class="py-2 px-2 font-semibold text-slate-700"><a href="{% url 'labour:detail' p.labour.id %}" class="text-brand-700 no-underline hover:underline">{{ p.labour.name }}</a></td>
+                        <td class="py-2 px-2 text-right rv pos">₹{{ p.trip_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right rv pos">₹{{ p.extra_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right rv pos">₹{{ p.driver_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right rv neg">₹{{ p.advance_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right rv pos">₹{{ p.total_salary|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ p.final_amount|floatformat:0 }}</td>
+                    </tr>
+                    {% endif %}{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+
+    {% else %}
+    <div class="py-14 text-center rounded-2xl" style="background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.8);">
+        <div class="text-4xl mb-3">🧾</div>
+        <p class="text-slate-500 text-sm">No labour data in this period.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

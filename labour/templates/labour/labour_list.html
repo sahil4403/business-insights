@@ -4,23 +4,75 @@
 
 {% block head %}
 <style>
-    .labour-card { display: block; background: #fff; border: 1px solid #eef1f6; border-radius: 1rem; padding: 0.95rem 1rem; text-decoration: none; color: inherit; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-    .labour-card:hover, .labour-card:active { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15,23,42,0.07); border-color: #d5ebe6; }
-    .labour-card .name { font-weight: 800; color: #0f172a; font-size: 1.02rem; }
-    .labour-card .meta { font-size: 12px; color: #64748b; margin-top: 2px; }
-    .labour-card .balance { font-weight: 800; font-size: 0.95rem; }
-    .labour-card .balance.due { color: #b91c1c; }
-    .labour-card .balance.clear { color: #047857; }
-    .driver-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: #dbeafe; color: #1d4ed8; }
-    .driver-chip::before { content: "🚗"; font-size: 11px; }
-    @media (max-width: 767px) {
-        .labour-card { padding: 0.7rem 0.85rem; }
-        .labour-card .name { font-size: 0.88rem; }
-        .labour-card .meta { font-size: 11px; }
-        .labour-card .balance { font-size: 0.82rem; }
-        .app-stat { padding: 0.7rem 0.85rem; }
-        .app-stat .val { font-size: 1.1rem; }
+    .cat-tile {
+        display: flex; flex-direction: column; justify-content: space-between;
+        background: rgba(255, 255, 255, .62);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        backdrop-filter: blur(18px) saturate(160%);
+        border: 1px solid rgba(255, 255, 255, .78);
+        border-radius: 1.1rem;
+        padding: 1.1rem 1.1rem 0.75rem; text-decoration: none; color: inherit;
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+        min-height: 132px; -webkit-tap-highlight-color: transparent;
+        box-shadow: 0 6px 22px -12px rgba(15,23,42,.22), inset 0 1px 0 rgba(255,255,255,.85);
+        isolation: isolate;
+        position: relative; overflow: hidden;
+        cursor: pointer; -webkit-user-select: none; user-select: none;
     }
+    .cat-tile:hover, .cat-tile:active { transform: translateY(-2px); background: rgba(255,255,255,.82); box-shadow: 0 14px 30px -12px rgba(15,23,42,.28), inset 0 1px 0 rgba(255,255,255,.95); border-color: #e7f3ef; }
+    .cat-tile .tile-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .cat-tile .tile-icon {
+        width: 46px; height: 46px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.45rem; flex-shrink: 0;
+    }
+    .cat-tile .tile-go { font-size: 0.9rem; color: #94a3b8; font-weight: 800; transition: transform .18s ease, color .18s ease; }
+    .cat-tile:hover .tile-go { transform: translateX(3px); color: #16665a; }
+    .cat-tile .tile-name { font-weight: 800; color: #0f172a; font-size: 1.05rem; line-height: 1.2; }
+    .cat-tile .tile-count { font-size: 12px; color: #64748b; font-weight: 600; margin-top: 3px; }
+    .cat-tile .tile-add-wrap {
+        margin: 10px calc(-1.1rem) -0.75rem;
+        width: calc(100% + 2.2rem);
+    }
+    .cat-tile .tile-add {
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        width: 100%; height: 2.5rem;
+        border: 0; border-top: 1px solid rgba(255,255,255,.6);
+        background: rgba(255, 255, 255, .28);
+        color: #16665a; font-size: 12.5px; font-weight: 800;
+        text-decoration: none; transition: all .15s ease; -webkit-tap-highlight-color: transparent;
+        -webkit-backdrop-filter: blur(10px) saturate(140%);
+        backdrop-filter: blur(10px) saturate(140%);
+    }
+    .cat-tile .tile-add:hover, .cat-tile .tile-add:active { background: linear-gradient(135deg, #177063 0%, #115248 100%); color: #fff; }
+    .cat-tile .tile-add.is-trip { background: linear-gradient(135deg, rgba(23,112,99,.9), rgba(17,82,72,.85)); color: #fff; border-top: 1px solid rgba(255,255,255,.28); }
+    @media (max-width: 767px) {
+        .cat-tile { padding: 0.75rem 0.75rem 0.5rem; min-height: auto; border-radius: 1rem; }
+        .cat-tile .tile-icon { width: 34px; height: 34px; font-size: 1.05rem; }
+        .cat-tile .tile-name { font-size: 0.85rem; margin-top: 8px; }
+        .cat-tile .tile-count { font-size: 10px; margin-top: 2px; }
+        .cat-tile .tile-add-wrap { margin: 10px calc(-0.75rem) -0.5rem; width: calc(100% + 1.5rem); }
+        .cat-tile .tile-add { height: 2.15rem; font-size: 11px; }
+    }
+    .hero-panel {
+        background: linear-gradient(135deg, #16665a 0%, #0d4a40 100%);
+        border-radius: 1.15rem; padding: 1.15rem 1.2rem; color: #fff;
+        position: relative; overflow: hidden;
+    }
+    .hero-panel .hero-title { font-size: 1.5rem; font-weight: 800; line-height: 1.15; }
+    .hero-panel .hero-sub { font-size: 12.5px; opacity: 0.85; margin-top: 3px; }
+    .hero-panel .hero-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 11px; border-radius: 999px; background: rgba(255,255,255,0.14);
+        font-size: 11.5px; font-weight: 700;
+    }
+    .mob-shortcut {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 14px; border-radius: 999px;
+        background: #fff; border: 1px solid #e2e8f0; color: #334155;
+        font-size: 12.5px; font-weight: 700; text-decoration: none; white-space: nowrap;
+    }
+    .mob-shortcut:active { background: #f1f5f9; }
     @media (min-width: 768px) {
         .lab-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
         .lab-toolbar .btn { height: 2.5rem; padding: 0 1rem; white-space: nowrap; }
@@ -39,10 +91,7 @@
             text-decoration: none; border-radius: 0.5rem;
         }
         .exp-dd-menu a:hover { background: #f1f5f9; }
-        .exp-dd-menu .exp-dd-title {
-            padding: 7px 12px 4px; font-size: 10px; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;
-        }
+        .exp-dd-menu .exp-dd-title { padding: 7px 12px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
         .exp-dd-menu .exp-dd-title:not(:first-child) { margin-top: 4px; border-top: 1px solid #f1f5f9; }
     }
 </style>
@@ -53,127 +102,127 @@
     <a href="{% url 'core:dashboard' %}"
        class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
     <span class="flex-1 truncate font-bold text-sm text-slate-800">Labour</span>
-    <span class="shrink-0 text-xs font-bold text-brand-600">{{ labour_count }}</span>
 </div>
 {% endblock %}
 
 {% block content %}
 
-<div class="mb-4 md:mb-6">
+<!-- Hero -->
+<div class="hero-panel mb-4" data-animate>
     <div class="flex items-center justify-between gap-3">
-        <div class="min-w-0">
-            <h1 class="text-xl md:text-3xl font-extrabold text-slate-900">Labour</h1>
-            <p class="text-sm text-slate-500 mt-1">Tap a labour to view details, add trips/extras/advances or settle</p>
+        <div>
+            <div class="hero-title">Labour</div>
+            <div class="hero-sub">Category select karo apne workers dekhne ke liye</div>
         </div>
-        <div class="hidden md:block">
-            <div class="lab-toolbar">
-                <details class="exp-dd">
-                    <summary class="btn btn-ghost">Export <span class="text-slate-400">▾</span></summary>
-                    <div class="exp-dd-menu">
-                        <a href="?export=csv">🟢 CSV</a>
-                        <a href="?export=excel">🔵 Excel</a>
-                        <div class="exp-dd-title">PDF</div>
-                        <a href="?export=pdf&preview=true" target="_blank">Preview PDF</a>
-                        <a href="?export=pdf">Download PDF</a>
-                    </div>
-                </details>
-                <details class="exp-dd">
-                    <summary class="btn btn-ghost">📕 Book <span class="text-slate-400">▾</span></summary>
-                    <div class="exp-dd-menu">
-                        <a href="{% url 'labour:book' %}?export=pdf">All Labour PDF</a>
-                        <a href="{% url 'labour:book' %}?export=excel">Book Excel</a>
-                    </div>
-                </details>
-                <a href="{% url 'labour:advance_multi' %}" class="btn btn-ghost">⚡ Quick Advances</a>
-                <a href="{% url 'labour:driver_add' %}" class="btn btn-ghost">🚗 Driver Payment</a>
-                <a href="{% url 'labour:create' %}" class="btn btn-ghost">＋ Add Labour</a>
-                <a href="{% url 'labour:trips' %}" class="btn btn-ghost">🛠 Trip Entries</a>
-            </div>
-        </div>
+        <span class="hero-badge">{{ labour_count }} workers</span>
     </div>
 </div>
 
-<!-- Summary stats -->
-<div class="grid grid-cols-2 gap-3 mb-4" data-animate>
-    <div class="app-stat" style="--stat-accent: #16665a;">
-        <div class="lbl">Total Labour</div>
-        <div class="val num">{{ labour_count }}</div>
-    </div>
-    <div class="app-stat" style="--stat-accent: #1d4ed8;">
-        <div class="lbl">Drivers</div>
-        <div class="val num">{{ driver_count }}</div>
-    </div>
-</div>
-
-<!-- MOBILE FAB -->
-<a href="{% url 'labour:trip_add' %}" class="app-fab md:hidden"><span>🚜</span> Add Trip</a>
-
-<!-- LABOUR LIST -->
-<div class="app-surface overflow-hidden">
-    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
-        <div class="font-bold text-slate-900 text-[15px]">All Labour <span class="text-[12px] font-medium text-slate-500">({{ labour_count }})</span></div>
-        <details class="export-menu relative md:hidden">
-            <summary class="h-9 px-3.5 rounded-full border border-slate-300 bg-white text-slate-700 text-[13px] font-bold flex items-center gap-1.5 cursor-pointer active:bg-slate-50">
-                Actions <span class="text-slate-400">▾</span>
-            </summary>
-            <div class="export-sheet">
-                <div class="export-sheet-title">Actions</div>
-                <a href="{% url 'labour:trip_add' %}" class="export-opt">🚜 Add Trip Entry</a>
-                <a href="{% url 'labour:create' %}" class="export-opt">＋ Add Labour</a>
-                <a href="{% url 'labour:advance_multi' %}" class="export-opt">⚡ Quick Advances</a>
-                <a href="{% url 'labour:driver_add' %}" class="export-opt">🚗 Driver Payment</a>
-                <a href="{% url 'labour:trips' %}" class="export-opt">🛠 Edit / Delete Trip Entries</a>
-
-                <div class="export-sheet-title">Export</div>
-                <a href="?export=csv" class="export-opt">
-                    <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">CSV</span>
-                    Export CSV</a>
-                <a href="?export=excel" class="export-opt">
-                    <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">XLS</span>
-                    Export Excel</a>
-                <a href="?export=pdf&preview=true" target="_blank" class="export-opt">
-                    <span class="w-7 h-7 rounded-lg bg-red-50 text-red-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">PDF</span>
-                    Preview PDF</a>
-                <a href="?export=pdf" class="export-opt">
-                    <span class="w-7 h-7 rounded-lg bg-red-50 text-red-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">PDF</span>
-                    Download PDF</a>
-
-                <div class="export-sheet-title">All Labour Book</div>
-                <a href="{% url 'labour:book' %}?export=pdf" class="export-opt">
-                    <span class="w-7 h-7 rounded-lg bg-red-50 text-red-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">PDF</span>
-                    All Labour Book PDF</a>
-                <a href="{% url 'labour:book' %}?export=excel" class="export-opt">
-                    <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">XLS</span>
-                    All Labour Book Excel</a>
-
-                <button type="button" class="export-opt export-cancel">✕ Cancel</button>
+<!-- Desktop toolbar -->
+<div class="hidden md:block mb-4">
+    <div class="lab-toolbar">
+        <details class="exp-dd">
+            <summary class="btn btn-ghost">Export <span class="text-slate-400">▾</span></summary>
+            <div class="exp-dd-menu">
+                <a href="?export=csv">🟢 CSV</a>
+                <a href="?export=excel">🔵 Excel</a>
+                <div class="exp-dd-title">PDF</div>
+                <a href="?export=pdf&preview=true" target="_blank">Preview PDF</a>
+                <a href="?export=pdf">Download PDF</a>
             </div>
         </details>
+        <details class="exp-dd">
+            <summary class="btn btn-ghost">📕 Book <span class="text-slate-400">▾</span></summary>
+            <div class="exp-dd-menu">
+                <a href="{% url 'labour:book' %}?export=pdf">All Labour PDF</a>
+                <a href="{% url 'labour:book' %}?export=excel">Book Excel</a>
+            </div>
+        </details>
+        <a href="{% url 'labour:advance_multi' %}" class="btn btn-ghost">⚡ Quick Advances</a>
+        <a href="{% url 'labour:rozi_multi' %}" class="btn btn-ghost">👷 Quick Rozi</a>
+        <a href="{% url 'labour:summary' %}" class="btn btn-ghost">🧾 Summary</a>
+        <a href="{% url 'labour:daily_activity' %}" class="btn btn-ghost">📊 Daily Activity</a>
+        <a href="{% url 'labour:driver_add' %}" class="btn btn-ghost">🚗 Driver Payment</a>
+        <a href="{% url 'labour:create' %}" class="btn btn-ghost">＋ Add Labour</a>
+        <a href="{% url 'labour:trips' %}" class="btn btn-ghost">🛠 Trip Entries</a>
     </div>
-
-    {% if cards %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 p-3 md:p-4">
-            {% for c in cards %}
-                <a href="{% url 'labour:detail' c.obj.id %}" class="labour-card">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0">
-                            <div class="name truncate">{{ c.obj.name }}</div>
-                            <div class="meta">
-                                {% if c.obj.is_driver %}<span class="driver-chip">Driver</span>{% endif %}
-                                {% if c.month_trip_groups %} · {{ c.month_trip_groups }} trip entries this month{% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="py-16 text-center">
-            <div class="text-4xl mb-3">👷</div>
-            <p class="text-slate-500 text-sm">No labour added yet.</p>
-            <a href="{% url 'labour:create' %}" class="btn btn-primary mt-4 inline-flex">＋ Add First Labour</a>
-        </div>
-    {% endif %}
 </div>
 
+<!-- Mobile quick shortcuts (scroll row) -->
+<div class="md:hidden mb-4 -mx-3 px-3 overflow-x-auto" style="scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+    <div class="flex gap-2 pb-1" style="min-width:max-content;">
+        <a href="{% url 'labour:summary' %}" class="mob-shortcut" style="background:#16665a;color:#fff;">🧾 Summary</a>
+        <a href="{% url 'labour:trips' %}" class="mob-shortcut">🛠 Trips</a>
+        <a href="{% url 'labour:rozi_multi' %}" class="mob-shortcut">👷 Quick Rozi</a>
+        <a href="{% url 'labour:advance_multi' %}" class="mob-shortcut">⚡ Quick Advance</a>
+        <a href="{% url 'labour:daily_activity' %}" class="mob-shortcut">📊 Daily Activity</a>
+    </div>
+</div>
+
+<!-- Category tiles -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3" data-animate>
+    {% for cat in categories %}
+    <div class="cat-tile" data-href="{% url 'labour:category_detail' cat.code %}">
+        <div class="tile-top">
+            <span class="tile-icon" style="background:{{ cat.bg }};">{{ cat.icon }}</span>
+            <span class="tile-go">→</span>
+        </div>
+        <div class="tile-body">
+            <div class="tile-name">{{ cat.label }}</div>
+            <div class="tile-count">{{ cat.count }} labour{% if cat.count != 1 %}s{% endif %}</div>
+        </div>
+        {% if cat.add_url or cat.coming_soon %}
+        <div class="tile-add-wrap">
+            {% if cat.coming_soon %}
+            <button type="button" onclick="openComingSoon()" class="tile-add is-trip">
+                ＋ {{ cat.add_label }}
+            </button>
+            {% else %}
+            <a href="{% url cat.add_url %}{% if cat.add_query %}?{{ cat.add_query }}{% endif %}" class="tile-add{% if cat.code == 'TRACTOR' or cat.code == 'HYVA_DRIVER' or cat.code == 'JCB_OPERATOR' or cat.code == 'MISTRI' %} is-trip{% endif %}">
+                ＋ {{ cat.add_label }}
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Coming Soon popup (JCB Operator) -->
+<div id="coming-soon" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+    <div class="app-surface w-full max-w-sm p-6 text-center rounded-2xl">
+        <div class="text-4xl mb-3">🚧</div>
+        <h2 class="text-xl font-extrabold text-slate-900 mb-1">Coming Soon</h2>
+        <p class="text-sm text-slate-500 mb-5">JCB Operator ka Trip Entry feature abhi aa raha hai. Jald hi available hoga.</p>
+        <button type="button" onclick="closeComingSoon()" class="app-chip h-10 px-5">← Back</button>
+    </div>
+</div>
+
+<script>
+function openComingSoon() { var el = document.getElementById('coming-soon'); el.classList.remove('hidden'); el.classList.add('flex'); }
+function closeComingSoon() { var el = document.getElementById('coming-soon'); el.classList.add('hidden'); el.classList.remove('flex'); }
+var cs = document.getElementById('coming-soon');
+if (cs) {
+    cs.addEventListener('click', function(e) { if (e.target === cs) closeComingSoon(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeComingSoon(); });
+}
+</script>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Tile click → open category (unless clicking the embedded Add button)
+document.querySelectorAll('.cat-tile').forEach(function (tile) {
+    tile.addEventListener('click', function (e) {
+        if (e.target.closest('.tile-add')) return;
+        var href = tile.getAttribute('data-href');
+        if (href && href.indexOf('JCB_OPERATOR') !== -1) {
+            openComingSoon();
+            return;
+        }
+        window.location.href = href;
+    });
+});
+</script>
 {% endblock %}

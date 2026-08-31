@@ -17,6 +17,9 @@ from .models import (
 class LabourAdmin(admin.ModelAdmin):
     list_display = (
         'name',
+        'category',
+        'sub_category',
+        'base_daily_rate',
         'mobile',
         'joining_date',
         'is_driver',
@@ -29,6 +32,7 @@ class LabourAdmin(admin.ModelAdmin):
         'status',
         'is_active',
         'is_driver',
+        'category',
     )
 
     search_fields = (

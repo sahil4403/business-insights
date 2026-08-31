@@ -14,58 +14,224 @@
 <div class="max-w-2xl mx-auto">
     <div class="flex items-center justify-between gap-3 mb-4">
         <div class="min-w-0">
-            <h1 class="text-xl md:text-3xl font-extrabold text-slate-900">Trip Entries</h1>
+            <h1 class="text-xl md:text-3xl font-extrabold text-slate-900">{{ page_title }}</h1>
             <p class="text-sm text-slate-500 mt-1">Tap Edit to fix a wrong entry — sabke hisse apne aap recalculate honge</p>
         </div>
-        <a href="{% url 'labour:trip_add' %}" class="btn btn-primary shrink-0">＋ Add</a>
+        <a href="{% url add_url %}" class="btn btn-primary shrink-0">{{ add_label }}</a>
     </div>
-
-    {% if rows %}
-        <div class="app-surface overflow-hidden">
-            {% for r in rows %}
-                <div class="px-4 py-3 border-b border-slate-100 last:border-0">
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
-                                <span class="font-semibold text-slate-800 text-[14px]">{{ r.group.date|date:"d-M-Y" }}</span>
-                                <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md
-                                    {% if r.group.fill_type == 'JCB' %}bg-amber-50 text-amber-700{% else %}bg-slate-100 text-slate-500{% endif %}">{{ r.group.fill_type }}</span>
-                            </div>
-                            <div class="text-[12px] text-slate-500 mt-0.5 num">
-                                {{ r.group.trip_count }} trips × ₹{{ r.group.rate_per_trip|floatformat:0 }}
-                            </div>
-                            <div class="text-[12px] text-slate-600 mt-0.5">
-                                {% for l in r.labourers %}<span class="inline-block bg-[#eef7f5] text-[#115248] rounded-md px-1.5 py-0.5 text-[11px] font-semibold mr-1 mb-0.5">{% if l.is_driver %}🚗 {% endif %}{{ l.name }}</span>{% endfor %}
-                                {% if r.group.note %}<div class="text-[11px] text-slate-400 mt-0.5">🗒 {{ r.group.note }}</div>{% endif %}
-                            </div>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <div class="font-extrabold text-slate-900 text-[15px] num">₹{{ r.group.total_amount|floatformat:0 }}</div>
-                            {% if r.labourers %}
-                                <div class="text-[10px] text-slate-400 num">₹{{ r.per_head|floatformat:0 }} / head</div>
-                            {% endif %}
-                        </div>
+    {% if years %}
+        <div class="flex flex-col gap-8">
+            {% for year in years %}
+            <details class="group/year">
+                <summary class="flex items-center justify-between mb-4 px-1 py-1 cursor-pointer hover:opacity-80 transition-opacity list-none [&::-webkit-details-marker]:hidden select-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-slate-600 transition-transform group-open/year:rotate-90 shrink-0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                        <h2 class="text-xl md:text-2xl font-black text-slate-800">{{ year.name }}</h2>
                     </div>
-                    <div class="flex gap-2 mt-2">
-                        <a href="{% url 'labour:trip_edit' r.group.id %}" class="app-chip h-8 text-[12px] text-[#115248]">
-                            ✏️ Edit
-                        </a>
-                        <form method="post" action="{% url 'labour:trip_delete' r.group.id %}"
-                              onsubmit="return confirm('Delete this trip entry? Sab labour ke hisse se ye entry ab hat jayegi.');">
-                            {% csrf_token %}
-                            <button type="submit" class="app-chip h-8 text-[12px] text-red-600">🗑 Delete</button>
-                        </form>
+                    <div class="text-right">
+                        <div class="text-[12px] text-slate-500 font-bold uppercase tracking-wider">{{ year.total_trips }} trip{{ year.total_trips|pluralize }}</div>
+                        <div class="font-extrabold text-brand-700 text-[14px] num">₹{{ year.total_amount|floatformat:0 }}</div>
                     </div>
+                </summary>
+                
+                <div class="flex flex-col gap-4">
+                    {% for month in year.months %}
+                    <div class="app-surface overflow-hidden shadow-sm">
+                        <details class="group/month">
+                            <!-- Month Header -->
+                            <summary class="px-4 py-3.5 bg-slate-100 cursor-pointer flex items-center justify-between select-none hover:bg-slate-200 transition-colors list-none [&::-webkit-details-marker]:hidden">
+                                <div class="flex items-center flex-wrap gap-2">
+                                    <svg class="w-5 h-5 text-slate-500 transition-transform group-open/month:rotate-90 shrink-0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                                    <span class="font-extrabold text-slate-900 text-[15px]">{{ month.name }}</span>
+                                    <span class="text-[10px] bg-white border border-slate-300 text-slate-600 px-2 py-0.5 rounded-full font-bold">
+                                        {{ month.total_trips }} trip{{ month.total_trips|pluralize }}
+                                    </span>
+                                    {% if month.load_breakdown %}
+                                        <div class="flex gap-1.5 flex-wrap">
+                                            {% for label, count in month.load_breakdown.items %}
+                                            <span class="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200 font-bold uppercase tracking-wider">
+                                                {{ count }} {{ label }}
+                                            </span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="font-extrabold text-brand-700 text-[15px] num">₹{{ month.total_amount|floatformat:0 }}</div>
+                            </summary>
+                            
+                            <div class="border-t border-slate-200 bg-white">
+                                {% for day in month.days %}
+                                <details class="group border-b border-slate-100 last:border-none">
+                                    <!-- Date Header -->
+                                    <summary class="px-4 py-3 bg-slate-50 cursor-pointer flex items-center justify-between select-none hover:bg-slate-100 transition-colors list-none [&::-webkit-details-marker]:hidden pl-6">
+                                        <div class="flex items-center flex-wrap gap-2">
+                                            <!-- Caret Icon -->
+                                            <svg class="w-5 h-5 text-slate-400 transition-transform group-open:rotate-90 shrink-0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                                            
+                                            <span class="font-extrabold text-slate-800 text-[13px]">{{ day.date|date:"d-M-Y" }}</span>
+                                            <span class="text-[10px] bg-white border border-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-bold">
+                                                {{ day.total_trips }} trip{{ day.total_trips|pluralize }}
+                                            </span>
+                                            {% if day.load_breakdown %}
+                                                <div class="flex gap-1.5 flex-wrap">
+                                                    {% for label, count in day.load_breakdown.items %}
+                                                    <span class="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200 font-bold uppercase tracking-wider">
+                                                        {{ count }} {{ label }}
+                                                    </span>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="font-bold text-brand-600 text-[13px] num">₹{{ day.total_amount|floatformat:0 }}</div>
+                                    </summary>
+                                    
+                                    <div class="border-t border-slate-100 bg-white">
+                                        {% for r in day.entries %}
+                                        <div class="px-4 py-3 border-b border-slate-50 last:border-0 pl-12">
+                                            <div class="flex items-center justify-between gap-3">
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex items-center gap-2">
+                                                        {% if r.group.load_type %}
+                                                            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100">{{ r.group.load_label }}</span>
+                                                        {% else %}
+                                                            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md
+                                                                {% if r.group.fill_type == 'JCB' %}bg-amber-50 text-amber-700{% else %}bg-slate-100 text-slate-500{% endif %}">{{ r.group.fill_type }}</span>
+                                                        {% endif %}
+                                                        <span class="text-[12px] text-slate-500 font-semibold num">{{ r.group.trip_count }} trips × ₹{{ r.group.rate_per_trip|floatformat:0 }}</span>
+                                                    </div>
+                                                    <div class="text-[12px] text-slate-600 mt-0.5">
+                                                        {% for l in r.labourers %}<span class="inline-block bg-[#eef7f5] text-[#115248] rounded-md px-1.5 py-0.5 text-[11px] font-semibold mr-1 mb-0.5">{% if l.is_driver %}🚗 {% endif %}{{ l.name }}</span>{% endfor %}
+                                                        {% if r.group.note %}<div class="text-[11px] text-slate-400 mt-0.5">🗒 {{ r.group.note }}</div>{% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="text-right shrink-0">
+                                                    <div class="font-extrabold text-slate-900 text-[14px] num">₹{{ r.group.total_amount|floatformat:0 }}</div>
+                                                    {% if r.labourers %}
+                                                        <div class="text-[10px] text-slate-400 num">₹{{ r.per_head|floatformat:0 }} / head</div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-4 mt-2.5 pt-2 border-t border-slate-100/60 justify-end">
+                                                {% if r.group.load_type %}
+                                                <a href="{% url 'labour:hyva_trip_edit' r.group.id %}" class="text-[11px] font-bold text-slate-400 hover:text-brand-600 transition-colors flex items-center gap-1">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg> Edit
+                                                </a>
+                                                {% else %}
+                                                <a href="{% url 'labour:trip_edit' r.group.id %}" class="text-[11px] font-bold text-slate-400 hover:text-brand-600 transition-colors flex items-center gap-1">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg> Edit
+                                                </a>
+                                                {% endif %}
+                                                <form method="post" action="{% url 'labour:trip_delete' r.group.id %}"
+                                                      onsubmit="return confirm('Delete this trip entry? Sab labour ke hisse se ye entry ab hat jayegi.');" class="inline m-0 p-0">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="text-[11px] font-bold text-slate-400 hover:text-red-500 transition-colors bg-transparent border-0 p-0 m-0 cursor-pointer flex items-center gap-1">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </details>
+                                {% endfor %}
+                            </div>
+                        </details>
+                    </div>
+                    {% endfor %}
                 </div>
+            </details>
             {% endfor %}
         </div>
-        <p class="text-center text-[11px] text-slate-400 mt-3">Recent {{ rows|length }} entries shown</p>
+        <p class="text-center text-[11px] text-slate-400 mt-3">Recent entries shown</p>
     {% else %}
         <div class="app-surface p-10 text-center">
-            <div class="text-4xl mb-3">🚜</div>
+            <div class="text-4xl mb-3">{% if category == 'HYVA_DRIVER' %}🚛{% else %}🚜{% endif %}</div>
             <p class="text-slate-500 text-sm">No trip entries yet.</p>
-            <a href="{% url 'labour:trip_add' %}" class="btn btn-primary mt-4 inline-flex">＋ Add Trip Entry</a>
+            <a href="{% url add_url %}" class="btn btn-primary mt-4 inline-flex">{{ add_label }}</a>
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+class Accordion {
+    constructor(el) {
+        this.el = el;
+        this.summary = el.querySelector('summary');
+        this.animation = null;
+        this.isClosing = false;
+        this.isExpanding = false;
+        if (this.summary) {
+            this.summary.addEventListener('click', (e) => this.onClick(e));
+        }
+    }
+
+    onClick(e) {
+        e.preventDefault();
+        this.el.style.overflow = 'hidden';
+        if (this.isClosing || !this.el.open) {
+            this.open();
+        } else if (this.isExpanding || this.el.open) {
+            this.shrink();
+        }
+    }
+
+    shrink() {
+        this.isClosing = true;
+        const startHeight = `${this.el.offsetHeight}px`;
+        const endHeight = `${this.summary.offsetHeight}px`;
+        
+        if (this.animation) this.animation.cancel();
+        
+        this.animation = this.el.animate({
+            height: [startHeight, endHeight]
+        }, {
+            duration: 250,
+            easing: 'ease-out'
+        });
+        
+        this.animation.onfinish = () => this.onAnimationFinish(false);
+        this.animation.oncancel = () => this.isClosing = false;
+    }
+
+    open() {
+        this.el.style.height = `${this.el.offsetHeight}px`;
+        this.el.open = true;
+        window.requestAnimationFrame(() => {
+            this.isExpanding = true;
+            const startHeight = this.el.style.height;
+            // Temporarily set to auto to let the browser calculate the natural expanded height
+            this.el.style.height = 'auto';
+            const endHeight = `${this.el.offsetHeight}px`;
+            
+            if (this.animation) this.animation.cancel();
+            
+            this.animation = this.el.animate({
+                height: [startHeight, endHeight]
+            }, {
+                duration: 250,
+                easing: 'ease-out'
+            });
+            
+            this.animation.onfinish = () => this.onAnimationFinish(true);
+            this.animation.oncancel = () => this.isExpanding = false;
+        });
+    }
+
+    onAnimationFinish(open) {
+        this.el.open = open;
+        this.animation = null;
+        this.isClosing = false;
+        this.isExpanding = false;
+        this.el.style.height = this.el.style.overflow = '';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('details').forEach((el) => {
+        new Accordion(el);
+    });
+});
+</script>
 {% endblock %}

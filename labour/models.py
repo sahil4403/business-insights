@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from master_data.models import LabourType
 
@@ -7,6 +9,35 @@ class Labour(models.Model):
         ('ACTIVE', 'Active'),
         ('INACTIVE', 'Inactive'),
     ]
+
+    CATEGORY_CHOICES = [
+        ('TRACTOR', 'Tractor'),
+        ('HYVA_DRIVER', 'Hyva Driver'),
+        ('JCB_OPERATOR', 'JCB Operator'),
+        ('MISTRI', 'Mistri'),
+    ]
+
+    # Sub-category for MISTRI — distinguishes the Mistri himself (fixed ₹800)
+    # from his Helper/Labour (variable base daily rate).
+    MISTRI_SUB_CATEGORY_CHOICES = [
+        ('MISTRI', 'Mistri'),
+        ('HELPER', 'Mistri Helper (Labour)'),
+    ]
+
+    category = models.CharField(
+        max_length=30,
+        choices=CATEGORY_CHOICES,
+        default='TRACTOR',
+        help_text="Worker category — Tractor (driver+labour), Hyva Driver, JCB Operator or Mistri (incl. labour)"
+    )
+
+    sub_category = models.CharField(
+        max_length=20,
+        choices=MISTRI_SUB_CATEGORY_CHOICES,
+        blank=True,
+        default='',
+        help_text="For Mistri category — Mistri (fixed ₹800/day) or Mistri Helper/Labour (variable base rate)"
+    )
 
     name = models.CharField(
         max_length=200
@@ -39,6 +70,13 @@ class Labour(models.Model):
     is_driver = models.BooleanField(
         default=False,
         help_text="Mark if this labour also gets Driver Payment"
+    )
+
+    base_daily_rate = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('500'),
+        help_text="Base daily rate (Rozi full day). One & Half = 1.5x, Half = 0.5x"
     )
 
     created_at = models.DateTimeField(
@@ -416,6 +454,26 @@ class LabourTripGroup(models.Model):
         choices=FILL_TYPE_CHOICES,
         default='HAND',
     )
+    HYVA_LOAD_CHOICES = [
+        ('', '— (Tractor trip)'),
+        ('WHITE_HYVA', 'White Sand Hyva'),
+        ('FLYASH_HYVA', 'Fly Ash Hyva'),
+        ('HALFTON_WHITE', 'Halfton White'),
+        ('HALFTON_FLYASH', 'Halfton Fly Ash'),
+    ]
+    HYVA_LOAD_RATES = {
+        'WHITE_HYVA': '200',
+        'FLYASH_HYVA': '100',
+        'HALFTON_WHITE': '100',
+        'HALFTON_FLYASH': '100',
+    }
+    load_type = models.CharField(
+        max_length=20,
+        choices=HYVA_LOAD_CHOICES,
+        blank=True,
+        default='',
+        help_text="Hyva load type — sets the per-trip rate automatically",
+    )
     total_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -433,12 +491,20 @@ class LabourTripGroup(models.Model):
         ordering = ['-date', '-id']
 
     def save(self, *args, **kwargs):
+        if self.load_type in self.HYVA_LOAD_RATES:
+            self.rate_per_trip = Decimal(self.HYVA_LOAD_RATES[self.load_type])
         self.total_amount = self.trip_count * self.rate_per_trip
         super().save(*args, **kwargs)
 
     def __str__(self):
         names = ', '.join(self.labourers.values_list('name', flat=True)[:3])
         return f"{self.date} · {self.trip_count} trips · {names}"
+
+    @property
+    def load_label(self):
+        if not self.load_type:
+            return ''
+        return dict(self.HYVA_LOAD_CHOICES).get(self.load_type, '')
 
     @property
     def per_labour_share(self):
@@ -487,6 +553,63 @@ class LabourAdvance(models.Model):
                 name='unique_advance_per_labour_per_day',
             )
         ]
+
+    def __str__(self):
+        return f"{self.labour.name} · {self.date} · ₹{self.amount}"
+
+
+class LabourRozi(models.Model):
+    """Daily rozi (wages) for a labourer — full / one-and-half / half day.
+
+    For Mistri category: FIXED rates ₹800 / ₹1200 / ₹400.
+    For other categories: base_daily_rate × multiplier.
+    """
+
+    DAY_TYPE_CHOICES = [
+        ('FULL', 'Full Day'),
+        ('ONE_HALF', 'One & Half Day'),
+        ('HALF', 'Half Day'),
+    ]
+    DAY_MULTIPLIER = {
+        'FULL': Decimal('1.0'),
+        'ONE_HALF': Decimal('1.5'),
+        'HALF': Decimal('0.5'),
+    }
+
+    # Mistri fixed rates (overrides base_daily_rate)
+    MISTRI_RATES = {
+        'FULL': Decimal('800'),
+        'ONE_HALF': Decimal('1200'),
+        'HALF': Decimal('400'),
+    }
+
+    labour = models.ForeignKey(
+        Labour,
+        on_delete=models.CASCADE,
+        related_name='rozis',
+    )
+    date = models.DateField()
+    day_type = models.CharField(
+        max_length=10,
+        choices=DAY_TYPE_CHOICES,
+        default='FULL',
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-id']
+
+    def save(self, *args, **kwargs):
+        if self.day_type in self.DAY_MULTIPLIER:
+            if self.labour.category == 'MISTRI' and self.labour.sub_category == 'MISTRI':
+                self.amount = self.MISTRI_RATES[self.day_type]
+            else:
+                self.amount = (
+                    self.labour.base_daily_rate * self.DAY_MULTIPLIER[self.day_type]
+                )
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.labour.name} · {self.date} · ₹{self.amount}"
@@ -601,6 +724,10 @@ class LabourSettlement(models.Model):
             labour=self.labour, date__gte=self.period_start, date__lte=self.period_end
         ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
 
+        rozi_total = LabourRozi.objects.filter(
+            labour=self.labour, date__gte=self.period_start, date__lte=self.period_end
+        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
         driver_total = LabourDriverPayment.objects.filter(
             labour=self.labour,
             period_start__lte=self.period_end,
@@ -611,7 +738,7 @@ class LabourSettlement(models.Model):
             labour=self.labour, date__gte=self.period_start, date__lte=self.period_end
         ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
 
-        self.total_salary = trip_total + extra_total + driver_total
+        self.total_salary = trip_total + extra_total + rozi_total + driver_total
         self.total_advance = advance_total
         self.net_payable = self.total_salary - self.total_advance
         self.final_old_balance = (
