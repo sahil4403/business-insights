@@ -135,7 +135,17 @@ def _filtered_trips(request):
     if driver_id:
         trips = trips.filter(drivers__id=driver_id).distinct()
 
+    # CUSTOMER FILTER — abhi ke baaki sab filters material/vehicle/month/yaar/search waghera
+    # ke hisaab se customer list SMART banao: sirf wahi customers dikhao jo abhi filtered
+    # trips mein hain. (customer IDF loop se pehle filter karo — warna selected customer
+    # suggestions se gayab ho jata / recommend bhi faltu customers dikhate)
     customer_id = request.GET.get('customer', '').strip()
+
+    # Smart suggestions: distinct customers jo abhi ke filters (customer ke siwa) se milte hain
+    customer_ids_in_filter = list(
+        trips.filter(customer__isnull=False).values_list('customer_id', flat=True).distinct()
+    )
+
     if customer_id and customer_id.isdigit():
         trips = trips.filter(customer_id=int(customer_id))
 
@@ -192,6 +202,7 @@ def _filtered_trips(request):
         'selected_destination': destination,
         'selected_driver': driver_id,
         'selected_customer': customer_id,
+        'customer_ids_in_filter': customer_ids_in_filter,
         'selected_year': year,
         'selected_month': month,
         'from_date': from_date,
@@ -392,7 +403,10 @@ def trip_list(request):
 
     drivers_list = Labour.objects.filter(is_active=True).order_by('name')
 
-    customers_list = Customer.objects.all().order_by('name')
+    # SMART suggestions: sirf wahi customers jo abhi ke filters ke andar trips rakhte hain
+    customers_list = Customer.objects.filter(
+        id__in=filters.get('customer_ids_in_filter') or []
+    ).order_by('name')
 
     available_years = list(
         Trip.objects.annotate(y=ExtractYear('trip_date'))
