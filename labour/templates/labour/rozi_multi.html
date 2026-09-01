@@ -23,16 +23,16 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">{{ page_title }}</h1>
-    <p class="text-sm text-slate-500 mb-4">Har labour ke liye day type chuno — amount khud base rate se nikal jayega.
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1" data-animate>{{ page_title }}</h1>
+    <p class="text-sm text-slate-500 mb-4" data-animate>Har labour ke liye day type chuno — amount khud base rate se nikal jayega.
         {% if category_filter %}{{ category_filter }} category ke sirf labour dikh rahe hain.{% endif %}</p>
 
-    <div class="app-surface p-3 mb-4 text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-xl">
+    <div class="app-surface p-3 mb-4 text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-xl" data-animate>
         Full Day = 1 × rate · One &amp; Half = 1.5 × rate · Half Day = 0.5 × rate
         {% if category_filter == 'MISTRI' %} &nbsp;·&nbsp; <span class="font-bold">Mistri = ₹800 fixed</span>{% endif %}
     </div>
 
-    <form method="post" class="app-surface p-4 md:p-5 space-y-4">
+    <form method="post" class="app-surface p-4 md:p-5 space-y-4" data-animate>
         {% csrf_token %}
 
         <div>

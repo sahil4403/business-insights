@@ -22,7 +22,7 @@
 {% block content %}
 
 <!-- HEADER -->
-<div class="flex items-center justify-between gap-3 mb-4 md:mb-6">
+<div class="flex items-center justify-between gap-3 mb-4 md:mb-6" data-animate>
     <div>
         <h1 class="text-xl md:text-2xl font-bold text-slate-900">Payments</h1>
         <p class="text-xs text-slate-500 mt-0.5">{{ payments|length }} record{{ payments|length|pluralize }}</p>
@@ -74,7 +74,7 @@
 </div>
 
 <!-- DATE RANGE FILTER -->
-<div class="app-surface mb-4 md:mb-5 overflow-hidden">
+<div class="app-surface mb-4 md:mb-5 overflow-hidden" data-reveal>
     <details id="filter-details" class="filter-card">
         <summary class="flex items-center justify-between px-4 py-3 cursor-pointer active:bg-slate-50 md:hidden">
             <span class="text-sm font-semibold text-slate-700">📅 Date range</span>
@@ -102,7 +102,7 @@
 </div>
 
 <!-- REPORT LIST -->
-<div class="app-surface overflow-hidden">
+<div class="app-surface overflow-hidden" data-reveal>
 
     <!-- SEARCH (desktop only; mobile uses scroll top bar) -->
     <div class="hidden md:block p-4 border-b border-slate-100">

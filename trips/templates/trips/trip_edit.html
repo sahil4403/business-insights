@@ -78,7 +78,7 @@
 
 
 <!-- HEADER -->
-<div class="mb-4 md:mb-8">
+<div class="mb-4 md:mb-8" data-animate>
     <a href="{{ back_url }}"
        class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50 w-fit mb-3"
        onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
@@ -111,7 +111,7 @@
     {% endif %}
 
     <!-- TRIP INFORMATION -->
-    <div class="app-surface p-4 md:p-6">
+    <div class="app-surface p-4 md:p-6" data-animate>
         <h2 class="form-section-title">Trip Information</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
 
@@ -169,7 +169,7 @@
     </div>
 
     <!-- VEHICLE & MATERIAL -->
-    <div class="app-surface p-4 md:p-6">
+    <div class="app-surface p-4 md:p-6" data-animate>
         <h2 class="form-section-title">Vehicle & Material</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
 
@@ -232,7 +232,7 @@
     </div>
 
     <!-- DRIVERS ALLOCATION -->
-    <div class="app-surface p-4 md:p-6">
+    <div class="app-surface p-4 md:p-6" data-animate>
         <h2 class="form-section-title">Drivers / Labour & Trip Allocation</h2>
 
         <p class="text-[13px] text-slate-500 mb-3">
@@ -266,7 +266,7 @@
     </div>
 
     <!-- QUANTITY & RATE -->
-    <div class="app-surface p-4 md:p-6">
+    <div class="app-surface p-4 md:p-6" data-animate>
         <h2 class="form-section-title">Quantity & Rate</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
 
@@ -294,7 +294,7 @@
     </div>
 
     <!-- NOTES -->
-    <div class="app-surface p-4 md:p-6">
+    <div class="app-surface p-4 md:p-6" data-animate>
         <h2 class="form-section-title">Additional Information</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
 

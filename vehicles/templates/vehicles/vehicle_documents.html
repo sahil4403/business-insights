@@ -11,7 +11,7 @@
 </style>
 
 <!-- HEADER -->
-<div class="mb-4 md:mb-6">
+<div class="mb-4 md:mb-6" data-animate>
     <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
             <a href="{{ back_url }}" class="lq-glass-btn mb-3">← <span class="hidden sm:inline">Back</span></a>
@@ -25,7 +25,7 @@
 </div>
 
 <!-- ADD / EDIT FORM -->
-<div class="app-surface p-4 md:p-6 mb-4">
+<div class="app-surface p-4 md:p-6 mb-4" data-animate>
     <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">
         {% if editing %}✏️ Edit: {{ editing.get_doc_type_display }}{% else %}➕ Naya Document Add Karo{% endif %}
     </h2>
@@ -72,7 +72,7 @@
 </div>
 
 <!-- DOCUMENTS LIST -->
-<div class="app-surface p-4 md:p-6">
+<div class="app-surface p-4 md:p-6" data-reveal>
     <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">📋 Saare Documents</h2>
 
     <div class="flex flex-col gap-2.5">

@@ -28,11 +28,11 @@
 {% block content %}
 <div class="max-w-2xl mx-auto">
     {% if editing %}
-        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">Edit Settlement</h1>
-        <p class="text-sm text-slate-500 mb-4">{{ labour.name }}{% if labour.is_driver %} · Driver{% endif %} · Period locked</p>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1" data-animate>Edit Settlement</h1>
+        <p class="text-sm text-slate-500 mb-4" data-animate>{{ labour.name }}{% if labour.is_driver %} · Driver{% endif %} · Period locked</p>
     {% else %}
-        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">Settle Payment</h1>
-        <p class="text-sm text-slate-500 mb-4">{{ labour.name }}{% if labour.is_driver %} · Driver{% endif %}</p>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1" data-animate>Settle Payment</h1>
+        <p class="text-sm text-slate-500 mb-4" data-animate>{{ labour.name }}{% if labour.is_driver %} · Driver{% endif %}</p>
     {% endif %}
 
     <form method="post" class="space-y-4" id="settle-form">
@@ -75,7 +75,7 @@
         </div>
 
         <!-- Calculated preview (read-only) -->
-        <div class="app-surface p-4 md:p-5">
+        <div class="app-surface p-4 md:p-5" data-reveal>
             <div class="font-bold text-slate-900 text-base mb-3">Calculated (read-only)</div>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-2.5">
                 <div class="calc-card">

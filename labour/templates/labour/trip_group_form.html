@@ -48,8 +48,8 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">{{ page_title }}</h1>
-    <p class="text-sm text-slate-500 mb-4">{% if editing_group %}Change trips/rate/labourers — total aur sabke hisse apne aap update honge{% else %}Group of labourers who worked this batch of trips together{% endif %}</p>
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1" data-animate>{{ page_title }}</h1>
+    <p class="text-sm text-slate-500 mb-4" data-animate>{% if editing_group %}Change trips/rate/labourers — total aur sabke hisse apne aap update honge{% else %}Group of labourers who worked this batch of trips together{% endif %}</p>
 
     <form method="post" class="space-y-4" id="trip-group-form">
         {% csrf_token %}
@@ -58,7 +58,7 @@
             <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{{ form.non_field_errors }}</div>
         {% endif %}
 
-        <div class="app-surface p-4 md:p-5 space-y-4">
+        <div class="app-surface p-4 md:p-5 space-y-4" data-animate>
             <div>
                 <label class="label">Date</label>
                 {{ form.date }}

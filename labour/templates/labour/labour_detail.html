@@ -232,7 +232,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 </form>
 
 <!-- Daily table -->
-<div class="app-surface overflow-hidden mb-4">
+<div class="app-surface overflow-hidden mb-4" data-reveal>
     <div class="px-4 md:px-5 py-3.5 border-b border-slate-100">
         <div class="font-bold text-slate-900 text-[15px]">Daily Activity</div>
         <div class="text-[12px] text-slate-500 mt-0.5">Trip shares are split across the group automatically</div>
@@ -296,7 +296,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 </div>
 
 <!-- Per-trip entries grouped by date -->
-<div class="app-surface overflow-hidden mb-4">
+<div class="app-surface overflow-hidden mb-4" data-reveal>
     <div class="px-4 md:px-5 py-3.5 border-b border-slate-100">
         <div class="font-bold text-slate-900 text-[15px]">Daily Activities & Rollup</div>
         <div class="text-[12px] text-slate-500 mt-0.5">Har date ka total trip amount, extra payments aur advances.</div>
@@ -430,7 +430,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 
 <!-- Recent settlements -->
 {% if settlements %}
-<div class="app-surface overflow-hidden">
+<div class="app-surface overflow-hidden" data-reveal>
     <div class="px-4 md:px-5 py-3.5 border-b border-slate-100">
         <div class="font-bold text-slate-900 text-[15px]">Settlements in Range</div>
     </div>

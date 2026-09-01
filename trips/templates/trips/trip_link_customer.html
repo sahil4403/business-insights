@@ -7,7 +7,7 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <div class="max-w-2xl mx-auto px-4 py-8">
     <!-- Inward Summary Card -->
-    <div class="app-surface mb-6 p-5">
+    <div class="app-surface mb-6 p-5" data-animate>
         <h2 class="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
             <svg class="icon-sm text-amber-600"><use href="#i-download"/></svg>
             Inward Trip: {{ inward.trip_code }}
@@ -37,7 +37,7 @@
     </div>
 
     <!-- Link Customer Form -->
-    <div class="app-surface p-5">
+    <div class="app-surface p-5" data-animate>
         <h3 class="text-lg font-bold text-slate-900 mb-4">Create Outward Trip</h3>
 
         <form method="post" class="space-y-4" id="linkForm">

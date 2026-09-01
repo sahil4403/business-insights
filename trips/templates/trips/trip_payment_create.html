@@ -40,7 +40,7 @@
     {% endif %}
 
     <!-- HEADER + TOP ACTIONS (mobile: always visible, away from Safari toolbar) -->
-    <div class="mb-4 md:mb-6">
+    <div class="mb-4 md:mb-6" data-animate>
         <div class="flex items-center justify-between gap-2 flex-wrap">
             <h1 class="text-xl md:text-2xl font-bold text-slate-900">Receive Payment</h1>
             <span class="app-chip active-soft">{{ trip.trip_code }}</span>
@@ -68,7 +68,7 @@
         </div>
     </div>
 
-    <div class="app-surface p-4 md:p-6 payment-form">
+    <div class="app-surface p-4 md:p-6 payment-form" data-animate>
 
             {% if form.non_field_errors %}
                 <div class="mb-4 rounded-xl px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-[13px]">

@@ -30,7 +30,7 @@
 {% block content %}
 
 <!-- PAGE HEADER -->
-<div class="mb-5 md:mb-6">
+<div class="mb-5 md:mb-6" data-animate>
     <div class="hidden md:flex items-center gap-2 mb-5">
         <a href="{% url 'core:customer_report' %}" class="app-chip glass">← Customers</a>
         <a href="{% url 'core:dashboard' %}" class="app-chip glass">Dashboard</a>
@@ -85,7 +85,7 @@
 </div>
 
 <!-- SUMMARY -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" data-reveal>
     <div class="app-stat">
         <div class="flex items-center justify-between gap-1">
             <span class="lbl">Opening</span>
@@ -111,7 +111,7 @@
 
 <!-- MATERIAL SUMMARY: kitna kya liya -->
 {% if material_summary %}
-<div class="app-surface mb-5 overflow-hidden">
+<div class="app-surface mb-5 overflow-hidden" data-reveal>
     <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
         <h2 class="font-bold text-slate-900 text-[15px]">Material Summary</h2>
         <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Kitna kya liya</span>
@@ -134,7 +134,7 @@
 
 <!-- VEHICLE TYPE SUMMARY: kis gaadi se kitna aaya (compact) -->
 {% if vtype_summary %}
-<div class="app-surface mb-5 overflow-hidden">
+<div class="app-surface mb-5 overflow-hidden" data-reveal>
     <div class="px-4 md:px-5 py-2.5 border-b border-slate-100 flex items-center justify-between gap-3">
         <h2 class="font-bold text-slate-900 text-[13px]">Vehicle-wise Summary</h2>
         <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Kis gaadi se kitna</span>
@@ -155,7 +155,7 @@
 {% endif %}
 
 <!-- FILTER -->
-<div class="app-surface mb-5 overflow-hidden">
+<div class="app-surface mb-5 overflow-hidden" data-reveal>
     {% if materials_list %}
     <div class="app-tabs px-3 pt-3 pb-2 border-b border-slate-100">
         <a href="{% url 'ledger:customer_statement' customer.id %}{% if qs_dates %}?{{ qs_dates }}{% endif %}"
@@ -218,7 +218,7 @@
 </div>
 
 <!-- TRANSACTIONS -->
-<div class="app-surface overflow-hidden">
+<div class="app-surface overflow-hidden" data-reveal>
 
     <div class="px-4 md:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-2">
         <h2 class="font-bold text-slate-900 text-[15px] shrink-0">Transactions</h2>

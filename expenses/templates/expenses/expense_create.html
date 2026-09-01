@@ -25,7 +25,7 @@
 {% block content %}
 
     <!-- HEADER -->
-    <div class="mb-5 md:mb-6">
+    <div class="mb-5 md:mb-6" data-animate>
         <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">{{ page_title|default:"Add Expense" }}</h1>
         <p class="text-sm text-slate-500 mt-1">Record a new business expense</p>
     </div>
@@ -46,7 +46,7 @@
             </div>
         {% endif %}
 
-        <div class="app-surface p-5 md:p-6">
+        <div class="app-surface p-5 md:p-6" data-animate>
             <span class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4">Expense Details</span>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
 

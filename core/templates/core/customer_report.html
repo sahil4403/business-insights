@@ -184,7 +184,7 @@
     </div>
 
     <!-- HEADER (mobile: compact) -->
-    <div class="flex items-center justify-between gap-3 mb-2.5 md:mb-7">
+    <div class="flex items-center justify-between gap-3 mb-2.5 md:mb-7" data-animate>
         <div>
             <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900">Customer Report</h1>
             <p class="hidden md:block text-[13px] text-slate-500 mt-1">Customer-wise revenue, payments and outstanding overview</p>
@@ -242,7 +242,7 @@
     {% endif %}
 
     <!-- FILTER CARD -->
-    <div class="app-surface overflow-hidden mb-4 md:mb-6">
+    <div class="app-surface overflow-hidden mb-4 md:mb-6" data-animate>
         <details id="filter-details" class="filter-card">
             <summary class="md:hidden flex items-center justify-between px-4 py-2.5 cursor-pointer">
                 <span class="inline-flex items-center gap-2.5 text-sm font-bold text-slate-800">
@@ -335,7 +335,7 @@
     </div>
 
     <!-- REPORT CARD -->
-    <div class="app-surface overflow-hidden">
+    <div class="app-surface overflow-hidden" data-reveal>
 
         <!-- NAME SORT: A→Z / Z→A (outstanding customers only) -->
         <div id="customerSortBar" class="flex items-center gap-2 px-4 py-2 border-b border-[#f1f5f9] overflow-x-auto">

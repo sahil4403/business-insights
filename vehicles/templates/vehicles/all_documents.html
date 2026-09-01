@@ -5,7 +5,7 @@
 {% block content %}
 
 <!-- HEADER -->
-<div class="mb-4 md:mb-6">
+<div class="mb-4 md:mb-6" data-animate>
     <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
             <a href="{{ back_url }}" class="lq-glass-btn mb-3">← <span class="hidden sm:inline">Back</span></a>
@@ -17,7 +17,7 @@
     </div>
 </div>
 
-<div class="app-surface p-4 md:p-6">
+<div class="app-surface p-4 md:p-6" data-reveal>
     <div class="flex flex-col gap-2.5">
         {% for r in rows %}
             <a href="{% url 'vehicles:documents' r.vehicle.id %}"

@@ -36,7 +36,7 @@
         <input type="hidden" name="next" value="{{ next_url }}">
     {% endif %}
 
-    <div class="mb-4 md:mb-6">
+    <div class="mb-4 md:mb-6" data-animate>
         <div class="flex items-center justify-between gap-2 flex-wrap">
             <h1 class="text-xl md:text-2xl font-bold text-slate-900">Edit Payment</h1>
             <span class="app-chip active-soft">{{ customer.name }}</span>
@@ -47,7 +47,7 @@
         </div>
     </div>
 
-    <div class="app-surface p-4 md:p-6 payment-form">
+    <div class="app-surface p-4 md:p-6 payment-form" data-animate>
 
         <div class="mb-5 flex items-center justify-between gap-3 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
             <span class="text-[13px] text-slate-500">Editing payment</span>

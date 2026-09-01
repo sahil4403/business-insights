@@ -23,10 +23,10 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">{{ page_title }}</h1>
-    <p class="text-sm text-slate-500 mb-4">Tap each labour to enter today's advance. Leave blank to skip.</p>
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1" data-animate>{{ page_title }}</h1>
+    <p class="text-sm text-slate-500 mb-4" data-animate>Tap each labour to enter today's advance. Leave blank to skip.</p>
 
-    <form method="post" class="app-surface p-4 md:p-5 space-y-4">
+    <form method="post" class="app-surface p-4 md:p-5 space-y-4" data-animate>
         {% csrf_token %}
 
         <div>

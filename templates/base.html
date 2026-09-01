@@ -247,7 +247,28 @@
         @media (min-width: 768px) { .lq-bar { display: none; } }
 
         /* ---------- MOTION (progressive enhancement) ---------- */
-        .has-js[data-anim-pending] [data-animate] { opacity: 0; }
+        .has-js[data-anim-pending] [data-animate],
+        .has-js[data-reveal-pending] [data-reveal] { opacity: 0; }
+        .has-js[data-anim-pending] [data-animate] { will-change: opacity, transform; }
+
+        /* ---------- MICRO-INTERACTIONS (tap/hover press feedback) ---------- */
+        @media (hover: none), (pointer: coarse) {
+            .btn:active, .app-chip:active, .app-fab:active,
+            .lq-glass-btn:active, .lq-dropdown-item:active { transform: scale(0.95) !important; }
+            .card:active, .app-surface:active, .app-stat:active,
+            .app-surface.surface-row:active { transform: scale(0.985); }
+        }
+        .pressable, a.pressable, button.pressable { transition: transform .12s ease !important; }
+        .pressable:active { transform: scale(0.96) !important; }
+        .lift { transition: transform .22s cubic-bezier(.22,1,.36,1), box-shadow .22s ease, border-color .22s ease; }
+        .lift:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(15,23,42,.09); }
+        .lift:active { transform: scale(0.98); }
+
+        /* ---------- MODAL SMOOTHNESS ---------- */
+        .anim-modal { animation: modalOverlayIn .18s ease; }
+        .anim-modal > * { animation: modalPanelIn .26s cubic-bezier(.34,1.4,.64,1); }
+        @keyframes modalOverlayIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modalPanelIn { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
         }
@@ -475,27 +496,65 @@
     <script>
         document.documentElement.classList.add('has-js');
 
-        // ---------- MOTION: staggered entrance ----------
+        // ---------- MOTION: staggered entrance + scroll reveal ----------
         (function () {
             var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            var items = document.querySelectorAll('[data-animate]');
-            if (!items.length) return;
             if (!window.Motion || reduced) return; // CSS keeps them visible without JS/motion
 
-            document.documentElement.setAttribute('data-anim-pending', '');
-            var anims = [];
-            items.forEach(function (el, i) {
-                anims.push(Motion.animate(
-                    el,
-                    { opacity: [0, 1], transform: ['translateY(14px)', 'translateY(0px)'] },
-                    { duration: 0.5, delay: Math.min(i * 0.07, 0.42), ease: [0.22, 1, 0.36, 1] }
-                ));
-            });
-            Promise.all(anims.map(function (a) { return a.finished; }))
-                .catch(function () {})
-                .finally(function () { document.documentElement.removeAttribute('data-anim-pending'); });
-            // Safety net: never leave content invisible
-            setTimeout(function () { document.documentElement.removeAttribute('data-anim-pending'); }, 1800);
+            // STAGGERED ENTRANCE [data-animate]
+            var items = document.querySelectorAll('[data-animate]');
+            if (items.length) {
+                document.documentElement.setAttribute('data-anim-pending', '');
+                var anims = [];
+                items.forEach(function (el, i) {
+                    anims.push(Motion.animate(
+                        el,
+                        { opacity: [0, 1], transform: ['translateY(14px)', 'translateY(0px)'] },
+                        { duration: 0.5, delay: Math.min(i * 0.07, 0.42), ease: [0.22, 1, 0.36, 1] }
+                    ));
+                });
+                Promise.all(anims.map(function (a) { return a.finished; }))
+                    .catch(function () {})
+                    .finally(function () { document.documentElement.removeAttribute('data-anim-pending'); });
+                // Safety net: never leave content invisible
+                setTimeout(function () { document.documentElement.removeAttribute('data-anim-pending'); }, 1800);
+            }
+
+            // SCROLL REVEAL [data-reveal] — IntersectionObserver, sirf viewport
+            // ke paas aane par fade-up (long lists/statement ke liye).
+            var reveal = document.querySelectorAll('[data-reveal]');
+            if (reveal.length && 'IntersectionObserver' in window) {
+                document.documentElement.setAttribute('data-reveal-pending', '');
+                var easing = [0.22, 1, 0.36, 1];
+                var io = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (!entry.isIntersecting) return;
+                        var el = entry.target;
+                        io.unobserve(el);
+                        el.setAttribute('data-reveal-done', '');
+                        Motion.animate(el,
+                            { opacity: [0, 1], transform: ['translateY(16px)', 'translateY(0px)'] },
+                            { duration: 0.5, delay: 0, ease: easing }
+                        ).finished.catch(function () {}).finally(function () { el.style.opacity = '1'; el.style.transform = ''; });
+                    });
+                }, { threshold: 0.06, rootMargin: '0px 0px -6% 0px' });
+                reveal.forEach(function (el) { io.observe(el); });
+                // Safety net: koi element already in-view ho aur kabhi animate na
+                // hua ho (layout shift/anchor jump) to turant dikha do. Below-fold
+                // elements waise hi hidden (offscreen) — kuch kabhi invisible nahi rehta.
+                setTimeout(function () {
+                    reveal.forEach(function (el) {
+                        if (el.getAttribute('data-reveal-done')) return;
+                        var r = el.getBoundingClientRect();
+                        if (r.top < window.innerHeight) {
+                            el.style.opacity = '';
+                            el.style.transform = '';
+                            el.setAttribute('data-reveal-done', '');
+                            try { io.unobserve(el); } catch (e) {}
+                        }
+                    });
+                }, 2600);
+            }
         })();
 
         // ---------- ACTIVE NAV HIGHLIGHT ----------

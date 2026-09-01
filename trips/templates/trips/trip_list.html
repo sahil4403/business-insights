@@ -78,7 +78,7 @@
 {% block content %}
 
     <!-- HEADER -->
-    <div class="mb-4 md:mb-6">
+    <div class="mb-4 md:mb-6" data-animate>
         <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
                 <h1 class="text-xl md:text-3xl font-extrabold text-slate-900">
@@ -147,7 +147,7 @@
     </div>
 
     <!-- FILTERS: type chips + advanced filter toggle -->
-    <form method="get" id="tripFiltersForm" class="mb-4 md:mb-5">
+    <form method="get" id="tripFiltersForm" class="mb-4 md:mb-5" data-animate>
         {% if category %}
             <input type="hidden" name="category" value="{{ category }}">
         {% endif %}
@@ -440,7 +440,7 @@
     </form>
 
     <!-- SUMMARY STRIP -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3 mb-4 md:mb-5">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3 mb-4 md:mb-5" data-animate>
         <div class="app-stat">
             <span class="lbl">Total Trips</span>
             <span class="val">{% if summary.is_internal_stock %}{{ summary.total_qty|floatformat:0 }}{% else %}{{ summary.total_count }}{% endif %}</span>
@@ -473,7 +473,7 @@
     </div>
 
     <!-- TRIPS -->
-    <div class="app-surface overflow-hidden">
+    <div class="app-surface overflow-hidden" data-animate>
         <div id="tripsHeader" class="px-4 py-3 md:px-5 md:py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
             <div class="font-bold text-slate-900 text-base">
                 Trips <span class="text-[13px] font-medium text-slate-500">({% if summary.is_internal_stock %}{{ summary.total_qty|floatformat:0 }}{% else %}{{ summary.total_count }}{% endif %} trips)</span>
