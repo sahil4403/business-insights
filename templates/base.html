@@ -511,12 +511,26 @@
                         el,
                         { opacity: [0, 1], transform: ['translateY(14px)', 'translateY(0px)'] },
                         { duration: 0.5, delay: Math.min(i * 0.07, 0.42), ease: [0.22, 1, 0.36, 1] }
-                    ));
+                    ).finished);
                 });
-                Promise.all(anims.map(function (a) { return a.finished; }))
+                // Inline transform/opacity clear — Motion apna final frame (translateY(0px))
+                // .finished ke baad bhi likh sakta hai, jo stacking context chhod deta hai
+                // aur dropdowns/popovers ko siblings ke picchhe le jata hai. Isliye macro-task
+                // + safety net se strike-karo.
+                function clearEntranceStyles() {
+                    items.forEach(function (el) {
+                        el.style.opacity = '1';
+                        el.style.transform = '';
+                    });
+                }
+                Promise.all(anims)
                     .catch(function () {})
-                    .finally(function () { document.documentElement.removeAttribute('data-anim-pending'); });
-                // Safety net: never leave content invisible
+                    .finally(function () {
+                        setTimeout(clearEntranceStyles, 0);
+                        document.documentElement.removeAttribute('data-anim-pending');
+                    });
+                // Safety nets: content kabhi invisible na rahe
+                setTimeout(clearEntranceStyles, 1200);
                 setTimeout(function () { document.documentElement.removeAttribute('data-anim-pending'); }, 1800);
             }
 
