@@ -455,10 +455,10 @@
                     <thead class="sticky top-0 z-10">
                         <tr class="bg-slate-100 text-left whitespace-nowrap">
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Date</th>
-                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Customer</th>
-                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Destination</th>
+                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap" min-w-[120px]">Customer</th>
+                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap" min-w-[100px]">Destination</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Vehicle</th>
-                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Drivers / Labour</th>
+                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap" min-w-[120px]">Drivers / Labour</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Material</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Quantity</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right border-r border-slate-300 whitespace-nowrap">Revenue</th>
@@ -480,12 +480,9 @@
                                         <div class="truncate max-w-[120px] font-bold" title="{{ trip.customer.name }}">{{ trip.customer.name }}</div>
                                     {% endif %}
                                 </td>
-                                <td class="px-1.5 py-2 border-r border-slate-300 whitespace-normal">
-                                    <div class="w-24 whitespace-normal break-words leading-tight">{{ trip.destination|default:"—" }}</div>
-                                </td>
+                                <td class="px-1.5 py-2 border-r border-slate-300 whitespace-normal min-w-[100px] max-w-[140px] break-words">{{ trip.destination|default:"—" }}</td>
                                 <td class="px-1.5 py-2 border-r border-slate-300 whitespace-nowrap">{{ trip.vehicle.registration_number }}</td>
-                                <td class="px-1.5 py-2 text-slate-600 border-r border-slate-300 whitespace-normal">
-                                    <div class="w-28 whitespace-normal break-words leading-tight">
+                                <td class="px-1.5 py-2 text-slate-600 border-r border-slate-300 whitespace-normal min-w-[120px] max-w-[160px] break-words">
                                         {% if trip.drivers.all %}
                                             {% for driver in trip.drivers.all %}
                                                 {{ driver.name }}{% if not forloop.last %}, {% endif %}
@@ -493,8 +490,7 @@
                                         {% else %}
                                             <span class="text-slate-400 italic">—</span>
                                         {% endif %}
-                                    </div>
-                                </td>
+                                    </td>
                                 <td class="px-1.5 py-2 border-r border-slate-300 whitespace-nowrap">{{ trip.material.name }}</td>
                                 <td class="px-1.5 py-2 border-r border-slate-300 whitespace-nowrap">
                                     {% if trip.material.unit == 'PIECE' %}
