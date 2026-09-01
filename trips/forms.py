@@ -182,18 +182,8 @@ class TripForm(forms.ModelForm):
         
         target_driver_names = ['Gaju Bhau', 'Dinesh Bhaiya', 'Santosh Bhaiya', 'Ankush Bhau', 'Kishan Bhau', 'Shubham Bhau']
 
-        # Nitin Prasad: SIRF Crushed Stone material par Driver Allocation me
-        # (naam ka koi bhi variant chale — case/spacing flexible)
-        current_material_name = ''
-        if self.is_bound:
-            _mid = self.data.get('material')
-            if _mid:
-                _m = Material.objects.filter(pk=_mid).first()
-                current_material_name = _m.name if _m else ''
-        elif self.instance and self.instance.pk and self.instance.material_id:
-            current_material_name = self.instance.material.name or ''
-
-        # Nitin Prasad: hamesha queryset mein rahega (Crushed Stone available hone par show hoga via JS)
+        # Nitin Prasad: hamesha queryset mein rahega
+        # (JS syncNitin Vendor + Customer 'Nitin Prasad' par show/hide karta hai)
         target_driver_names = target_driver_names + ['Nitin Prasad']
 
         drivers_qs = Labour.objects.filter(

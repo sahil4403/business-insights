@@ -423,20 +423,15 @@ document.addEventListener("DOMContentLoaded", function() {
         toggleCustomerVisibility();
     }
 
-    // NITIN PRASAD DRIVER: Vendor + Nitin(customer) + HYVA + Crushed Stone
+    // NITIN PRASAD DRIVER: Vendor + Nitin Prasad(customer)
     var driverRowsAll = document.querySelectorAll(".driver-allocation-row");
 
     function nitinVisible() {
         var transType = transTypeSelect ? transTypeSelect.value : "";
         var custText = (custSelect && custSelect.selectedIndex >= 0)
             ? custSelect.options[custSelect.selectedIndex].text.trim().toLowerCase() : "";
-        var vehCat = vehCatSel ? vehCatSel.value.toUpperCase() : "";
-        var matText = (matSel && matSel.selectedIndex >= 0)
-            ? matSel.options[matSel.selectedIndex].text.trim().toLowerCase() : "";
         return (transType === 'VENDOR_SUPPLY' &&
-                custText.indexOf('nitin prasad') !== -1 &&
-                vehCat === 'HYVA' &&
-                matText.indexOf('crushed stone') !== -1);
+                custText.indexOf('nitin prasad') !== -1);
     }
 
     function syncNitin() {
