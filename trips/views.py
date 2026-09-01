@@ -364,6 +364,8 @@ def trip_export(request):
 def trip_list(request):
     trips, filters = _filtered_trips(request)
 
+    customers_list = Customer.objects.filter(is_active=True).order_by('name')
+
     materials_list = Material.objects.filter(is_active=True).order_by('name')
 
     vehicles_list = VehicleType.objects.filter(is_active=True).order_by('name')
@@ -418,6 +420,7 @@ def trip_list(request):
     context = {
         'trips': trips_list,
         'summary': summary,
+        'customers_list': customers_list,
         'materials_list': materials_list,
         'vehicles_list': vehicles_list,
         'destinations_list': destinations_list,

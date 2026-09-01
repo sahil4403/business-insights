@@ -60,6 +60,7 @@
             <input type="hidden" name="category" value="{{ category }}">
         {% endif %}
         <input type="hidden" name="transaction_type" value="{{ selected_transaction_type }}">
+        <input type="hidden" name="customer" value="{{ selected_customer }}">
         <input type="hidden" name="material" value="{{ selected_material }}">
         <input type="hidden" name="vehicle" value="{{ selected_vehicle }}">
         <input type="hidden" name="year" value="{{ selected_year }}">
@@ -150,6 +151,7 @@
             <input type="hidden" name="category" value="{{ category }}">
         {% endif %}
         <input type="hidden" name="transaction_type" value="{{ selected_transaction_type }}">
+        <input type="hidden" name="customer" value="{{ selected_customer }}">
         <input type="hidden" name="material" value="{{ selected_material }}">
         <input type="hidden" name="vehicle" value="{{ selected_vehicle }}">
         <input type="hidden" name="year" value="{{ selected_year }}">
@@ -202,6 +204,25 @@
                 </summary>
                 <div class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[19rem] md:w-[38rem] max-w-[calc(100vw-3rem)] bg-white rounded-2xl border border-slate-200 shadow-xl p-3.5">
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-3.5">
+                        <div>
+                            <label class="label" for="customer">Customer</label>
+                            <select id="customer" name="customer" class="input">
+                                <option value="">
+                                    All Customers
+                                </option>
+                                {% for cust in customers_list %}
+                                    <option
+                                        value="{{ cust.id }}"
+                                        {% if selected_customer == cust.id|stringformat:"i" or selected_customer == cust.id %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ cust.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <div>
                             <label class="label" for="material">Material</label>
                             <select id="material" name="material" class="input">
