@@ -60,9 +60,9 @@
             <input type="hidden" name="category" value="{{ category }}">
         {% endif %}
         <input type="hidden" name="transaction_type" value="{{ selected_transaction_type }}">
-        <input type="hidden" name="customer" value="{{ selected_customer }}">
         <input type="hidden" name="material" value="{{ selected_material }}">
         <input type="hidden" name="vehicle" value="{{ selected_vehicle }}">
+        <input type="hidden" name="sort2" value="{{ selected_sort2 }}">
         <input type="hidden" name="year" value="{{ selected_year }}">
         <input type="hidden" name="month" value="{{ selected_month }}">
         <input type="hidden" name="trip_status" value="{{ selected_trip_status }}">
@@ -151,7 +151,6 @@
             <input type="hidden" name="category" value="{{ category }}">
         {% endif %}
         <input type="hidden" name="transaction_type" value="{{ selected_transaction_type }}">
-        <input type="hidden" name="customer" value="{{ selected_customer }}">
         <input type="hidden" name="material" value="{{ selected_material }}">
         <input type="hidden" name="vehicle" value="{{ selected_vehicle }}">
         <input type="hidden" name="year" value="{{ selected_year }}">
@@ -204,25 +203,6 @@
                 </summary>
                 <div class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[19rem] md:w-[38rem] max-w-[calc(100vw-3rem)] bg-white rounded-2xl border border-slate-200 shadow-xl p-3.5">
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-3.5">
-                        <div>
-                            <label class="label" for="customer">Customer</label>
-                            <select id="customer" name="customer" class="input">
-                                <option value="">
-                                    All Customers
-                                </option>
-                                {% for cust in customers_list %}
-                                    <option
-                                        value="{{ cust.id }}"
-                                        {% if selected_customer == cust.id|stringformat:"i" or selected_customer == cust.id %}
-                                            selected
-                                        {% endif %}
-                                    >
-                                        {{ cust.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
                         <div>
                             <label class="label" for="material">Material</label>
                             <select id="material" name="material" class="input">
@@ -364,8 +344,8 @@
                             </select>
                         </div>
 
-                        <div class="col-span-2">
-                            <label class="label" for="sort">Sort By</label>
+                        <div>
+                            <label class="label" for="sort">Date Order</label>
                             <select id="sort" name="sort" class="input">
                                 <option value="newest" {% if selected_sort == 'newest' or not selected_sort %}selected{% endif %}>
                                     Newest First (Latest upar)
@@ -373,10 +353,19 @@
                                 <option value="oldest" {% if selected_sort == 'oldest' %}selected{% endif %}>
                                     Oldest First (Purani upar)
                                 </option>
-                                <option value="customer_asc" {% if selected_sort == 'customer_asc' %}selected{% endif %}>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label" for="sort2">Customer Order</label>
+                            <select id="sort2" name="sort2" class="input">
+                                <option value="" {% if selected_sort2 != 'a_z' and selected_sort2 != 'z_a' %}selected{% endif %}>
+                                    Default (No Order)
+                                </option>
+                                <option value="a_z" {% if selected_sort2 == 'a_z' %}selected{% endif %}>
                                     Customer (A to Z)
                                 </option>
-                                <option value="customer_desc" {% if selected_sort == 'customer_desc' %}selected{% endif %}>
+                                <option value="z_a" {% if selected_sort2 == 'z_a' %}selected{% endif %}>
                                     Customer (Z to A)
                                 </option>
                             </select>
@@ -482,10 +471,10 @@
                     <thead class="sticky top-0 z-10">
                         <tr class="bg-slate-100 text-left whitespace-nowrap">
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Date</th>
-                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap" min-w-[120px]">Customer</th>
-                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap" min-w-[100px]">Destination</th>
+                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap min-w-[120px]">Customer</th>
+                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap min-w-[100px]">Destination</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Vehicle</th>
-                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap" min-w-[120px]">Drivers / Labour</th>
+                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap min-w-[120px]">Drivers / Labour</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Material</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Quantity</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right border-r border-slate-300 whitespace-nowrap">Revenue</th>
@@ -499,7 +488,7 @@
                     <tbody class="divide-y divide-slate-200">
                         {% for trip in trips %}
                             <tr class="hover:bg-slate-50/60 transition whitespace-nowrap text-[12px]">
-                                <td class="px-1.5 py-2 whitespace-nowrap border-r border-slate-300 whitespace-nowrap">{{ trip.trip_date|date:"d-M-Y" }}</td>
+                                <td class="px-1.5 py-2 whitespace-nowrap border-r border-slate-300">{{ trip.trip_date|date:"d-M-Y" }}</td>
                                 <td class="px-1.5 py-2 border-r border-slate-300 whitespace-nowrap">
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                         <span class="text-slate-500 font-semibold italic">📦 Internal Stock</span>
@@ -528,9 +517,9 @@
                                         {{ trip.quantity }}
                                     {% endif %}
                                 </td>
-                                <td class="px-1.5 py-2 text-right font-semibold whitespace-nowrap border-r border-slate-300 whitespace-nowrap">₹{{ trip.total_amount|floatformat:2 }}</td>
-                                <td class="px-1.5 py-2 text-right font-semibold whitespace-nowrap text-emerald-700 border-r border-slate-300 whitespace-nowrap">₹{{ trip.total_received|floatformat:2 }}</td>
-                                <td class="px-1.5 py-2 text-right font-semibold whitespace-nowrap {% if trip.outstanding_amount > 0 %}text-red-600{% endif %} border-r border-slate-300 whitespace-nowrap">₹{{ trip.outstanding_amount|floatformat:2 }}</td>
+                                <td class="px-1.5 py-2 text-right font-semibold whitespace-nowrap border-r border-slate-300">₹{{ trip.total_amount|floatformat:2 }}</td>
+                                <td class="px-1.5 py-2 text-right font-semibold whitespace-nowrap text-emerald-700 border-r border-slate-300">₹{{ trip.total_received|floatformat:2 }}</td>
+                                <td class="px-1.5 py-2 text-right font-semibold whitespace-nowrap {% if trip.outstanding_amount > 0 %}text-red-600{% endif %} border-r border-slate-300">₹{{ trip.outstanding_amount|floatformat:2 }}</td>
                                 <td class="px-1.5 py-2 border-r border-slate-300 whitespace-nowrap">
                                     {% if trip.trip_status == 'PLANNED' %}
                                         <span class="inline-block px-1.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-800">Planned</span>
@@ -553,7 +542,7 @@
                                         <span class="inline-block px-1.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">Paid</span>
                                     {% endif %}
                                 </td>
-                                <td class="px-1.5 py-2 whitespace-nowrap border-r border-slate-300 whitespace-nowrap">
+                                <td class="px-1.5 py-2 whitespace-nowrap border-r border-slate-300">
                                     <a href="{% url 'trips:detail' trip.id %}"
                                        class="inline-flex h-7 px-1.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[11px] items-center gap-1 transition active:scale-[0.98]">
                                         View

@@ -163,17 +163,20 @@ def _filtered_trips(request):
 
     # SORT ORDER
     sort = request.GET.get('sort', '').strip().lower()
-    if sort not in ('newest', 'oldest', 'customer_asc', 'customer_desc'):
+    if sort not in ('newest', 'oldest'):
         sort = 'newest'
-        
     if sort == 'oldest':
         trips = trips.order_by('trip_date', 'id')
-    elif sort == 'customer_asc':
-        trips = trips.order_by('customer__name', '-trip_date', '-id')
-    elif sort == 'customer_desc':
-        trips = trips.order_by('-customer__name', '-trip_date', '-id')
     else:
         trips = trips.order_by('-trip_date', '-id')
+
+    sort2 = request.GET.get('sort2', '').strip().lower()
+    if sort2 not in ('a_z', 'z_a'):
+        sort2 = ''
+    if sort2 == 'a_z':
+        trips = trips.order_by('customer__name', '-trip_date', '-id')
+    elif sort2 == 'z_a':
+        trips = trips.order_by('-customer__name', '-trip_date', '-id')
 
     filters = {
         'search': search,
@@ -190,6 +193,7 @@ def _filtered_trips(request):
         'to_date': to_date,
         'category': category,
         'selected_sort': sort,
+        'selected_sort2': sort2,
     }
     return trips, filters
 
@@ -369,8 +373,6 @@ def trip_export(request):
 def trip_list(request):
     trips, filters = _filtered_trips(request)
 
-    customers_list = Customer.objects.filter(is_active=True).order_by('name')
-
     materials_list = Material.objects.filter(is_active=True).order_by('name')
 
     vehicles_list = VehicleType.objects.filter(is_active=True).order_by('name')
@@ -425,7 +427,6 @@ def trip_list(request):
     context = {
         'trips': trips_list,
         'summary': summary,
-        'customers_list': customers_list,
         'materials_list': materials_list,
         'vehicles_list': vehicles_list,
         'destinations_list': destinations_list,
