@@ -374,9 +374,36 @@
     </div>
 </div>
 
+<!-- CREATE SUCCESS POPUP -->
+<div id="created_modal" style="display:none;" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6 md:p-4">
+    <div style="width: 100%; max-width: 400px;" class="bg-white rounded-2xl p-5 md:p-6 shadow-2xl border border-slate-200 text-center">
+        <div class="text-5xl mb-3">✅</div>
+        <h3 class="mt-0 text-lg font-bold" style="color: #16665a;">Trip Has Been Created!</h3>
+        <p class="text-slate-500 text-sm mt-1 mb-5">Your new trip was added successfully.</p>
+        <button type="button" onclick="closeCreatedModal()" class="btn btn-primary w-full">OK</button>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
+<script>
+// ============ CREATE SUCCESS POPUP (trip banti hi ?created=1 par dikhta hai) ============
+function closeCreatedModal() {
+    var m = document.getElementById('created_modal');
+    if (m) m.style.display = 'none';
+    // URL se ?created=1 hata do — refresh par dobara popup na aaye
+    if (window.history && window.history.replaceState) {
+        var url = window.location.pathname + window.location.search.replace(/([?&])created=1?(&|$)/, function (a, b, c) { return c === '&' ? (b === '?' ? '?' : '&') : ''; }).replace(/[?&]$/, '');
+        window.history.replaceState({}, document.title, url);
+    }
+}
+document.addEventListener('DOMContentLoaded', function () {
+    var params = new URLSearchParams(window.location.search);
+    var m = document.getElementById('created_modal');
+    if (params.get('created') === '1' && m) m.style.display = 'flex';
+});
+</script>
 <script>
 // ============ CUSTOMER TYPE-AHEAD (type -> suggestions -> click select) ============
 (function () {

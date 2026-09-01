@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.db.models.deletion import ProtectedError
 from django.http import HttpResponse
@@ -507,7 +508,7 @@ def trip_create(request):
             if request.POST.get('save_and_view_statement') == '1' and trip.customer:
                 return redirect('ledger:customer_statement', customer_id=trip.customer.id)
 
-            return redirect('trips:create')
+            return redirect(f"{reverse('trips:create')}?created=1")
         else:
             err_list = [f"{field}: {', '.join(errs)}" for field, errs in form.errors.items()]
             messages.error(request, f"Failed to create trip: {'; '.join(err_list)}")
