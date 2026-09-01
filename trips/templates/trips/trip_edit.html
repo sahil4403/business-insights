@@ -468,6 +468,138 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 <script>
+    // ============ VENDOR DRIVER ROW: '<Customer> Driver' (vendor ka apna driver) ============
+    // Vendor type + customer select -> allocation mein virtual row dikhti hai taaki
+    // user driver select kar sake. Row check hogi toh sirf tabhi '<Customer> Driver'
+    // naam ka Labour server par banega (get_or_create) aur trip se link hoga.
+    (function () {
+        var ttSel = document.getElementById('id_transaction_type');
+        var custSel2 = document.getElementById('id_customer');
+        var box = document.getElementById('driver_allocation_box');
+        if (!ttSel || !custSel2 || !box) return;
+
+        function customerText() {
+            if (!custSel2 || custSel2.selectedIndex < 0) return '';
+            var t = custSel2.options[custSel2.selectedIndex].text;
+            return (t || '').trim();
+        }
+
+        var virtRow = null;
+        var virtChk = null;
+        var virtCount = null;
+        var nameHidden = null;
+        var countHidden = null;
+
+        function buildRow(driverName) {
+            if (!box) return null;
+            if (virtRow) {
+                virtRow.innerHTML = '';
+                if (nameHidden) nameHidden.value = '';
+                if (countHidden) countHidden.value = '';
+                return virtRow;
+            }
+            var row = document.createElement('div');
+            row.className = 'driver-allocation-row flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-2.5 rounded-xl bg-white border border-slate-200';
+            row.setAttribute('data-driver-name', driverName.toLowerCase());
+            row.style.borderColor = '#fcd34d';
+            row.style.background = '#fffbeb';
+            var label = document.createElement('label');
+            label.className = 'flex items-center gap-2.5 text-sm font-semibold text-amber-700 cursor-pointer';
+            label.style.margin = '0';
+            var chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.className = 'driver-checkbox vendor-driver-checkbox h-5 w-5 shrink-0 cursor-pointer';
+            chk.style.accentColor = '#b45309';
+            var span = document.createElement('span');
+            var countWrap = document.createElement('div');
+            countWrap.className = 'driver-count-wrap flex items-center justify-between sm:justify-end gap-2';
+            var lbl2 = document.createElement('span');
+            lbl2.className = 'text-[13px] text-slate-500';
+            lbl2.textContent = 'Trips Done:';
+            var cnt = document.createElement('input');
+            cnt.type = 'number';
+            cnt.name = 'vendor_driver_count';
+            cnt.className = 'driver-count-input w-20 h-10 px-2 rounded-lg border border-slate-300 text-center text-sm font-semibold text-brand-600';
+            cnt.min = '1';
+            cnt.step = '1';
+            cnt.placeholder = 'e.g. 3';
+            cnt.disabled = true;
+            var lbl3 = document.createElement('span');
+            lbl3.className = 'text-[13px] font-semibold text-slate-600';
+            lbl3.textContent = 'Trips';
+            countWrap.appendChild(lbl2);
+            countWrap.appendChild(cnt);
+            countWrap.appendChild(lbl3);
+
+            chk.addEventListener('change', function () {
+                if (chk.checked) {
+                    cnt.disabled = false;
+                    countWrap.style.opacity = '1';
+                    countWrap.style.pointerEvents = 'auto';
+                    if (nameHidden) nameHidden.value = driverName;
+                    if (!cnt.value) cnt.focus();
+                } else {
+                    cnt.disabled = true;
+                    countWrap.style.opacity = '0.4';
+                    countWrap.style.pointerEvents = 'none';
+                    if (nameHidden) nameHidden.value = '';
+                    if (countHidden) countHidden.value = '';
+                }
+                if (window.syncDriverTripCountSum) syncDriverTripCountSum();
+            });
+            cnt.addEventListener('input', function () {
+                if (countHidden) countHidden.value = cnt.value;
+                if (window.syncDriverTripCountSum) syncDriverTripCountSum();
+            });
+
+            label.appendChild(chk);
+            label.appendChild(span);
+            row.appendChild(label);
+            row.appendChild(countWrap);
+
+            virtRow = row;
+            virtChk = chk;
+            virtCount = cnt;
+            return row;
+        }
+
+        function refresh() {
+            var isVendor = ttSel.value === 'VENDOR_SUPPLY';
+            var custName = customerText();
+            if (isVendor && custName && custName !== '---------') {
+                var driverName = custName + ' Driver';
+                var row = buildRow(driverName);
+                var span = row.querySelector('span');
+                if (span) span.textContent = driverName;
+                if (!row.parentNode) box.appendChild(row);
+                row.style.display = 'flex';
+            } else {
+                if (virtRow) {
+                    if (virtChk) virtChk.checked = false;
+                    if (virtChk) virtChk.dispatchEvent(new Event('change'));
+                    virtRow.style.display = 'none';
+                }
+            }
+        }
+
+        // Hidden inputs jo form ke saath submit hote hain
+        nameHidden = document.createElement('input');
+        nameHidden.type = 'hidden';
+        nameHidden.name = 'vendor_driver_name';
+        nameHidden.value = '';
+        countHidden = document.createElement('input');
+        countHidden.type = 'hidden';
+        countHidden.name = 'vendor_driver_count';
+        countHidden.value = '';
+        box.parentNode.appendChild(nameHidden);
+        box.parentNode.appendChild(countHidden);
+
+        ttSel.addEventListener('change', function () { setTimeout(refresh, 0); });
+        custSel2.addEventListener('change', refresh);
+        refresh();
+    })();
+</script>
+<script>
     const driversSelect = document.getElementById("id_drivers");
     const driverRows = document.querySelectorAll(".driver-allocation-row");
     const quantityInput = document.getElementById("id_quantity");

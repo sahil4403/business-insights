@@ -186,10 +186,22 @@ class TripForm(forms.ModelForm):
         # (JS syncNitin Vendor + Customer 'Nitin Prasad' par show/hide karta hai)
         target_driver_names = target_driver_names + ['Nitin Prasad']
 
-        drivers_qs = Labour.objects.filter(
-            Q(name__in=target_driver_names, is_active=True, status='ACTIVE')
-            | Q(name__icontains='nitin prasad', is_active=True, status='ACTIVE')
-        )
+        _driver_q = Q(
+            name__in=target_driver_names, is_active=True, status='ACTIVE'
+        ) | Q(name__icontains='nitin prasad', is_active=True, status='ACTIVE')
+
+        # VENDOR_SUPPLY: vendor ka apna driver hamare DB mein nahi hota — customer ke
+        # naam par "<Customer> Driver" Labour banaya jata hai. Use bhi allow karo.
+        _cust_id = str(self.data.get('customer') or '').strip() if self.is_bound else ''
+        if (self.data.get('transaction_type') == 'VENDOR_SUPPLY' if self.is_bound else False) and _cust_id:
+            _cust = Customer.objects.filter(pk=_cust_id).first()
+            if _cust:
+                _driver_q = _driver_q | Q(
+                    name__iexact=f"{_cust.name} Driver".strip(),
+                    is_active=True, status='ACTIVE'
+                )
+
+        drivers_qs = Labour.objects.filter(_driver_q)
 
         # Edit mode: Vehicle Type dropdown ko trip ke actual category par set karo,
         # warna edit page par hamesha HYVA dikhta hai aur driver filter galat chalta hai.

@@ -468,10 +468,49 @@ def trip_list(request):
     )
 from django.contrib import messages
 
+def _ensure_vendor_driver(data):
+    """VENDOR_SUPPLY: '<customer> Driver' naam ka Labour ensure karo.
+
+    Vendor ka driver hamare DB mein nahi hota — par form driver maangta hai.
+    User ne allocation mein '<Customer> Driver' wali virtual row check ki ho
+    (vendor_driver_name post hua) tabhi labour ko get_or_create karke link karo.
+    Returns (driver_name_or_None, labour_id_or_None).
+    """
+    vendor_name = (data.get('vendor_driver_name') or '').strip()
+    if not vendor_name:
+        return None, None
+    if data.get('transaction_type') != 'VENDOR_SUPPLY':
+        return None, None
+    labour, _ = Labour.objects.get_or_create(
+        name__iexact=vendor_name,
+        defaults={
+            'name': vendor_name,
+            'category': 'HYVA_DRIVER',
+            'is_active': True,
+            'status': 'ACTIVE',
+            'is_driver': True,
+        },
+    )
+    return vendor_name, labour.pk
+
 @login_required(login_url='/login/')
 def trip_create(request):
     if request.method == 'POST':
-        form = TripForm(request.POST)
+        data = request.POST.copy()
+
+        # VENDOR_SUPPLY: vendor ka apna driver hamare DB mein nahi hota.
+        # User jaise customer select karta hai, waise "<Customer> Driver" name ka
+        # Labour driver allocate hota hai (get_or_create — dobara mat banao).
+        _vendor_name, _labour_id = _ensure_vendor_driver(data)
+        if _labour_id:
+            if 'drivers' in data:
+                data.setlist('drivers', data.getlist('drivers') + [str(_labour_id)])
+            else:
+                data['drivers'] = str(_labour_id)
+            if (data.get('vendor_driver_count') or '').strip():
+                data[f'driver_count_{_labour_id}'] = data.get('vendor_driver_count').strip()
+
+        form = TripForm(data)
         if form.is_valid():
             trip = form.save()
 
@@ -479,8 +518,8 @@ def trip_create(request):
             driver_counts = {}
             for d in trip.drivers.all():
                 param_name = f'driver_count_{d.id}'
-                if param_name in request.POST:
-                    val = request.POST.get(param_name, '').strip()
+                if param_name in data:
+                    val = data.get(param_name, '').strip()
                     if val:
                         try:
                             driver_counts[str(d.id)] = float(val) if '.' in val else int(val)
@@ -545,8 +584,22 @@ def trip_edit(request, trip_id):
     )
 
     if request.method == 'POST':
+        data = request.POST.copy()
+
+        # VENDOR_SUPPLY: vendor ka apna driver hamare DB mein nahi hota.
+        # User jaise customer select karta hai, waise "<Customer> Driver" name ka
+        # Labour driver allocate hota hai (get_or_create — dobara mat banao).
+        _vendor_name, _labour_id = _ensure_vendor_driver(data)
+        if _labour_id:
+            if 'drivers' in data:
+                data.setlist('drivers', data.getlist('drivers') + [str(_labour_id)])
+            else:
+                data['drivers'] = str(_labour_id)
+            if (data.get('vendor_driver_count') or '').strip():
+                data[f'driver_count_{_labour_id}'] = data.get('vendor_driver_count').strip()
+
         form = TripForm(
-            request.POST,
+            data,
             instance=trip
         )
         if form.is_valid():
@@ -556,8 +609,8 @@ def trip_edit(request, trip_id):
             driver_counts = {}
             for d in trip.drivers.all():
                 param_name = f'driver_count_{d.id}'
-                if param_name in request.POST:
-                    val = request.POST.get(param_name, '').strip()
+                if param_name in data:
+                    val = data.get(param_name, '').strip()
                     if val:
                         try:
                             driver_counts[str(d.id)] = float(val) if '.' in val else int(val)
