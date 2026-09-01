@@ -454,7 +454,6 @@
                 <table class="w-full min-w-[1050px] text-xs">
                     <thead class="sticky top-0 z-10">
                         <tr class="bg-slate-100 text-left whitespace-nowrap">
-                            <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Trip</th>
                             <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Date</th>
                             <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Customer</th>
                             <th class="px-2.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Destination</th>
@@ -473,11 +472,6 @@
                     <tbody class="divide-y divide-slate-200">
                         {% for trip in trips %}
                             <tr class="hover:bg-slate-50/60 transition whitespace-nowrap text-[12px]">
-                                <td class="px-2.5 py-2 whitespace-nowrap border-r border-slate-300 whitespace-nowrap">
-                                    <a href="{% url 'trips:detail' trip.id %}" class="font-bold text-brand-600 hover:underline">
-                                        {{ trip.trip_code }}
-                                    </a>
-                                </td>
                                 <td class="px-2.5 py-2 whitespace-nowrap border-r border-slate-300 whitespace-nowrap">{{ trip.trip_date|date:"d-M-Y" }}</td>
                                 <td class="px-2.5 py-2 border-r border-slate-300 whitespace-nowrap">
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
