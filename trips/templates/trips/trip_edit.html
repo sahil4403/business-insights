@@ -489,18 +489,13 @@ document.addEventListener("DOMContentLoaded", function() {
         var virtCount = null;
         var nameHidden = null;
         var countHidden = null;
+        var currentName = '';
 
-        function buildRow(driverName) {
-            if (!box) return null;
-            if (virtRow) {
-                virtRow.innerHTML = '';
-                if (nameHidden) nameHidden.value = '';
-                if (countHidden) countHidden.value = '';
-                return virtRow;
-            }
+        function buildRow() {
+            if (virtRow) return virtRow;
             var row = document.createElement('div');
             row.className = 'driver-allocation-row flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-2.5 rounded-xl bg-white border border-slate-200';
-            row.setAttribute('data-driver-name', driverName.toLowerCase());
+            row.setAttribute('data-driver-name', 'vendor');
             row.style.borderColor = '#fcd34d';
             row.style.background = '#fffbeb';
             var label = document.createElement('label');
@@ -511,6 +506,7 @@ document.addEventListener("DOMContentLoaded", function() {
             chk.className = 'driver-checkbox vendor-driver-checkbox h-5 w-5 shrink-0 cursor-pointer';
             chk.style.accentColor = '#b45309';
             var span = document.createElement('span');
+            span.className = 'vendor-driver-name';
             var countWrap = document.createElement('div');
             countWrap.className = 'driver-count-wrap flex items-center justify-between sm:justify-end gap-2';
             var lbl2 = document.createElement('span');
@@ -536,7 +532,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     cnt.disabled = false;
                     countWrap.style.opacity = '1';
                     countWrap.style.pointerEvents = 'auto';
-                    if (nameHidden) nameHidden.value = driverName;
+                    if (nameHidden) nameHidden.value = currentName;
                     if (!cnt.value) cnt.focus();
                 } else {
                     cnt.disabled = true;
@@ -567,17 +563,20 @@ document.addEventListener("DOMContentLoaded", function() {
             var isVendor = ttSel.value === 'VENDOR_SUPPLY';
             var custName = customerText();
             if (isVendor && custName && custName !== '---------') {
-                var driverName = custName + ' Driver';
-                var row = buildRow(driverName);
-                var span = row.querySelector('span');
-                if (span) span.textContent = driverName;
+                currentName = custName + ' Driver';
+                var row = buildRow();
+                var nameEl = row.querySelector('.vendor-driver-name');
+                if (nameEl) nameEl.textContent = currentName;
+                row.setAttribute('data-driver-name', currentName.toLowerCase());
+                if (nameHidden) nameHidden.value = (virtChk && virtChk.checked) ? currentName : '';
                 if (!row.parentNode) box.appendChild(row);
                 row.style.display = 'flex';
             } else {
                 if (virtRow) {
                     if (virtChk) virtChk.checked = false;
-                    if (virtChk) virtChk.dispatchEvent(new Event('change'));
                     virtRow.style.display = 'none';
+                    if (nameHidden) nameHidden.value = '';
+                    if (countHidden) countHidden.value = '';
                 }
             }
         }
