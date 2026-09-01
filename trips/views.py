@@ -485,10 +485,7 @@ def trip_create(request):
             if request.POST.get('save_and_view_statement') == '1' and trip.customer:
                 return redirect('ledger:customer_statement', customer_id=trip.customer.id)
 
-            return redirect(
-                'trips:detail',
-                trip_id=trip.id
-            )
+            return redirect('trips:create')
         else:
             err_list = [f"{field}: {', '.join(errs)}" for field, errs in form.errors.items()]
             messages.error(request, f"Failed to create trip: {'; '.join(err_list)}")
@@ -552,13 +549,9 @@ def trip_edit(request, trip_id):
             if request.POST.get('save_and_view_statement') == '1' and trip.customer:
                 return redirect('ledger:customer_statement', customer_id=trip.customer.id)
 
-            # Jahan se aaya tha (statement/detail) wahin wapas — ?next= chain
-            nxt = request.POST.get('next') or request.GET.get('next')
-            if nxt and nxt.startswith('/') and not nxt.startswith('//'):
-                return redirect(nxt)
-
-            # Default: trip detail page
-            return redirect('trips:detail', trip_id=trip.id)
+            # Create pattern jaisa: save ke baad edit page par hi fresh load (success message),
+            # aur page ka Back button Home Dashboard par le jaata hai.
+            return redirect('trips:edit', trip_id=trip.id)
         else:
             # Invalid save — page wapas edit par dikhega (errors ke saath).
             # Log me exact reason capture karo taaki diagnose easy ho.

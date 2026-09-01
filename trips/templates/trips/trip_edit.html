@@ -57,6 +57,17 @@
 </style>
 {% endblock %}
 
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'core:dashboard' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50"
+       onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
+        ← Back
+    </a>
+    <span class="text-xs font-bold text-brand-600">Edit Trip</span>
+</div>
+{% endblock %}
+
 {% block content %}
     <style>
         /* MOBILE FIT: koi horizontal overflow nahi
@@ -68,6 +79,11 @@
 
 <!-- HEADER -->
 <div class="mb-4 md:mb-8">
+    <a href="{% url 'core:dashboard' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50 w-fit mb-3"
+       onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;">
+        ← Back
+    </a>
     <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
             <h1 class="text-xl md:text-3xl font-bold text-slate-900">Edit Trip</h1>
