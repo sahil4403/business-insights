@@ -545,7 +545,7 @@
                         if (!entry.isIntersecting) return;
                         var el = entry.target;
                         io.unobserve(el);
-                        el.setAttribute('data-reveal-done', '');
+                        el.setAttribute('data-reveal-done', '1');
                         Motion.animate(el,
                             { opacity: [0, 1], transform: ['translateY(16px)', 'translateY(0px)'] },
                             { duration: 0.5, delay: 0, ease: easing }
@@ -554,16 +554,18 @@
                 }, { threshold: 0.06, rootMargin: '0px 0px -6% 0px' });
                 reveal.forEach(function (el) { io.observe(el); });
                 // Safety net: koi element already in-view ho aur kabhi animate na
-                // hua ho (layout shift/anchor jump) to turant dikha do. Below-fold
+                // hua ho (layout shift/anchor jump) to turant dikha do. data-reveal-done
+                // truthy rkha hai taaki done elements yahan skip ho jayen aur wapas
+                // opacity:0 (CSS pending rule) ke under na chale jayen. Below-fold
                 // elements waise hi hidden (offscreen) — kuch kabhi invisible nahi rehta.
                 setTimeout(function () {
                     reveal.forEach(function (el) {
                         if (el.getAttribute('data-reveal-done')) return;
                         var r = el.getBoundingClientRect();
                         if (r.top < window.innerHeight) {
-                            el.style.opacity = '';
+                            el.style.opacity = '1';
                             el.style.transform = '';
-                            el.setAttribute('data-reveal-done', '');
+                            el.setAttribute('data-reveal-done', '1');
                             try { io.unobserve(el); } catch (e) {}
                         }
                     });
