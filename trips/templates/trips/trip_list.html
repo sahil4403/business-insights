@@ -63,6 +63,7 @@
         <input type="hidden" name="material" value="{{ selected_material }}">
         <input type="hidden" name="vehicle" value="{{ selected_vehicle }}">
         <input type="hidden" name="sort2" value="{{ selected_sort2 }}">
+        <input type="hidden" name="customer" value="{{ selected_customer }}">
         <input type="hidden" name="year" value="{{ selected_year }}">
         <input type="hidden" name="month" value="{{ selected_month }}">
         <input type="hidden" name="trip_status" value="{{ selected_trip_status }}">
@@ -156,6 +157,7 @@
         <input type="hidden" name="year" value="{{ selected_year }}">
         <input type="hidden" name="month" value="{{ selected_month }}">
         <input type="hidden" name="trip_status" value="{{ selected_trip_status }}">
+        <input type="hidden" name="customer" value="{{ selected_customer }}">
         <input type="hidden" name="payment_status" id="payment_status_input" value="{{ selected_payment_status }}">
 
         <!-- SEARCH BAR: always visible (mobile + desktop) -->
@@ -203,6 +205,30 @@
                 </summary>
                 <div class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[19rem] md:w-[38rem] max-w-[calc(100vw-3rem)] bg-white rounded-2xl border border-slate-200 shadow-xl p-3.5">
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-3.5">
+                        <div class="col-span-2 md:col-span-3 relative">
+                            <label class="label" for="customer_typeahead">Customer</label>
+                            <div class="relative">
+                                <input type="text" id="customer_typeahead"
+                                       placeholder="🔍 Type customer name..."
+                                       autocomplete="off"
+                                       class="input">
+                                <div id="customer_typeahead_list"
+                                     style="display:none; position:absolute; top:100%; left:0; right:0; z-index:50; max-height:240px; overflow-y:auto; background:#fff; border:1px solid #e2e8f0; border-radius:0.75rem; box-shadow:0 10px 25px rgba(15,23,42,.12);"></div>
+                            </div>
+                            <div style="display:none;">
+                                <select id="customer" name="customer" class="input">
+                                    {% for customer in customers_list %}
+                                        <option value="{{ customer.id }}"
+                                            {% if selected_customer == customer.id|stringformat:"i" or selected_customer == customer.id %}
+                                                selected
+                                            {% endif %}>
+                                            {{ customer.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
                         <div>
                             <label class="label" for="material">Material</label>
                             <select id="material" name="material" class="input">
@@ -944,7 +970,7 @@ function toggleDateSort() {
             if (!form || !badge) return;
 
             let count = 0;
-            ['search', 'material', 'vehicle', 'year', 'month', 'trip_status', 'payment_status', 'destination', 'driver', 'from_date', 'to_date'].forEach(function(name) {
+            ['search', 'material', 'vehicle', 'year', 'month', 'trip_status', 'payment_status', 'destination', 'driver', 'customer', 'from_date', 'to_date'].forEach(function(name) {
                 const el = form.elements[name];
                 if (el && el.value && el.value.trim() !== '') count++;
             });
@@ -953,6 +979,70 @@ function toggleDateSort() {
 
             badge.textContent = count > 0 ? (count + ' active') : 'All';
         });
+    </script>
+
+    <script>
+        // ============ CUSTOMER TYPEAHEAD FILTER (create-trip jaisa) ============
+        (function () {
+            const custSelect = document.getElementById('customer');
+            const searchInput = document.getElementById('customer_typeahead');
+            const sugBox = document.getElementById('customer_typeahead_list');
+            const form = document.getElementById('tripFiltersForm');
+            if (!custSelect || !searchInput || !sugBox || !form) return;
+
+            const allOptions = Array.prototype.filter.call(custSelect.options, function (o) { return o.value; });
+
+            // Edit/selected state: pehle se chuna customer ka naam dikhao
+            if (custSelect.value) {
+                const sel = custSelect.options[custSelect.selectedIndex];
+                if (sel) searchInput.value = sel.text;
+            }
+
+            function setSelected(value, text) {
+                custSelect.value = value;
+                searchInput.value = text;
+                sugBox.style.display = 'none';
+            }
+
+            function renderSuggestions(q) {
+                q = (q || '').trim().toLowerCase();
+                sugBox.innerHTML = '';
+                const matches = allOptions.filter(function (o) {
+                    return o.text.toLowerCase().indexOf(q) !== -1;
+                }).slice(0, 8);
+
+                if (!matches.length) {
+                    sugBox.innerHTML = '<div style="padding:10px 14px; font-size:13px; color:#94a3b8;">Koi customer nahi mila</div>';
+                } else {
+                    matches.forEach(function (o) {
+                        const div = document.createElement('div');
+                        div.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:14px; font-weight:600; color:#0f172a; border-bottom:1px solid #f1f5f9;';
+                        div.textContent = o.text;
+                        div.addEventListener('mouseenter', function () { div.style.background = '#f0fdf9'; });
+                        div.addEventListener('mouseleave', function () { div.style.background = '#fff'; });
+                        div.addEventListener('mousedown', function (e) {
+                            e.preventDefault();
+                            setSelected(o.value, o.text);
+                        });
+                        sugBox.appendChild(div);
+                    });
+                }
+                sugBox.style.display = 'block';
+            }
+
+            searchInput.addEventListener('input', function () { renderSuggestions(this.value); });
+            searchInput.addEventListener('focus', function () { renderSuggestions(searchInput.value); });
+            document.addEventListener('click', function (e) {
+                if (e.target !== searchInput && !sugBox.contains(e.target)) sugBox.style.display = 'none';
+            });
+
+            // Clear filter jab box khaali kar dein
+            searchInput.addEventListener('input', function () {
+                if (this.value.trim() === '' && custSelect.value) {
+                    custSelect.value = '';
+                }
+            });
+        })();
     </script>
 
     <script>

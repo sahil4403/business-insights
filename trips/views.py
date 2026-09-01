@@ -135,6 +135,10 @@ def _filtered_trips(request):
     if driver_id:
         trips = trips.filter(drivers__id=driver_id).distinct()
 
+    customer_id = request.GET.get('customer', '').strip()
+    if customer_id and customer_id.isdigit():
+        trips = trips.filter(customer_id=int(customer_id))
+
     transaction_type = request.GET.get('transaction_type', 'ALL').strip()
 
     if transaction_type == 'CUSTOMER_DELIVERY':
@@ -187,6 +191,7 @@ def _filtered_trips(request):
         'selected_vehicle': vehicle_type_code,
         'selected_destination': destination,
         'selected_driver': driver_id,
+        'selected_customer': customer_id,
         'selected_year': year,
         'selected_month': month,
         'from_date': from_date,
@@ -387,6 +392,8 @@ def trip_list(request):
 
     drivers_list = Labour.objects.filter(is_active=True).order_by('name')
 
+    customers_list = Customer.objects.all().order_by('name')
+
     available_years = list(
         Trip.objects.annotate(y=ExtractYear('trip_date'))
         .values_list('y', flat=True)
@@ -431,6 +438,7 @@ def trip_list(request):
         'vehicles_list': vehicles_list,
         'destinations_list': destinations_list,
         'drivers_list': drivers_list,
+        'customers_list': customers_list,
         'available_years': available_years,
         'month_choices': month_choices,
         'trip_status_choices': Trip.TRIP_STATUS_CHOICES,
