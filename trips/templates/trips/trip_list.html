@@ -480,7 +480,7 @@
                                         <div class="truncate max-w-[120px] font-bold" title="{{ trip.customer.name }}">{{ trip.customer.name }}</div>
                                     {% endif %}
                                 </td>
-                                <td class="px-1.5 py-2 border-r border-slate-300 whitespace-nowrap"><div class="truncate max-w-[100px]" title="{{ trip.destination|default:\'\' }}">{{ trip.destination|default:"—" }}</div></td>
+                                <td class="px-1.5 py-2 border-r border-slate-300 whitespace-nowrap"><div class="truncate max-w-[100px]" title="{{ trip.destination|default:'' }}">{{ trip.destination|default:"—" }}</div></td>
                                 <td class="px-1.5 py-2 border-r border-slate-300 whitespace-nowrap">{{ trip.vehicle.registration_number }}</td>
                                 <td class="px-1.5 py-2 text-slate-600 border-r border-slate-300 whitespace-nowrap">
                                     <div class="truncate max-w-[110px]" title="Drivers">
