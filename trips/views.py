@@ -161,12 +161,17 @@ def _filtered_trips(request):
     if to_date:
         trips = trips.filter(trip_date__lte=to_date)
 
-    # DATE ORDER: newest (default, latest upar) / oldest (purani trips upar)
+    # SORT ORDER
     sort = request.GET.get('sort', '').strip().lower()
-    if sort not in ('newest', 'oldest'):
+    if sort not in ('newest', 'oldest', 'customer_asc', 'customer_desc'):
         sort = 'newest'
+        
     if sort == 'oldest':
         trips = trips.order_by('trip_date', 'id')
+    elif sort == 'customer_asc':
+        trips = trips.order_by('customer__name', '-trip_date', '-id')
+    elif sort == 'customer_desc':
+        trips = trips.order_by('-customer__name', '-trip_date', '-id')
     else:
         trips = trips.order_by('-trip_date', '-id')
 

@@ -365,13 +365,19 @@
                         </div>
 
                         <div class="col-span-2">
-                            <label class="label" for="sort">Date Order</label>
+                            <label class="label" for="sort">Sort By</label>
                             <select id="sort" name="sort" class="input">
-                                <option value="newest" {% if selected_sort != 'oldest' %}selected{% endif %}>
+                                <option value="newest" {% if selected_sort == 'newest' or not selected_sort %}selected{% endif %}>
                                     Newest First (Latest upar)
                                 </option>
                                 <option value="oldest" {% if selected_sort == 'oldest' %}selected{% endif %}>
                                     Oldest First (Purani upar)
+                                </option>
+                                <option value="customer_asc" {% if selected_sort == 'customer_asc' %}selected{% endif %}>
+                                    Customer (A to Z)
+                                </option>
+                                <option value="customer_desc" {% if selected_sort == 'customer_desc' %}selected{% endif %}>
+                                    Customer (Z to A)
                                 </option>
                             </select>
                         </div>
