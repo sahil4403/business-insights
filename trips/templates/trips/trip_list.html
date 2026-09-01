@@ -480,16 +480,20 @@
                                         <div class="truncate max-w-[150px] font-bold" title="{{ trip.customer.name }}">{{ trip.customer.name }}</div>
                                     {% endif %}
                                 </td>
-                                <td class="px-2.5 py-2 border-r border-slate-300 whitespace-normal min-w-[120px]">{{ trip.destination|default:"—" }}</td>
+                                <td class="px-2.5 py-2 border-r border-slate-300">
+                                    <div class="w-[110px] whitespace-normal break-words leading-tight">{{ trip.destination|default:"—" }}</div>
+                                </td>
                                 <td class="px-2.5 py-2 border-r border-slate-300 whitespace-nowrap">{{ trip.vehicle.registration_number }}</td>
-                                <td class="px-2.5 py-2 text-slate-600 border-r border-slate-300 whitespace-normal min-w-[140px]">
-                                    {% if trip.drivers.all %}
-                                        {% for driver in trip.drivers.all %}
-                                            {{ driver.name }}{% if not forloop.last %}, {% endif %}
-                                        {% endfor %}
-                                    {% else %}
-                                        <span class="text-slate-400 italic">—</span>
-                                    {% endif %}
+                                <td class="px-2.5 py-2 text-slate-600 border-r border-slate-300">
+                                    <div class="w-[130px] whitespace-normal break-words leading-tight">
+                                        {% if trip.drivers.all %}
+                                            {% for driver in trip.drivers.all %}
+                                                {{ driver.name }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-slate-400 italic">—</span>
+                                        {% endif %}
+                                    </div>
                                 </td>
                                 <td class="px-2.5 py-2 border-r border-slate-300 whitespace-nowrap">{{ trip.material.name }}</td>
                                 <td class="px-2.5 py-2 border-r border-slate-300 whitespace-nowrap">
