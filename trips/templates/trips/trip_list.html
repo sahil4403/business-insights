@@ -217,6 +217,7 @@
                             </div>
                             <div style="display:none;">
                                 <select id="customer" name="customer" class="input">
+                                    <option value="">All Customers</option>
                                     {% for customer in customers_list %}
                                         <option value="{{ customer.id }}"
                                             {% if selected_customer == customer.id|stringformat:"i" or selected_customer == customer.id %}
