@@ -72,4 +72,18 @@
         {% endif %}
     </form>
 </div>
+
+{% if request.GET.saved %}
+<div id="adv-saved-pop" class="anim-modal" style="position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(15,23,42,.45); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
+    <div class="app-surface w-full max-w-xs p-6 text-center shadow-2xl" style="border-radius: 1.1rem;">
+        <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-100 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width: 1.6rem; height: 1.6rem;"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h2 class="text-lg font-extrabold text-slate-900 mb-1">Quick Advances Ho Gaye</h2>
+        <p class="text-sm text-slate-500 mb-5">{{ request.GET.saved }} advance{% if request.GET.saved|add:0 != 1 %}s{% endif %} saved for today.</p>
+        <button type="button" onclick="this.closest('#adv-saved-pop').remove()" class="btn btn-primary w-full">OK ✓</button>
+    </div>
+</div>
+<script>(function(){var p=document.getElementById('adv-saved-pop');if(p){p.addEventListener('click',function(e){if(e.target===p)p.remove();});}})();</script>
+{% endif %}
 {% endblock %}
