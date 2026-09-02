@@ -105,7 +105,7 @@
                class="hidden md:inline-flex items-center gap-1.5 mb-2 text-[13px] font-bold text-slate-500 hover:text-brand-600 no-underline">← Back to Labour</a>
             <h1 class="text-xl md:text-3xl font-extrabold text-slate-900 truncate">{{ labour.name }}</h1>
             <p class="text-sm text-slate-500 mt-1">
-                {% if labour.is_driver and labour.category != 'HYVA_DRIVER' %}🚗 Driver &nbsp;·&nbsp;{% endif %}
+                {% if labour.is_driver and not labour.is_vendor %}🚗 Driver &nbsp;·&nbsp;{% endif %}
                 {{ cat_icon }} {{ labour.get_category_display }} · Per-trip settlement
             </p>
         </div>
@@ -167,7 +167,7 @@
     {% if labour.category == 'TRACTOR' %}
         <a href="{% url 'labour:advance_multi' %}?category=TRACTOR" class="qa glass">⚡ Quick Advance</a>
     {% endif %}
-    {% if labour.is_driver and labour.category != 'HYVA_DRIVER' %}
+    {% if labour.is_driver and not labour.is_vendor %}
         <a href="{% url 'labour:driver_add_for' labour.id %}" class="qa glass">🚗 Driver</a>
     {% endif %}
 </div>
