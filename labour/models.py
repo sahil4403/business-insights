@@ -72,6 +72,13 @@ class Labour(models.Model):
         help_text="Mark if this labour also gets Driver Payment"
     )
 
+    is_vendor = models.BooleanField(
+        default=False,
+        help_text="Auto-created placeholder for a vendor's own driver "
+                  "(<Customer> Driver). Hidden from daily labour lists so "
+                  "no advances/payments are tracked for it."
+    )
+
     base_daily_rate = models.DecimalField(
         max_digits=10,
         decimal_places=2,

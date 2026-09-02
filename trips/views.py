@@ -402,7 +402,7 @@ def trip_list(request):
         .order_by('destination')
     )
 
-    drivers_list = Labour.objects.filter(is_active=True).order_by('name')
+    drivers_list = Labour.objects.filter(is_active=True).exclude(is_vendor=True).order_by('name')
 
     # SMART suggestions: sirf wahi customers jo abhi ke filters ke andar trips rakhte hain
     customers_list = Customer.objects.filter(
@@ -489,8 +489,12 @@ def _ensure_vendor_driver(data):
             'is_active': True,
             'status': 'ACTIVE',
             'is_driver': True,
+            'is_vendor': True,
         },
     )
+    if not labour.is_vendor:
+        labour.is_vendor = True
+        labour.save(update_fields=['is_vendor', 'updated_at'])
     return vendor_name, labour.pk
 
 @login_required(login_url='/login/')

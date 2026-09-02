@@ -139,7 +139,7 @@ def _day_aggregates_for_labour(labour, period_start, period_end):
 def labour_list(request):
     category_filter = request.GET.get('category', '')
 
-    labours_qs = Labour.objects.filter(is_active=True).order_by('name')
+    labours_qs = Labour.objects.filter(is_active=True).exclude(is_vendor=True).order_by('name')
 
     # Pre-compute outstanding per labour
     ob_map = {ob.labour_id: ob.amount for ob in LabourOldBalance.objects.all()}
@@ -378,7 +378,7 @@ def labour_category_detail(request, category_code):
         messages.info(request, 'Invalid category.')
         return redirect('labour:list')
 
-    labours_qs = Labour.objects.filter(is_active=True, category=category_code).order_by('name')
+    labours_qs = Labour.objects.filter(is_active=True, category=category_code).exclude(is_vendor=True).order_by('name')
     ob_map = {ob.labour_id: ob.amount for ob in LabourOldBalance.objects.all()}
     today = timezone.localdate()
     month_start = today.replace(day=1)
@@ -392,7 +392,7 @@ def labour_category_detail(request, category_code):
         })
 
     # Quick-switch tabs metadata
-    all_labours = Labour.objects.filter(is_active=True)
+    all_labours = Labour.objects.filter(is_active=True).exclude(is_vendor=True)
     categories_meta = [
         {
             'code': code,
@@ -1343,9 +1343,9 @@ def rozi_multi(request):
     if category_filter:
         labours = list(Labour.objects.filter(
             is_active=True, category=category_filter
-        ).order_by('name'))
+        ).exclude(is_vendor=True).order_by('name'))
     else:
-        labours = list(Labour.objects.filter(is_active=True).order_by('name'))
+        labours = list(Labour.objects.filter(is_active=True).exclude(is_vendor=True).order_by('name'))
 
     existing = {
         rz.labour_id: rz
@@ -1420,9 +1420,9 @@ def advance_multi(request):
     if category_filter:
         labours = list(Labour.objects.filter(
             is_active=True, category=category_filter
-        ).order_by('name'))
+        ).exclude(is_vendor=True).order_by('name'))
     else:
-        labours = list(Labour.objects.filter(is_active=True).order_by('name'))
+        labours = list(Labour.objects.filter(is_active=True).exclude(is_vendor=True).order_by('name'))
     # Existing advances for selected_date, to pre-fill
     existing = {
         a.labour_id: a
@@ -1727,7 +1727,7 @@ def labour_book(request):
 
     export = request.GET.get('export')
 
-    labours = list(Labour.objects.filter(is_active=True).order_by('name'))
+    labours = list(Labour.objects.filter(is_active=True).exclude(is_vendor=True).order_by('name'))
     statements = [
         _labour_statement_for_period(labour, period_start, period_end)
         for labour in labours
@@ -1749,7 +1749,7 @@ def _labour_summary_data(period_start, period_end):
     period_start = period_start or timezone.localdate().replace(day=1)
     period_end = period_end or timezone.localdate()
 
-    labours = list(Labour.objects.filter(is_active=True).order_by('name'))
+    labours = list(Labour.objects.filter(is_active=True).exclude(is_vendor=True).order_by('name'))
 
     # Aggregate per labour using the same statement builder as detail/book
     per_labour = []

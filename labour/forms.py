@@ -114,7 +114,7 @@ class LabourTripGroupForm(forms.ModelForm):
             'class': 'labour-multiselect',
             'size': 6,
         })
-        qs = Labour.objects.filter(is_active=True)
+        qs = Labour.objects.filter(is_active=True).exclude(is_vendor=True)
         if category:
             qs = qs.filter(category=category)
         if keep_labourers:
@@ -166,7 +166,7 @@ class LabourHyvaTripForm(forms.Form):
         self.fields['date'].initial = timezone.localdate()
         self.fields['labourers'].queryset = Labour.objects.filter(
             category='HYVA_DRIVER', is_active=True
-        ).order_by('name')
+        ).exclude(is_vendor=True).order_by('name')
 
 
 class LabourExtraPaymentForm(forms.ModelForm):
@@ -191,7 +191,7 @@ class LabourExtraPaymentForm(forms.ModelForm):
     def __init__(self, *args, labour=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['date'].initial = timezone.localdate()
-        self.fields['labour'].queryset = Labour.objects.filter(is_active=True).order_by('name')
+        self.fields['labour'].queryset = Labour.objects.filter(is_active=True).exclude(is_vendor=True).order_by('name')
         if labour is not None:
             self.fields['labour'].initial = labour
             self.fields['labour'].disabled = True
@@ -220,7 +220,7 @@ class LabourAdvanceForm(forms.ModelForm):
     def __init__(self, *args, labour=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['date'].initial = timezone.localdate()
-        self.fields['labour'].queryset = Labour.objects.filter(is_active=True).order_by('name')
+        self.fields['labour'].queryset = Labour.objects.filter(is_active=True).exclude(is_vendor=True).order_by('name')
         if labour is not None:
             self.fields['labour'].initial = labour
             self.fields['labour'].disabled = True
@@ -260,7 +260,7 @@ class LabourDriverPaymentForm(forms.ModelForm):
         self.fields['period_end'].initial = today
         # period start default = first of current month
         self.fields['period_start'].initial = today.replace(day=1)
-        self.fields['labour'].queryset = Labour.objects.filter(is_driver=True, is_active=True).order_by('name')
+        self.fields['labour'].queryset = Labour.objects.filter(is_driver=True, is_active=True).exclude(is_vendor=True).order_by('name')
         if labour is not None:
             self.fields['labour'].initial = labour
 
@@ -329,7 +329,7 @@ class LabourRoziForm(forms.ModelForm):
     def __init__(self, *args, labour=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['date'].initial = timezone.localdate()
-        self.fields['labour'].queryset = Labour.objects.filter(is_active=True).order_by('name')
+        self.fields['labour'].queryset = Labour.objects.filter(is_active=True).exclude(is_vendor=True).order_by('name')
         if labour is not None:
             self.fields['labour'].initial = labour
             self.fields['labour'].disabled = True
