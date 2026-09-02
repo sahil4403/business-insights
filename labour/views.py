@@ -1007,7 +1007,11 @@ def trip_group_edit(request, group_id):
                 request,
                 f'Trip entry updated · {obj.trip_count} trips · ₹{obj.total_amount}.',
             )
-            return redirect('labour:list')
+            first_labour = obj.labourers.order_by('id').first()
+            qs = (f'?saved=1&lines=1&trips={obj.trip_count}'
+                  f'&total={obj.total_amount}&bhatta=0&labourers={obj.labourers.count()}')
+            target = first_labour.id if first_labour else 1
+            return redirect(f"{reverse('labour:detail', args=[target])}{qs}")
     else:
         form = LabourTripGroupForm(instance=group,
                                    category=category, keep_labourers=existing_ids)
