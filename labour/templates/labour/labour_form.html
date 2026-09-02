@@ -70,6 +70,7 @@
     function toggle(){
         var isMistri = catSel.value === 'MISTRI';
         var isHyva = catSel.value === 'HYVA_DRIVER';
+        var isTractor = catSel.value === 'TRACTOR';
         subBlock.classList.toggle('hidden', !isMistri);
         subSel.disabled = !isMistri;
         if (isHyva) {
@@ -77,6 +78,11 @@
             rateBlock.classList.add('hidden');
             if (driverBlock) driverBlock.classList.add('hidden');
             if (driverBox) { driverBox.checked = true; driverBox.disabled = false; }
+        } else if (isTractor) {
+            // Tractor wages are per-trip — no full/half day rozi rate.
+            rateBlock.classList.add('hidden');
+            if (driverBlock) driverBlock.classList.remove('hidden');
+            if (driverBox) driverBox.disabled = false;
         } else {
             rateBlock.classList.remove('hidden');
             if (driverBlock) driverBlock.classList.remove('hidden');
