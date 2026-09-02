@@ -929,7 +929,13 @@ def hyva_trip_edit(request, group_id):
                 + '.',
             )
             target_labour = group.labourers.first() or (labourers[0] if labourers else None)
-            return redirect('labour:detail', labour_id=target_labour.id if target_labour else 1)
+            qs = '?saved=1'
+            qs += f'&lines={len(rows)}'
+            qs += f'&trips={total_trips}'
+            qs += f'&total={total}'
+            qs += f'&bhatta=1' if bhatta else '&bhatta=0'
+            qs += f'&labourers={len(labourer_ids)}' if labourer_ids else ''
+            return redirect(f"{reverse('labour:detail', args=[target_labour.id if target_labour else 1])}{qs}")
 
         context = {
             'form': form,

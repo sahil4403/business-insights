@@ -189,6 +189,25 @@ document.getElementById('coming-soon').addEventListener('click', function(e) { i
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeComingSoon(); });
 </script>
 
+{% if request.GET.saved %}
+<div id="edit-saved-pop" class="anim-modal" style="position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(15,23,42,.45); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
+    <div class="app-surface w-full max-w-sm p-6 text-center rounded-2xl">
+        <div class="text-4xl mb-3">✅</div>
+        <h2 class="text-xl font-extrabold text-slate-900 mb-1">Edit Mein Changes Ho Gaye!</h2>
+        <p class="text-sm text-slate-500 mb-4">Hyva entry update ho gayi hai. Jo badla wo:</p>
+        <div class="text-left text-[13px] bg-slate-50 border border-slate-200 rounded-xl p-3 mb-5 space-y-1.5 text-slate-700">
+            <div class="flex justify-between"><span class="text-slate-500">Load lines</span><b>{{ request.GET.lines }}</b></div>
+            <div class="flex justify-between"><span class="text-slate-500">Total trips</span><b>{{ request.GET.trips }}</b></div>
+            <div class="flex justify-between"><span class="text-slate-500">Working labours</span><b>{{ request.GET.labourers|default:"-" }}</b></div>
+            <div class="flex justify-between"><span class="text-slate-500">Total amount</span><b>₹{{ request.GET.total }}</b></div>
+            <div class="flex justify-between"><span class="text-slate-500">Bhatta / Rozi</span><b>{% if request.GET.bhatta == '1' %}On{% else %}Off{% endif %}</b></div>
+        </div>
+        <button type="button" onclick="this.closest('#edit-saved-pop').remove()" class="app-chip h-10 px-6 w-full">OK ✓</button>
+    </div>
+</div>
+<script>(function(){var p=document.getElementById('edit-saved-pop');if(p){p.addEventListener('click',function(e){if(e.target===p)p.remove();});}})();</script>
+{% endif %}
+
 
 <!-- Set outstanding -->
 <details class="app-surface glass-panel p-3 md:p-4 mb-4" data-animate>
