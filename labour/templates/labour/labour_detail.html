@@ -315,11 +315,18 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 </div>
 
 <!-- Per-trip entries grouped by date -->
-<div class="app-surface overflow-hidden mb-4" data-reveal>
-    <div class="px-4 md:px-5 py-3.5 border-b border-slate-100">
-        <div class="font-bold text-slate-900 text-[15px]">Daily Activities & Rollup</div>
-        <div class="text-[12px] text-slate-500 mt-0.5">Har date ka total trip amount, extra payments aur advances.</div>
-    </div>
+<details class="app-surface overflow-hidden mb-4 group labour-rollup" data-reveal open>
+    <summary class="px-4 md:px-5 py-3.5 border-b border-slate-100 cursor-pointer select-none flex items-center justify-between gap-2">
+        <div>
+            <div class="font-bold text-slate-900 text-[15px]">Daily Activities & Rollup</div>
+            <div class="text-[12px] text-slate-500 mt-0.5">Har date ka total trip amount, extra payments aur advances.</div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <span class="rollup-show text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide">Show</span>
+            <span class="rollup-hide hidden text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide">Hide</span>
+            <span class="rollup-chev text-slate-400 text-xs transition-transform">▼</span>
+        </div>
+    </summary>
 
     {% if trip_groups_by_date %}
         <div class="divide-y divide-slate-100 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar">
@@ -398,7 +405,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
     {% else %}
         <div class="py-12 text-center text-slate-500 text-sm">Is date range me koi trip entry nahi.</div>
     {% endif %}
-</div>
+</details>
 
 <!-- Summary block (mirrors Excel layout) -->
 <details class="mb-4 app-surface rounded-xl overflow-hidden group" data-animate>
@@ -499,5 +506,25 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
     {% endfor %}
 </div>
 {% endif %}
+
+{% block scripts %}
+<script>
+(function () {
+    document.querySelectorAll('.labour-rollup').forEach(function (d) {
+        var showEl = d.querySelector('.rollup-show');
+        var hideEl = d.querySelector('.rollup-hide');
+        var chev = d.querySelector('.rollup-chev');
+        function sync() {
+            var open = d.open;
+            if (showEl) showEl.classList.toggle('hidden', open);
+            if (hideEl) hideEl.classList.toggle('hidden', !open);
+            if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
+        }
+        d.addEventListener('toggle', sync);
+        sync();
+    });
+})();
+</script>
+{% endblock %}
 
 {% endblock %}
