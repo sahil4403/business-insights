@@ -619,12 +619,19 @@
         // (browser restores the frozen snapshot via bfcache — overlay hides on
         // pageshow but the disabled button + text need an explicit reset).
         function stripSaving() {
-            var no = document.getElementById('nav-overlay');
-            if (no) no.classList.remove('on');
-            var plo = document.getElementById('page-loader-overlay');
-            if (plo) plo.classList.remove('active');
-            var bar = document.getElementById('page-loader');
-            if (bar) { bar.className = ''; bar.style.width = '0'; }
+            // Skip page-loader-overlay removal if min-visible window active
+            // (loader ko at least 280ms dikhne do chahe page instant load ho)
+            var ts = 0;
+            try { ts = parseInt(sessionStorage.getItem('__navLoaderStart') || '0', 10); } catch(e){}
+            var skipLoader = ts && Date.now() - ts < 5000;
+            if (!skipLoader) {
+                var no = document.getElementById('nav-overlay');
+                if (no) no.classList.remove('on');
+                var plo = document.getElementById('page-loader-overlay');
+                if (plo) plo.classList.remove('active');
+                var bar = document.getElementById('page-loader');
+                if (bar) { bar.className = ''; bar.style.width = '0'; }
+            }
             document.querySelectorAll('form[data-submitting="1"]').forEach(function (form) {
                 const btn = form.querySelector('button[type="submit"], input[type="submit"]');
                 if (btn) {
@@ -695,15 +702,40 @@
             overlay.innerHTML = '<div id="page-loader-spinner"></div>';
             document.body.appendChild(overlay);
 
+            var MIN_VISIBLE = 280; // loader at least itni ms dikhega, chahe page instant load ho (prefetch/bfcache)
+            var startTs = 0;
+            var NAV_KEY = '__navLoaderStart';
             function reset() {
+                var ts = startTs || parseInt(sessionStorage.getItem(NAV_KEY) || '0', 10);
+                if (ts && Date.now() - ts < 5000 && Date.now() - ts < MIN_VISIBLE) {
+                    setTimeout(reset, MIN_VISIBLE - (Date.now() - ts) + 20);
+                    return;
+                }
                 bar.className = ''; bar.style.width = '0';
                 overlay.classList.remove('active');
+                startTs = 0;
+                sessionStorage.removeItem(NAV_KEY);
             }
             function start() {
+                var now = Date.now();
+                startTs = now;
+                try { sessionStorage.setItem(NAV_KEY, String(now)); } catch (e) {}
                 bar.className = 'active'; bar.style.width = '35%';
                 overlay.classList.add('active');
                 setTimeout(function () { if (bar.className === 'active') bar.style.width = '70%'; }, 300);
             }
+            // Agar pichle page se navigation abhi aaya hai aur min-visible time
+            // baaki hai, to destination page par bhi loader dikhao. Slow
+            // network par bhi loader dikhe — isliye "recent" window 5s rakha.
+            (function () {
+                try {
+                    var ts = parseInt(sessionStorage.getItem(NAV_KEY) || '0', 10);
+                    if (ts && Date.now() - ts < 5000) {
+                        bar.className = 'active'; bar.style.width = '35%';
+                        overlay.classList.add('active');
+                    }
+                } catch (e) {}
+            })();
             window.addEventListener('load', reset);
             window.addEventListener('pageshow', reset);
 
