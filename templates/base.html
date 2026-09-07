@@ -30,20 +30,38 @@
         /* PAGE LOADER OVERLAY + TOP BAR */
         #page-loader-overlay {
             position: fixed; inset: 0; z-index: 99999;
-            background: rgba(255,255,255,0.75);
-            backdrop-filter: blur(2px);
-            display: none; align-items: center; justify-content: center;
+            background: rgba(15,23,42,0.55);
+            backdrop-filter: blur(3px);
+            display: none; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
             pointer-events: none;
+            color: #fff;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
-        #page-loader-overlay.active { display: flex; }
+        #page-loader-overlay.active {
+            display: flex;
+            animation: pageLoaderShow 0.5s ease-out;
+        }
         #page-loader-spinner {
-            width: 36px; height: 36px;
-            border: 3px solid #e2e8f0;
-            border-top-color: #16665a;
+            width: 48px; height: 48px;
+            border: 4px solid rgba(255,255,255,0.25);
+            border-top-color: #fff;
             border-radius: 50%;
             animation: spin .6s linear infinite;
         }
+        #page-loader-overlay.active #page-loader-spinner {
+            animation: spin .6s linear infinite, pageLoaderPulse 1s ease-in-out infinite;
+        }
+        @keyframes pageLoaderShow { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pageLoaderPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
         @keyframes spin { to { transform: rotate(360deg); } }
+        #page-loader-label {
+            font-size: 13px; font-weight: 800; letter-spacing: 0.08em;
+            text-transform: uppercase; color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
         #page-loader { position: fixed !important; top: 0 !important; left: 0 !important; height: 3px; width: 0;
             background: linear-gradient(90deg, #16665a, #2ab39b);
             z-index: 99999; opacity: 0; pointer-events: none;
@@ -620,7 +638,7 @@
         // pageshow but the disabled button + text need an explicit reset).
         function stripSaving() {
             // Skip page-loader-overlay removal if min-visible window active
-            // (loader ko at least 280ms dikhne do chahe page instant load ho)
+            // (loader ko at least 500ms dikhne do chahe page instant load ho)
             var ts = 0;
             try { ts = parseInt(sessionStorage.getItem('__navLoaderStart') || '0', 10); } catch(e){}
             var skipLoader = ts && Date.now() - ts < 5000;
@@ -699,10 +717,10 @@
             // Create full-screen overlay with spinner
             var overlay = document.createElement('div');
             overlay.id = 'page-loader-overlay';
-            overlay.innerHTML = '<div id="page-loader-spinner"></div>';
+            overlay.innerHTML = '<div id="page-loader-spinner"></div><div id="page-loader-label">Loading…</div>';
             document.body.appendChild(overlay);
 
-            var MIN_VISIBLE = 280; // loader at least itni ms dikhega, chahe page instant load ho (prefetch/bfcache)
+            var MIN_VISIBLE = 500; // loader at least itni ms dikhega, chahe page instant load ho (prefetch/bfcache)
             var startTs = 0;
             var NAV_KEY = '__navLoaderStart';
             function reset() {
