@@ -27,37 +27,25 @@
         .tabbar-link:active, .nav-link:active, .app-chip:active { opacity: .65; }
 
         /* PAGE LOADER BAR + BUSY BUTTONS */
-        /* PAGE LOADER OVERLAY + TOP BAR */
+        /* PAGE LOADER OVERLAY + TOP BAR — nav-overlay jaisa hi style rakha
+           taaki saare loading screens consistent dikhen */
         #page-loader-overlay {
-            position: fixed; inset: 0; z-index: 99999;
-            background: rgba(15,23,42,0.55);
-            backdrop-filter: blur(3px);
-            display: none; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
-            pointer-events: none;
-            color: #fff;
-            font-weight: 700;
-            font-size: 13px;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
+            position: fixed; inset: 0; z-index: 2147483000;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(245,247,250,.42);
+            -webkit-backdrop-filter: blur(7px) saturate(120%);
+            backdrop-filter: blur(7px) saturate(120%);
+            opacity: 0; pointer-events: none;
+            transition: opacity .18s ease;
         }
-        #page-loader-overlay.active {
-            display: flex;
-            opacity: 1;
-        }
+        #page-loader-overlay.active { opacity: 1; pointer-events: auto; }
         #page-loader-spinner {
-            width: 48px; height: 48px;
-            border: 4px solid rgba(255,255,255,0.25);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin .6s linear infinite, pageLoaderPulse 1s ease-in-out infinite;
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 4px solid rgba(22,102,90,.16);
+            border-top-color: #16665a;
+            animation: navspin .8s linear infinite;
         }
-        @keyframes pageLoaderPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        #page-loader-label {
-            font-size: 13px; font-weight: 800; letter-spacing: 0.08em;
-            text-transform: uppercase; color: #fff;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
+        @keyframes navspin { to { transform: rotate(360deg); } }
         #page-loader { position: fixed !important; top: 0 !important; left: 0 !important; height: 3px; width: 0;
             background: linear-gradient(90deg, #16665a, #2ab39b);
             z-index: 99999; opacity: 0; pointer-events: none;
@@ -710,10 +698,10 @@
             bar.id = 'page-loader';
             document.body.appendChild(bar);
 
-            // Create full-screen overlay with spinner
+            // Create full-screen overlay with spinner (nav-overlay jaisa)
             var overlay = document.createElement('div');
             overlay.id = 'page-loader-overlay';
-            overlay.innerHTML = '<div id="page-loader-spinner"></div><div id="page-loader-label">Loading…</div>';
+            overlay.innerHTML = '<div id="page-loader-spinner"></div>';
             document.body.appendChild(overlay);
 
             var MIN_VISIBLE = 500; // loader at least itni ms dikhega, chahe page instant load ho (prefetch/bfcache)
