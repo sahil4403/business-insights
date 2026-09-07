@@ -467,12 +467,18 @@ class LabourTripGroup(models.Model):
         ('FLYASH_HYVA', 'Fly Ash Hyva'),
         ('HALFTON_WHITE', 'Halfton White'),
         ('HALFTON_FLYASH', 'Halfton Fly Ash'),
+        ('CRUSHED_HALFTON', 'Crushed Stone Halfton'),
+        ('BHARRAN_HYVA', 'Bharran Hyva'),
+        ('BHARRAN_HALFTON', 'Bharran Halfton'),
     ]
     HYVA_LOAD_RATES = {
         'WHITE_HYVA': '200',
         'FLYASH_HYVA': '100',
         'HALFTON_WHITE': '100',
         'HALFTON_FLYASH': '100',
+        'CRUSHED_HALFTON': '100',
+        'BHARRAN_HYVA': '100',
+        'BHARRAN_HALFTON': '100',
     }
     load_type = models.CharField(
         max_length=20,
