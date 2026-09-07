@@ -2575,17 +2575,20 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                 extra = extra_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
                 advance = advance_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
                 desc = g.load_label or 'Tractor Trip'
-                grand = g.total_amount + extra + advance
+                # Is labour ke share ka amount dikhao (group ka full amount NAHI).
+                n = g.labourers.count() or 1
+                share = g.total_amount / n
+                grand = share + extra + advance
                 ws.cell(row=rr, column=1, value=d.strftime('%d-%b-%Y'))
                 ws.cell(row=rr, column=2, value=desc)
                 ws.cell(row=rr, column=3, value=g.trip_count)
                 ws.cell(row=rr, column=4, value=float(g.rate_per_trip)).number_format = '#,##0'
-                ws.cell(row=rr, column=5, value=float(g.total_amount)).number_format = '#,##0'
+                ws.cell(row=rr, column=5, value=float(share)).number_format = '#,##0'
                 ws.cell(row=rr, column=6, value=float(extra)).number_format = '#,##0'
                 ws.cell(row=rr, column=7, value=float(advance)).number_format = '#,##0'
                 ws.cell(row=rr, column=8, value=float(grand)).font = _F(bold=True)
                 ws.cell(row=rr, column=8).number_format = '#,##0'
-                trip_total += g.total_amount
+                trip_total += share
                 rr += 1
 
         # Show extra/advance-only days (days with no trip entry)
@@ -2809,13 +2812,16 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                 desc = (g.load_label or 'Tractor Trip')
                 if labour.category == 'HYVA_DRIVER':
                     desc = 'Hyva' + (f' ({g.load_label})' if g.load_label else '')
-                grand = g.total_amount + extra + advance
+                # Is labour ke share ka amount dikhao (group ka full amount NAHI).
+                n = g.labourers.count() or 1
+                share = g.total_amount / n
+                grand = share + extra + advance
                 entries_data.append([
                     Paragraph(d.strftime('%d-%b-%Y'), styles['body']),
                     Paragraph(desc, styles['body']),
                     Paragraph(str(g.trip_count), styles['body_r']),
                     Paragraph(f"₹{g.rate_per_trip:,.2f}", styles['body_r']),
-                    Paragraph(f"₹{g.total_amount:,.2f}", styles['body_r']),
+                    Paragraph(f"₹{share:,.2f}", styles['body_r']),
                     Paragraph(f"₹{extra:,.2f}", styles['body_r']),
                     Paragraph(f"₹{advance:,.2f}", styles['body_r']),
                     Paragraph(f"<b>₹{grand:,.2f}</b>", styles['body_r']),
