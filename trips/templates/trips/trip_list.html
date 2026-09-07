@@ -748,6 +748,19 @@
             setTimeout(function () { ov.classList.remove('on'); }, 8000);
         }
 
+        // Download ke baad overlay zor se hide karo. Attachment response par
+        // browser download karta hai aur window 'load'/'pageshow' fire NAHI
+        // hote, isliye base.html ka auto-reset kabhi nahi chalta — warna
+        // loading screen hamesha atki rehti hai.
+        function hidePageLoader() {
+            var pl = document.getElementById('page-loader-overlay');
+            if (pl) pl.classList.remove('active');
+            var tb = document.getElementById('page-loader');
+            if (tb) { tb.className = ''; tb.style.width = '0'; }
+            var ov = document.getElementById('nav-overlay');
+            if (ov) ov.classList.remove('on');
+        }
+
         // Transaction type chips
         document.querySelectorAll('.chip-type').forEach(function (chip) {
             chip.addEventListener('click', function () {
@@ -855,6 +868,9 @@ function downloadExport(qs) {
     const query = qs !== undefined && qs !== '' ? qs : buildExportQuery('');
     showNavLoader();
     window.location.href = "{% url 'trips:export' %}" + (query ? '?' + query : '');
+    // Attachment download par page navigate nahi hota → load event nahi →
+    // overlay khud hatana padta hai. Failsafe: thodi der baad hide.
+    setTimeout(hidePageLoader, 3000);
 }
 
 function downloadExportCsv() {
@@ -862,6 +878,7 @@ function downloadExportCsv() {
     const query = buildExportQuery('');
     showNavLoader();
     window.location.href = "{% url 'trips:export' %}?format=csv" + (query ? '&' + query : '');
+    setTimeout(hidePageLoader, 3000);
 }
 
         // QUICK DATE-SORT: chip tap -> select flip -> filters apply
