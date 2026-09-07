@@ -221,7 +221,10 @@ document.querySelectorAll('.cat-tile').forEach(function (tile) {
             openComingSoon();
             return;
         }
-        window.location.href = href;
+        // Loader dikhao, thodi der baad navigate karo
+        if (typeof window.__navLoading === 'function') window.__navLoading();
+        if (window.__showPageLoader) window.__showPageLoader();
+        setTimeout(function () { window.location.href = href; }, 380);
     });
 });
 </script>

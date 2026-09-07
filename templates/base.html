@@ -42,19 +42,15 @@
         }
         #page-loader-overlay.active {
             display: flex;
-            animation: pageLoaderShow 0.5s ease-out;
+            opacity: 1;
         }
         #page-loader-spinner {
             width: 48px; height: 48px;
             border: 4px solid rgba(255,255,255,0.25);
             border-top-color: #fff;
             border-radius: 50%;
-            animation: spin .6s linear infinite;
-        }
-        #page-loader-overlay.active #page-loader-spinner {
             animation: spin .6s linear infinite, pageLoaderPulse 1s ease-in-out infinite;
         }
-        @keyframes pageLoaderShow { from { opacity: 0; } to { opacity: 1; } }
         @keyframes pageLoaderPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
         @keyframes spin { to { transform: rotate(360deg); } }
         #page-loader-label {
@@ -742,6 +738,9 @@
                 overlay.classList.add('active');
                 setTimeout(function () { if (bar.className === 'active') bar.style.width = '70%'; }, 300);
             }
+            // Expose to other scripts (e.g., cat-tile handler) jo direct
+            // window.location.href se navigate karte hain.
+            window.__showPageLoader = start;
             // Agar pichle page se navigation abhi aaya hai aur min-visible time
             // baaki hai, to destination page par bhi loader dikhao. Slow
             // network par bhi loader dikhe — isliye "recent" window 5s rakha.
@@ -783,6 +782,12 @@
                         if (dh === lastHref && now - lastTime < 1500) { e.preventDefault(); return; }
                         lastHref = dh; lastTime = now;
                         start();
+                        e.preventDefault();
+                        setTimeout(function () {
+                            if (!btn.isConnected) return;
+                            var newDh = btn.dataset.href || btn.dataset.url;
+                            window.location.href = newDh || dh;
+                        }, 380);
                         return;
                     }
                     // Check onclick for navigation patterns
@@ -809,7 +814,17 @@
                     return;
                 }
                 lastHref = href; lastTime = now2;
+                // Loader dikhane ke baad navigation karo — instant (prefetched)
+                // clicks par bhi loader kam se kam ~400ms dikhe.
                 start();
+                e.preventDefault();
+                setTimeout(function () {
+                    // Re-check: link may have been removed or href changed
+                    if (!a.isConnected) return;
+                    var newHref = a.getAttribute('href') || '';
+                    if (newHref !== href) { window.location.href = newHref; return; }
+                    window.location.href = href;
+                }, 380);
             }, true);
         })();
     </script>
