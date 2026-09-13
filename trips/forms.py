@@ -244,9 +244,7 @@ class TripForm(forms.ModelForm):
             if self.instance.drivers.exists():
                 driver_ids = list(self.instance.drivers.values_list('pk', flat=True))
                 drivers_qs = Labour.objects.filter(
-                    Q(name__in=target_driver_names, is_active=True, status='ACTIVE')
-                    | Q(name__icontains='nitin prasad', is_active=True, status='ACTIVE')
-                    | Q(pk__in=driver_ids)
+                    _driver_q | Q(pk__in=driver_ids)
                 )
 
         self.fields['customer'].queryset = customer_qs.order_by('name')
