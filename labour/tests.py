@@ -162,13 +162,13 @@ class MistriStatementTest(TestCase):
 
     def test_pdf_mistri_rows_ascending(self):
         from core.pdf_utils import get_pdf_styles, get_registered_font
-        from .views import _mistri_entries_data
+        from .views import _rozi_entries_data
 
         st = _labour_statement_for_period(
             self.mistri, self.period_start, self.period_end,
         )
         styles = get_pdf_styles(get_registered_font())
-        data = _mistri_entries_data(st, styles)
+        data = _rozi_entries_data(st, styles)
         dates = [
             row[0].text for row in data[1:-1]
         ]
@@ -499,3 +499,94 @@ class HyvaStatementTest(TestCase):
         self.assertTrue(
             all(isinstance(block, KeepTogether) for block in blocks)
         )
+
+
+class TractorStatementTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='tractor-statement-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.labour = Labour.objects.create(
+            name='Ankush Bhau',
+            category='TRACTOR',
+            base_daily_rate=Decimal('450.00'),
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+        group = LabourTripGroup.objects.create(
+            date=date(2026, 9, 10),
+            trip_count=6,
+            rate_per_trip=Decimal('450.00'),
+        )
+        group.labourers.add(self.labour)
+        LabourExtraPayment.objects.create(
+            labour=self.labour, date=date(2026, 9, 10), amount=Decimal('300.00'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.labour, date=date(2026, 9, 10), amount=Decimal('500.00'),
+        )
+        self.period_start = date(2026, 9, 1)
+        self.period_end = date(2026, 9, 14)
+
+    def _statement(self):
+        return _labour_statement_for_period(
+            self.labour, self.period_start, self.period_end,
+        )
+
+    def test_tractor_entries_have_no_trip_columns(self):
+        from core.pdf_utils import get_pdf_styles, get_registered_font
+        from .views import _rozi_entries_data
+
+        st = self._statement()
+        styles = get_pdf_styles(get_registered_font())
+        data = _rozi_entries_data(st, styles, show_day_type=False)
+
+        headers = [cell.text for cell in data[0]]
+        self.assertEqual(
+            headers,
+            ['<b>Date</b>', '<b>Rozi (₹)</b>', '<b>Extra (₹)</b>', '<b>Advance ₹</b>', '<b>Total ₹</b>'],
+        )
+        # Day earning 2700 + extra 300 - advance 500 = net 2500.
+        totals = [cell.text for cell in data[-1]]
+        self.assertTrue(any('₹2,700.00' in cell for cell in totals))
+        self.assertTrue(any('₹2,500.00' in cell for cell in totals))
+
+    def test_tractor_rate_info_once_on_top(self):
+        from .views import _tractor_rate_info
+
+        info = _tractor_rate_info(self._statement())
+
+        self.assertIn('₹450', info)
+        self.assertEqual(info.count('₹450'), 1)
+
+    def test_excel_tractor_layout(self):
+        response = self.client.get(
+            reverse('labour:statement_export', args=[self.labour.id]),
+            {
+                'from_date': '2026-09-01',
+                'to_date': '2026-09-14',
+                'export': 'excel',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        workbook = load_workbook(filename=BytesIO(response.content), read_only=True)
+        rows = [
+            [cell.value for cell in row]
+            for row in workbook.active.iter_rows()
+        ]
+        values = [cell for row in rows for cell in row]
+        # Trip columns nahi, Work Summary nahi.
+        self.assertNotIn('Trips', values)
+        self.assertNotIn('WORK SUMMARY', values)
+        header = next(row for row in rows if 'Rozi ₹' in row)
+        self.assertEqual(
+            [cell for cell in header if cell],
+            ['Date', 'Rozi ₹', 'Extra ₹', 'Advance ₹', 'Total ₹'],
+        )
+        total_row = next(row for row in rows if 'TOTAL' in row)
+        self.assertEqual(total_row[header.index('Total ₹')], 2500)
