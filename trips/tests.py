@@ -292,3 +292,49 @@ class TripPaymentPrefetchTest(TestCase):
         self.assertEqual(received, 40)
         self.assertEqual(outstanding, trip.total_amount - 40)
         self.assertEqual(status, 'PARTIAL')
+
+
+class TripListPaginationTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='trip-paging-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        for i in range(55):
+            Trip.objects.create(
+                trip_date=timezone.localdate(),
+                transaction_type='CUSTOMER_DELIVERY',
+                quantity=1,
+                rate=100,
+                trip_status='COMPLETED',
+            )
+
+    def test_list_paginates_fifty_per_page(self):
+        page_one = self.client.get(reverse('trips:list'))
+        page_two = self.client.get(reverse('trips:list'), {'page': 2})
+
+        self.assertEqual(page_one.status_code, 200)
+        self.assertEqual(page_two.status_code, 200)
+        self.assertEqual(page_one.context['page_obj'].paginator.count, 55)
+        self.assertEqual(len(page_one.context['page_obj'].object_list), 50)
+        self.assertEqual(len(page_two.context['page_obj'].object_list), 5)
+        # Summary full filtered set par based hai, page par nahi.
+        self.assertEqual(page_one.context['summary']['total_count'], 55)
+        self.assertContains(page_one, 'page=2')
+
+    def test_dashboard_caps_trip_records(self):
+        for _i in range(50):
+            Trip.objects.create(
+                trip_date=timezone.localdate(),
+                transaction_type='CUSTOMER_DELIVERY',
+                quantity=1,
+                rate=100,
+                trip_status='COMPLETED',
+            )
+        response = self.client.get(reverse('core:dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['trips']), 100)
+        self.assertTrue(response.context['trips_truncated'])

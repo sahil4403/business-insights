@@ -653,6 +653,22 @@
         </div>
     </div>
 
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="flex items-center justify-center gap-2 px-4 py-4" data-animate>
+        {% if page_obj.has_previous %}
+            <a href="?{% if base_query %}{{ base_query }}&{% endif %}page={{ page_obj.previous_page_number }}"
+               class="app-chip h-10 px-4">← Prev</a>
+        {% endif %}
+        <span class="text-[13px] font-bold text-slate-600 px-2">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+            <a href="?{% if base_query %}{{ base_query }}&{% endif %}page={{ page_obj.next_page_number }}"
+               class="app-chip h-10 px-4">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- EXPORT PREVIEW MODAL — LIQUID GLASS -->
     <div id="exportPreviewModal" class="lq-modal-overlay" onclick="if(event.target===this) closeExportPreview()">
         <div class="lq-glass-panel">

@@ -436,6 +436,12 @@ def dashboard(request):
         except Exception:
             pass
 
+    # Dashboard list capped (latest 100) — poori list Trips page par (paginated).
+    dashboard_trips = list(trips.select_related('customer', 'vehicle', 'material').prefetch_related('drivers', 'payments').order_by('-trip_date', '-id')[:101])
+    trips_truncated = len(dashboard_trips) > 100
+    if trips_truncated:
+        dashboard_trips = dashboard_trips[:100]
+
     context = {
         'expiry_alerts':
             get_expiry_alerts(limit=6),
@@ -465,7 +471,8 @@ def dashboard(request):
 
         'profit_margin': profit_margin,
         'monthly_business': monthly_business,
-        'trips': trips.select_related('customer', 'vehicle', 'material').prefetch_related('drivers', 'payments').order_by('-trip_date', '-id'),
+        'trips': dashboard_trips,
+        'trips_truncated': trips_truncated,
         'is_admin_user': request.user.is_authenticated and request.user.is_superuser,
 
         'labour_count': Labour.objects.filter(is_active=True).count(),
