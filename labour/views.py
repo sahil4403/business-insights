@@ -3139,63 +3139,9 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
 
         head_block = [identity, Spacer(1, 10)]
 
-        # ---------- 2. KPI CARDS (4 + 4, readable) ----------
-        # Mistri ke liye Rozi alag card me — generic "Extra" me ghusi rozi nahi.
+        # NOTE: top KPI cards hata diye — saari summary neeche
+        # WORK SUMMARY + PAYMENT SUMMARY boxes me hai.
         is_mistri = labour.category == 'MISTRI'
-        rozi_total = st.get('rozi_total', Decimal('0'))
-        genuine_extra_total = st['extra_total'] - rozi_total
-        if is_mistri:
-            earnings_items = [
-                {'label': 'Total Rozi', 'value': f"₹{rozi_total:,.2f}", 'color': '#16665a'},
-                {'label': 'Total Extra', 'value': f"₹{genuine_extra_total:,.2f}", 'color': '#2563eb'},
-                {'label': 'Month Payment', 'value': f"₹{st['driver_total']:,.2f}", 'color': '#7c3aed'},
-                {'label': 'Total Salary', 'value': f"₹{st['total_salary']:,.2f}", 'color': '#0f766e'},
-            ]
-        else:
-            extra_card_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
-            earnings_items = [
-                {'label': 'Total Trip Wages', 'value': f"₹{st['trip_total']:,.2f}", 'color': '#16665a'},
-                {'label': extra_card_label, 'value': f"₹{st['extra_total']:,.2f}", 'color': '#2563eb'},
-                {'label': 'Month Payment', 'value': f"₹{st['driver_total']:,.2f}", 'color': '#7c3aed'},
-                {'label': 'Total Salary', 'value': f"₹{st['total_salary']:,.2f}", 'color': '#0f766e'},
-            ]
-        earnings_cards = build_summary_cards(
-            earnings_items,
-            font_name=font_name,
-            columns=2,
-            value_size=10.5,
-            pad=5,
-        )
-
-        settlement_cards = build_summary_cards(
-            [
-                {'label': 'Total Advance', 'value': f"₹{st['advance_total']:,.2f}", 'color': '#dc2626'},
-                {'label': 'Payment (Salary - Adv)', 'value': f"₹{st['payment']:,.2f}", 'color': '#075985'},
-                {'label': 'Old Balance', 'value': f"₹{st['old_balance']:,.2f}", 'color': '#b45309'},
-                {
-                    'label': 'Final Amount',
-                    'value': (
-                        f"₹{st['final_amount']:,.2f}"
-                        if st['final_amount'] >= 0
-                        else f"Outstanding ₹{abs(st['final_amount']):,.2f}"
-                    ),
-                    'color': '#dc2626' if st['final_amount'] < 0 else '#059669',
-                    'sub': (
-                        'Labour owes owner' if st['final_amount'] < 0
-                        else 'To pay labour'
-                    ),
-                },
-            ],
-            font_name=font_name,
-            columns=2,
-            value_size=10.5,
-            pad=5,
-        )
-
-        head_block.append(earnings_cards)
-        head_block.append(Spacer(1, 6))
-        head_block.append(settlement_cards)
-        head_block.append(Spacer(1, 8))
 
         elements.append(KeepTogether(head_block))
 
@@ -3283,11 +3229,11 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                 elements.append(Spacer(1, 4))
         elements.append(entries_table)
 
-        # ---------- 3b. WORK + PAYMENT SUMMARY: stacked, airy boxes ----------
+        # ---------- 3b. WORK + PAYMENT SUMMARY: stacked boxes, gap ke saath ----------
         if not is_mistri:
             summary_head = _wrapped_style('SumHead', fontSize=9.5, leading=12, textColor=BRAND_DARK)
             if st.get('trip_groups'):
-                elements.append(Spacer(1, 8))
+                elements.append(Spacer(1, 12))
                 elements.append(Paragraph('<b>WORK SUMMARY</b>', summary_head))
                 cat_rows, grand_trips, grand_amount = _category_summary(st)
                 w_data = [
@@ -3312,7 +3258,7 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                 apply_data_table_style(w_table, total_row=True)
                 elements.append(w_table)
 
-            elements.append(Spacer(1, 8))
+            elements.append(Spacer(1, 12))
             elements.append(Paragraph('<b>PAYMENT SUMMARY</b>', summary_head))
             extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
             p_data = [
