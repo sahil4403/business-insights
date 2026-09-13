@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from openpyxl import load_workbook
 
-from .models import Labour, LabourAdvance, LabourExtraPayment, LabourRozi, LabourTripGroup
+from .models import Labour, LabourAdvance, LabourDriverPayment, LabourExtraPayment, LabourRozi, LabourTripGroup
 from .views import _labour_statement_for_period, _labour_type_label
 
 
@@ -205,6 +205,12 @@ class HyvaStatementTest(TestCase):
         LabourExtraPayment.objects.create(
             labour=self.driver, date=date(2026, 9, 9), amount=Decimal('500.00'),
         )
+        LabourDriverPayment.objects.create(
+            labour=self.driver,
+            period_start=date(2026, 9, 1),
+            period_end=date(2026, 9, 14),
+            amount=Decimal('12000.00'),
+        )
         self.period_start = date(2026, 9, 1)
         self.period_end = date(2026, 9, 14)
 
@@ -306,3 +312,98 @@ class HyvaStatementTest(TestCase):
             cell for row in rows[summary_idx:] for cell in row
         ]
         self.assertIn(800, summary_values)
+
+    def test_payment_summary_rows_split_month_payment(self):
+        from .views import _payment_summary_rows
+
+        rows = _payment_summary_rows(self._statement(), 'Total Bhatta')
+
+        self.assertEqual(
+            [label for label, _value in rows],
+            [
+                'Total Earning',
+                'Total Bhatta',
+                'Month Payment',
+                None,
+                'Total Income Earned',
+                None,
+                'Total Advanced',
+                'Old Balance',
+                'Final Amount',
+            ],
+        )
+        values = dict(
+            (label, value) for label, value in rows if label is not None
+        )
+        self.assertEqual(values['Total Earning'], Decimal('800'))
+        self.assertEqual(values['Total Bhatta'], Decimal('500'))
+        self.assertEqual(values['Month Payment'], Decimal('12000'))
+        self.assertEqual(values['Total Income Earned'], Decimal('13300'))
+
+    def test_payment_summary_without_month_payment(self):
+        from .views import _payment_summary_rows
+
+        LabourDriverPayment.objects.all().delete()
+        rows = _payment_summary_rows(self._statement(), 'Total Bhatta')
+
+        self.assertEqual(
+            [label for label, _value in rows],
+            [
+                'Total Earning',
+                'Total Bhatta',
+                None,
+                'Total Income Earned',
+                None,
+                'Total Advanced',
+                'Old Balance',
+                'Final Amount',
+            ],
+        )
+        values = dict(
+            (label, value) for label, value in rows if label is not None
+        )
+        self.assertEqual(values['Total Income Earned'], Decimal('1300'))
+
+    def test_excel_payment_summary_block(self):
+        response = self.client.get(
+            reverse('labour:statement_export', args=[self.driver.id]),
+            {
+                'from_date': '2026-09-01',
+                'to_date': '2026-09-14',
+                'export': 'excel',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        workbook = load_workbook(filename=BytesIO(response.content), read_only=True)
+        rows = [
+            [cell.value for cell in row]
+            for row in workbook.active.iter_rows()
+        ]
+        pay_idx = next(
+            idx for idx, row in enumerate(rows)
+            if 'PAYMENT SUMMARY' in row
+        )
+        pay_labels = [
+            row[0] for row in rows[pay_idx + 1:]
+            if row[0]
+        ]
+        self.assertEqual(
+            pay_labels,
+            [
+                'Description',
+                'Total Earning',
+                'Total Bhatta',
+                'Month Payment',
+                'Total Income Earned',
+                'Total Advanced',
+                'Old Balance',
+                'Final Amount',
+            ],
+        )
+        pay_values = {
+            row[0]: row[1] for row in rows[pay_idx + 1:]
+            if row[0] and row[0] != 'Description'
+        }
+        self.assertEqual(pay_values['Month Payment'], 12000)
+        self.assertEqual(pay_values['Total Income Earned'], 13300)

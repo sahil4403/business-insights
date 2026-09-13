@@ -2748,15 +2748,10 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                 cell.font = header_font
             rr += 1
             extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
-            for label, value in [
-                ('Total Earning', st['trip_total']),
-                (extra_label, st['extra_total']),
-                ('Total Salary', st['total_salary']),
-                ('Total Advanced', st['advance_total']),
-                ('Net Payable (Salary - Adv)', st['payment']),
-                ('Old Balance', st['old_balance']),
-                ('Final Amount', st['final_amount']),
-            ]:
+            for label, value in _payment_summary_rows(st, extra_label):
+                if label is None:
+                    rr += 1
+                    continue
                 ws.cell(row=rr, column=1, value=label)
                 ws.cell(row=rr, column=2, value=float(value)).number_format = '#,##0'
                 rr += 1
@@ -2866,6 +2861,33 @@ def _category_summary(st):
         else:
             summary.append((desc, g.trip_count, share))
     return summary, grand_trips, grand_amount
+
+
+def _payment_summary_rows(st, extra_label='Total Extra'):
+    """Payment summary lines: Month Payment alag, Total Income Earned alag.
+
+    Total Income Earned = Trips amount + Bhatta/Extra + Month Payment.
+    (label, value) tuples; (None, None) ek khaali spacer line hai taaki
+    Income Earned aur Advanced thoda hatke dikhen.
+    """
+    rows = [
+        ('Total Earning', st['trip_total']),
+        (extra_label, st['extra_total']),
+    ]
+    if st['driver_total']:
+        rows.append(('Month Payment', st['driver_total']))
+    rows.append((None, None))
+    rows.append((
+        'Total Income Earned',
+        st['trip_total'] + st['extra_total'] + st['driver_total'],
+    ))
+    rows.append((None, None))
+    rows.extend([
+        ('Total Advanced', st['advance_total']),
+        ('Old Balance', st['old_balance']),
+        ('Final Amount', st['final_amount']),
+    ])
+    return rows
 
 
 def _mistri_entries_data(st, styles):
@@ -3235,19 +3257,17 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                     Paragraph('<b>Amount</b>', styles['header_r']),
                 ]
             ]
-            for label, value in [
-                ('Total Earning', st['trip_total']),
-                (extra_label, st['extra_total']),
-                ('Total Salary', st['total_salary']),
-                ('Total Advanced', st['advance_total']),
-                ('Net Payable (Salary - Adv)', st['payment']),
-                ('Old Balance', st['old_balance']),
-                ('Final Amount', st['final_amount']),
-            ]:
-                p_data.append([
-                    Paragraph(label, styles['body']),
-                    Paragraph(f"₹{value:,.2f}", styles['body_r']),
-                ])
+            for label, value in _payment_summary_rows(st, extra_label):
+                if label is None:
+                    p_data.append([
+                        Paragraph('', styles['body']),
+                        Paragraph('', styles['body_r']),
+                    ])
+                else:
+                    p_data.append([
+                        Paragraph(label, styles['body']),
+                        Paragraph(f"₹{value:,.2f}", styles['body_r']),
+                    ])
             p_table = Table(p_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
             apply_data_table_style(p_table, total_row=False)
             elements.append(p_table)
