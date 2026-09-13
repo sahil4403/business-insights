@@ -704,7 +704,7 @@
             overlay.innerHTML = '<div id="page-loader-spinner"></div>';
             document.body.appendChild(overlay);
 
-            var MIN_VISIBLE = 500; // loader at least itni ms dikhega, chahe page instant load ho (prefetch/bfcache)
+            var MIN_VISIBLE = 200; // loader halka sa dikhe (flicker nahi), par page ko slow feel na ho
             var startTs = 0;
             var NAV_KEY = '__navLoaderStart';
             function reset() {
@@ -771,11 +771,7 @@
                         lastHref = dh; lastTime = now;
                         start();
                         e.preventDefault();
-                        setTimeout(function () {
-                            if (!btn.isConnected) return;
-                            var newDh = btn.dataset.href || btn.dataset.url;
-                            window.location.href = newDh || dh;
-                        }, 380);
+                        window.location.href = dh;
                         return;
                     }
                     // Check onclick for navigation patterns
@@ -802,17 +798,10 @@
                     return;
                 }
                 lastHref = href; lastTime = now2;
-                // Loader dikhane ke baad navigation karo — instant (prefetched)
-                // clicks par bhi loader kam se kam ~400ms dikhe.
+                // Loader dikhao aur turant navigate karo — koi artificial delay nahi.
                 start();
                 e.preventDefault();
-                setTimeout(function () {
-                    // Re-check: link may have been removed or href changed
-                    if (!a.isConnected) return;
-                    var newHref = a.getAttribute('href') || '';
-                    if (newHref !== href) { window.location.href = newHref; return; }
-                    window.location.href = href;
-                }, 380);
+                window.location.href = href;
             }, true);
         })();
     </script>

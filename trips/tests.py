@@ -266,3 +266,29 @@ class PaymentDeleteResilienceTest(TestCase):
         self.assertFalse(
             trip.payments.filter(pk=payment.id).exists()
         )
+
+
+class TripPaymentPrefetchTest(TestCase):
+    def test_received_uses_prefetched_payments_without_extra_queries(self):
+        trip = Trip.objects.create(
+            trip_date=timezone.localdate(),
+            transaction_type='CUSTOMER_DELIVERY',
+            quantity=1,
+            rate=100,
+            trip_status='COMPLETED',
+        )
+        trip.payments.create(
+            payment_date=timezone.localdate(),
+            amount=40,
+            payment_type='RECEIVED',
+        )
+
+        trip = Trip.objects.prefetch_related('payments').get(pk=trip.pk)
+        with self.assertNumQueries(0):
+            received = trip.total_received
+            outstanding = trip.outstanding_amount
+            status = trip.calculated_payment_status
+
+        self.assertEqual(received, 40)
+        self.assertEqual(outstanding, trip.total_amount - 40)
+        self.assertEqual(status, 'PARTIAL')

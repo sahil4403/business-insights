@@ -257,6 +257,13 @@ class Trip(models.Model):
     def total_received(self):
         from django.db.models import Sum
 
+        # Prefetched payments ho to unhi se sum karo (dashboard/statement
+        # lists me N+1 queries bachti hain) — warna single aggregate query.
+        if 'payments' in getattr(self, '_prefetched_objects_cache', {}):
+            return sum(
+                (payment.amount or 0) for payment in self.payments.all()
+            ) or 0
+
         total = self.payments.aggregate(
             total=Sum('amount')
         )['total']

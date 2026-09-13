@@ -465,7 +465,7 @@ def dashboard(request):
 
         'profit_margin': profit_margin,
         'monthly_business': monthly_business,
-        'trips': trips.select_related('customer', 'vehicle', 'material').prefetch_related('drivers').order_by('-trip_date', '-id'),
+        'trips': trips.select_related('customer', 'vehicle', 'material').prefetch_related('drivers', 'payments').order_by('-trip_date', '-id'),
         'is_admin_user': request.user.is_authenticated and request.user.is_superuser,
 
         'labour_count': Labour.objects.filter(is_active=True).count(),
