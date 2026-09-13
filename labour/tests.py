@@ -229,6 +229,55 @@ class HyvaStatementTest(TestCase):
         self.assertEqual(info.count('₹100'), 1)
         self.assertEqual(info.count('₹200'), 1)
 
+    def test_rate_pairs_split_two_columns(self):
+        from .views import _hyva_rate_pairs, _rate_box_rows
+
+        pairs = _hyva_rate_pairs(self._statement())
+        rows = _rate_box_rows(pairs)
+
+        self.assertEqual(len(pairs), 2)
+        self.assertEqual(rows, [[pairs[0], pairs[1]]])
+
+    def test_mistri_rate_pairs(self):
+        from .views import _mistri_rate_pairs, _rate_box_rows
+
+        mistri = Labour.objects.create(
+            name='Rate Mistri',
+            category='MISTRI',
+            sub_category='MISTRI',
+            base_daily_rate=Decimal('500.00'),
+            is_active=True,
+            status='ACTIVE',
+        )
+        pairs = _mistri_rate_pairs(mistri)
+        rows = _rate_box_rows(pairs)
+
+        self.assertEqual(
+            [label for label, _rate in pairs],
+            ['Full Day', 'Half Day', 'Overtime'],
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(len(rows[0]), 2)
+        self.assertEqual(len(rows[1]), 1)
+
+    def test_compact_cards_wrap_two_per_row(self):
+        from core.pdf_utils import build_summary_cards
+
+        table = build_summary_cards(
+            [
+                {'label': f'C{i}', 'value': f'₹{i}.00'}
+                for i in range(8)
+            ],
+            columns=2,
+            value_size=10.5,
+            pad=5,
+        )
+
+        self.assertEqual(len(table._cellvalues), 4)
+        self.assertTrue(
+            all(len(row) == 2 for row in table._cellvalues)
+        )
+
     def test_ordered_day_entries_interleave_ascending(self):
         from .views import _ordered_day_entries
 
@@ -329,7 +378,7 @@ class HyvaStatementTest(TestCase):
                 None,
                 'Total Advanced',
                 'Old Balance',
-                'Final Amount',
+                'Final Payment',
             ],
         )
         values = dict(
@@ -356,7 +405,7 @@ class HyvaStatementTest(TestCase):
                 None,
                 'Total Advanced',
                 'Old Balance',
-                'Final Amount',
+                'Final Payment',
             ],
         )
         values = dict(
@@ -388,10 +437,10 @@ class HyvaStatementTest(TestCase):
             idx for idx, row in enumerate(rows)
             if 'WORK SUMMARY' in row
         )
-        # Dono boxes paas-paas (same row se start).
-        self.assertEqual(pay_idx, work_idx)
+        # Payment Summary neeche (stacked), alag section me.
+        self.assertGreater(pay_idx, work_idx)
         pay_col = rows[pay_idx].index('PAYMENT SUMMARY')
-        self.assertEqual(pay_col, 4)
+        self.assertEqual(pay_col, 0)
         pay_labels = [
             row[pay_col] for row in rows[pay_idx + 1:]
             if row[pay_col]
@@ -406,7 +455,7 @@ class HyvaStatementTest(TestCase):
                 'Total Income Earned',
                 'Total Advanced',
                 'Old Balance',
-                'Final Amount',
+                'Final Payment',
             ],
         )
         pay_values = {
@@ -415,3 +464,22 @@ class HyvaStatementTest(TestCase):
         }
         self.assertEqual(pay_values['Month Payment'], 12000)
         self.assertEqual(pay_values['Total Income Earned'], 13300)
+
+        # Total Advanced amount red me.
+        cells = list(workbook.active.iter_rows())
+        advanced_row = next(
+            row for row in cells
+            if row[pay_col].value == 'Total Advanced'
+        )
+        self.assertEqual(
+            advanced_row[pay_col + 1].font.color.rgb, '00DC2626'
+        )
+
+        # Final Payment bold.
+        cells = list(workbook.active.iter_rows())
+        final_row = next(
+            row for row in cells
+            if row[pay_col].value == 'Final Payment'
+        )
+        self.assertTrue(final_row[pay_col].font.bold)
+        self.assertTrue(final_row[pay_col + 1].font.bold)

@@ -182,10 +182,12 @@ def build_pdf_header_elements(font_name, report_title, report_subtitle=None, ext
 # KPI SUMMARY CARDS
 # ============================================================
 
-def build_summary_cards(cards, font_name=None, card_width=None):
+def build_summary_cards(cards, font_name=None, card_width=None, columns=0, value_size=12.5, pad=8):
     """
-    Build a row of KPI cards.
+    Build KPI cards. Default: single row.
     cards: list of dicts {label, value, color(optional hex str), sub(optional)}
+    columns: wrap into rows of N cards (0 = single row).
+    value_size/pad: compact sizing override.
     """
     font_name = font_name or get_registered_font()
     styles = getSampleStyleSheet()
@@ -194,15 +196,10 @@ def build_summary_cards(cards, font_name=None, card_width=None):
         return ParagraphStyle(name, parent=styles['Normal'], fontName=font_name, **kw)
 
     label_style = _s('CardLbl', fontSize=6.8, leading=9, textColor=FAINT, alignment=1)
-    value_style = _s('CardVal', fontSize=12.5, leading=15, alignment=1)
+    value_style = _s('CardVal', fontSize=value_size, leading=value_size + 2.5, alignment=1)
     sub_style   = _s('CardSub', fontSize=6.8, leading=9, alignment=1)
 
-    row = []
-    accent_cmds = []
-    n = len(cards)
-    width = card_width or (190 * mm / max(n, 1))
-
-    for i, card in enumerate(cards):
+    def _cell(i, card):
         hex_color = card.get('color', '#16665a')
         value_style_i = ParagraphStyle(
             f'CardVal{i}', parent=value_style,
@@ -213,14 +210,43 @@ def build_summary_cards(cards, font_name=None, card_width=None):
         if card.get('sub'):
             cell.append(Spacer(1, 1))
             cell.append(Paragraph(card['sub'], sub_style))
-        row.append(cell)
-        accent_cmds.append(('LINEABOVE', (i, 0), (i, 0), 2.4, colors.HexColor(hex_color)))
+        return cell, hex_color
 
-    cards_table = Table([row], colWidths=[width] * n)
+    if columns and columns > 0:
+        width = card_width or (190 * mm / columns)
+        grid = [
+            cards[i:i + columns]
+            for i in range(0, len(cards), columns)
+        ]
+        table_rows = []
+        accent_cmds = []
+        for r, chunk in enumerate(grid):
+            row = []
+            while len(chunk) < columns:
+                chunk = chunk + [None]
+            for c, card in enumerate(chunk):
+                if card is None:
+                    row.append('')
+                    continue
+                cell, hex_color = _cell(r * columns + c, card)
+                row.append(cell)
+                accent_cmds.append(('LINEABOVE', (c, r), (c, r), 2.4, colors.HexColor(hex_color)))
+            table_rows.append(row)
+    else:
+        n = len(cards)
+        width = card_width or (190 * mm / max(n, 1))
+        table_rows = [[]]
+        accent_cmds = []
+        for i, card in enumerate(cards):
+            cell, hex_color = _cell(i, card)
+            table_rows[0].append(cell)
+            accent_cmds.append(('LINEABOVE', (i, 0), (i, 0), 2.4, colors.HexColor(hex_color)))
+
+    cards_table = Table(table_rows, colWidths=[width] * (columns or len(cards)))
     cards_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), pad),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), pad),
         ('LEFTPADDING', (0, 0), (-1, -1), 4),
         ('RIGHTPADDING', (0, 0), (-1, -1), 4),
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fbfcfd')),

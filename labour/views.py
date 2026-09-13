@@ -2715,47 +2715,52 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                     ws.cell(row=rr, column=8).number_format = '#,##0'
                     rr += 1
 
-            # WORK SUMMARY (A-C) + PAYMENT SUMMARY (E-F), paas-paas boxes.
-            rr += 1
-            box_row = rr + 1
+            # WORK SUMMARY + PAYMENT SUMMARY, stacked boxes (neeche).
             has_work = bool(st.get('trip_groups'))
             if has_work:
-                ws.cell(row=box_row, column=1, value='WORK SUMMARY').font = _F(bold=True, size=11)
-            ws.cell(row=box_row, column=5, value='PAYMENT SUMMARY').font = _F(bold=True, size=11)
-            head = box_row + 1
-            if has_work:
+                rr += 1
+                ws.cell(row=rr, column=1, value='WORK SUMMARY').font = _F(bold=True, size=11)
+                rr += 1
                 for col, h in enumerate(['Category', 'Total Trips', 'Total Amount'], start=1):
-                    cell = ws.cell(row=head, column=col, value=h)
+                    cell = ws.cell(row=rr, column=col, value=h)
                     cell.fill = header_fill
                     cell.font = header_font
-            for col, h in enumerate(['Description', 'Amount'], start=5):
-                cell = ws.cell(row=head, column=col, value=h)
-                cell.fill = header_fill
-                cell.font = header_font
-            rr = head + 1
-            work_lines = []
-            if has_work:
+                rr += 1
                 cat_rows, grand_trips, grand_amount = _category_summary(st)
-                work_lines = [
-                    (label, trips, amount, False)
-                    for label, trips, amount in cat_rows
-                ]
-                work_lines.append(('Grand Total', grand_trips, grand_amount, True))
-            extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
-            pay_lines = _payment_summary_rows(st, extra_label)
-            for i in range(max(len(work_lines), len(pay_lines))):
-                if i < len(work_lines):
-                    label, trips, amount, is_total = work_lines[i]
+                for label, trips, amount in cat_rows:
                     ws.cell(row=rr, column=1, value=label)
                     ws.cell(row=rr, column=2, value=trips)
                     ws.cell(row=rr, column=3, value=float(amount)).number_format = '#,##0'
-                    if is_total:
-                        for col in range(1, 4):
-                            ws.cell(row=rr, column=col).font = total_font
-                            ws.cell(row=rr, column=col).fill = total_fill
-                if i < len(pay_lines) and pay_lines[i][0] is not None:
-                    ws.cell(row=rr, column=5, value=pay_lines[i][0])
-                    ws.cell(row=rr, column=6, value=float(pay_lines[i][1])).number_format = '#,##0'
+                    rr += 1
+                ws.cell(row=rr, column=1, value='Grand Total').font = total_font
+                ws.cell(row=rr, column=2, value=grand_trips).font = total_font
+                ws.cell(row=rr, column=3, value=float(grand_amount)).font = total_font
+                ws.cell(row=rr, column=3).number_format = '#,##0'
+                for col in range(1, 4):
+                    ws.cell(row=rr, column=col).fill = total_fill
+                rr += 1
+
+            rr += 1
+            ws.cell(row=rr, column=1, value='PAYMENT SUMMARY').font = _F(bold=True, size=11)
+            rr += 1
+            for col, h in enumerate(['Description', 'Amount'], start=1):
+                cell = ws.cell(row=rr, column=col, value=h)
+                cell.fill = header_fill
+                cell.font = header_font
+            rr += 1
+            extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
+            for label, value in _payment_summary_rows(st, extra_label):
+                if label is None:
+                    rr += 1
+                    continue
+                is_final = label == 'Final Payment'
+                is_advanced = label == 'Total Advanced'
+                ws.cell(row=rr, column=1, value=label).font = _F(bold=is_final)
+                ws.cell(row=rr, column=2, value=float(value)).number_format = '#,##0'
+                if is_final:
+                    ws.cell(row=rr, column=2).font = _F(bold=True)
+                elif is_advanced:
+                    ws.cell(row=rr, column=2).font = _F(color='DC2626')
                 rr += 1
 
         # ---- SETTLEMENTS (simple, optional) ----
@@ -2785,7 +2790,13 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
 
 
 def _mistri_rate_info(labour):
-    """Rate card ek line me: Full Day / Half Day / Overtime (top par, ek baar)."""
+    return 'Rate — ' + ' · '.join(
+        f"{label}: ₹{rate:,.0f}" for label, rate in _mistri_rate_pairs(labour)
+    )
+
+
+def _mistri_rate_pairs(labour):
+    """[(label, rate)] — Full Day / Half Day / Overtime."""
     if labour.category == 'MISTRI' and labour.sub_category == 'MISTRI':
         full = LabourRozi.MISTRI_RATES['FULL']
         half = LabourRozi.MISTRI_RATES['HALF']
@@ -2795,11 +2806,70 @@ def _mistri_rate_info(labour):
         full = base
         half = base * Decimal('0.5')
         overtime = base * Decimal('1.5')
-    return (
-        f"Rate — Full Day: ₹{full:,.0f} · "
-        f"Half Day: ₹{half:,.0f} · "
-        f"Overtime: ₹{overtime:,.0f}"
+    return [('Full Day', full), ('Half Day', half), ('Overtime', overtime)]
+
+
+def _hyva_rate_pairs(st):
+    """Distinct load-type (label, rate), first-appearance order."""
+    pairs = []
+    for g in st.get('trip_groups') or []:
+        pair = (g.load_label or 'Tractor Trip', g.rate_per_trip)
+        if pair not in pairs:
+            pairs.append(pair)
+    pairs.reverse()
+    return pairs
+
+
+def _hyva_rate_info(st):
+    parts = [f"{label}: ₹{rate:,.0f}" for label, rate in _hyva_rate_pairs(st)]
+    return 'Rate — ' + ' · '.join(parts) if parts else ''
+
+
+def _rate_box_rows(pairs, columns=2):
+    """Rate pairs ko neat 2-column rows me baanto."""
+    return [pairs[i:i + columns] for i in range(0, len(pairs), columns)]
+
+
+def _rate_info_box(pairs, font_name):
+    """Rate card box: 2-column neat grid (label upar, amount neeche)."""
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
+
+    base = getSampleStyleSheet()['Normal']
+    lbl = ParagraphStyle(
+        'RateBoxLbl', parent=base, fontName=font_name,
+        fontSize=7, leading=9, textColor=colors.HexColor('#64748b'),
     )
+    val = ParagraphStyle(
+        'RateBoxVal', parent=base, fontName=font_name,
+        fontSize=9.5, leading=12, textColor=colors.HexColor('#0f172a'),
+    )
+    body_rows = []
+    for chunk in _rate_box_rows(pairs):
+        row = []
+        for label, rate in chunk:
+            row.append([
+                Paragraph(label.upper(), lbl),
+                Spacer(1, 1),
+                Paragraph(f"<b>₹{rate:,.0f}</b>", val),
+            ])
+        while len(row) < 2:
+            row.append('')
+        body_rows.append(row)
+    table = Table(body_rows, colWidths=[95 * mm, 95 * mm])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fbfcfd')),
+        ('BOX', (0, 0), (-1, -1), 0.6, colors.HexColor('#e2e8f0')),
+        ('INNERGRID', (0, 0), (-1, -1), 0.6, colors.HexColor('#eef1f6')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    return table
 
 
 def _trip_group_desc(labour, group):
@@ -2808,17 +2878,6 @@ def _trip_group_desc(labour, group):
     if labour.category == 'HYVA_DRIVER':
         desc = 'Hyva' + (f' ({group.load_label})' if group.load_label else '')
     return desc
-
-
-def _hyva_rate_info(st):
-    """Distinct load-type rates, ek line me — har row me rate nahi."""
-    seen = []
-    for g in st.get('trip_groups') or []:
-        key = (g.load_label or 'Tractor Trip', g.rate_per_trip)
-        if key not in seen:
-            seen.append(key)
-    parts = [f"{label}: ₹{rate:,.0f}" for label, rate in reversed(seen)]
-    return 'Rate — ' + ' · '.join(parts) if parts else ''
 
 
 def _ordered_day_entries(st):
@@ -2887,7 +2946,7 @@ def _payment_summary_rows(st, extra_label='Total Extra'):
     rows.extend([
         ('Total Advanced', st['advance_total']),
         ('Old Balance', st['old_balance']),
-        ('Final Amount', st['final_amount']),
+        ('Final Payment', st['final_amount']),
     ])
     return rows
 
@@ -3089,19 +3148,23 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
             earnings_items = [
                 {'label': 'Total Rozi', 'value': f"₹{rozi_total:,.2f}", 'color': '#16665a'},
                 {'label': 'Total Extra', 'value': f"₹{genuine_extra_total:,.2f}", 'color': '#2563eb'},
-                {'label': 'Driver Payment', 'value': f"₹{st['driver_total']:,.2f}", 'color': '#7c3aed'},
+                {'label': 'Month Payment', 'value': f"₹{st['driver_total']:,.2f}", 'color': '#7c3aed'},
                 {'label': 'Total Salary', 'value': f"₹{st['total_salary']:,.2f}", 'color': '#0f766e'},
             ]
         else:
+            extra_card_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
             earnings_items = [
                 {'label': 'Total Trip Wages', 'value': f"₹{st['trip_total']:,.2f}", 'color': '#16665a'},
-                {'label': 'Total Extra', 'value': f"₹{st['extra_total']:,.2f}", 'color': '#2563eb'},
-                {'label': 'Driver Payment', 'value': f"₹{st['driver_total']:,.2f}", 'color': '#7c3aed'},
+                {'label': extra_card_label, 'value': f"₹{st['extra_total']:,.2f}", 'color': '#2563eb'},
+                {'label': 'Month Payment', 'value': f"₹{st['driver_total']:,.2f}", 'color': '#7c3aed'},
                 {'label': 'Total Salary', 'value': f"₹{st['total_salary']:,.2f}", 'color': '#0f766e'},
             ]
         earnings_cards = build_summary_cards(
             earnings_items,
             font_name=font_name,
+            columns=2,
+            value_size=10.5,
+            pad=5,
         )
 
         settlement_cards = build_summary_cards(
@@ -3124,6 +3187,9 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                 },
             ],
             font_name=font_name,
+            columns=2,
+            value_size=10.5,
+            pad=5,
         )
 
         head_block.append(earnings_cards)
@@ -3136,12 +3202,11 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
         # ---------- 3. ENTRIES ----------
         if is_mistri:
             # Mistri: Day Type / Rozi / Extra / Advance / net Total.
-            # Rate ek baar table ke upar — har line me nahi.
-            elements.append(Paragraph(
-                f"<b>{_mistri_rate_info(labour)}</b>",
-                _wrapped_style('MistriRate', fontSize=9, leading=12, textColor=BRAND_DARK),
-            ))
-            elements.append(Spacer(1, 4))
+            # Rate ek neat 2-column box me (top par, ek baar).
+            mistri_pairs = _mistri_rate_pairs(labour)
+            if mistri_pairs:
+                elements.append(_rate_info_box(mistri_pairs, font_name))
+                elements.append(Spacer(1, 4))
             entries_data = _mistri_entries_data(st, styles)
             entries_widths = [30 * mm, 34 * mm, 26 * mm, 26 * mm, 26 * mm, 30 * mm]
         else:
@@ -3212,21 +3277,18 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
         )
         apply_data_table_style(entries_table, total_row=True)
         if not is_mistri and labour.category == 'HYVA_DRIVER':
-            hyva_rates = _hyva_rate_info(st)
-            if hyva_rates:
-                elements.append(Paragraph(
-                    f"<b>{hyva_rates}</b>",
-                    _wrapped_style('HyvaRate', fontSize=9, leading=12, textColor=BRAND_DARK),
-                ))
+            hyva_pairs = _hyva_rate_pairs(st)
+            if hyva_pairs:
+                elements.append(_rate_info_box(hyva_pairs, font_name))
                 elements.append(Spacer(1, 4))
         elements.append(entries_table)
 
-        # ---------- 3b. WORK + PAYMENT SUMMARY: side-by-side boxes ----------
+        # ---------- 3b. WORK + PAYMENT SUMMARY: stacked, airy boxes ----------
         if not is_mistri:
             summary_head = _wrapped_style('SumHead', fontSize=9.5, leading=12, textColor=BRAND_DARK)
-            work_flow = []
             if st.get('trip_groups'):
-                work_flow.append(Paragraph('<b>WORK SUMMARY</b>', summary_head))
+                elements.append(Spacer(1, 8))
+                elements.append(Paragraph('<b>WORK SUMMARY</b>', summary_head))
                 cat_rows, grand_trips, grand_amount = _category_summary(st)
                 w_data = [
                     [
@@ -3246,11 +3308,12 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                     Paragraph(f"<b>{grand_trips}</b>", styles['body_r']),
                     Paragraph(f"<b>₹{grand_amount:,.2f}</b>", styles['body_r']),
                 ])
-                w_table = Table(w_data, repeatRows=1, colWidths=[54 * mm, 18 * mm, 28 * mm])
+                w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 40 * mm, 56 * mm])
                 apply_data_table_style(w_table, total_row=True)
-                work_flow.append(w_table)
+                elements.append(w_table)
 
-            pay_flow = [Paragraph('<b>PAYMENT SUMMARY</b>', summary_head)]
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph('<b>PAYMENT SUMMARY</b>', summary_head))
             extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
             p_data = [
                 [
@@ -3264,31 +3327,24 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                         Paragraph('', styles['body']),
                         Paragraph('', styles['body_r']),
                     ])
+                elif label == 'Final Payment':
+                    p_data.append([
+                        Paragraph(f"<b>{label}</b>", styles['body']),
+                        Paragraph(f"<b>₹{value:,.2f}</b>", styles['body_r']),
+                    ])
+                elif label == 'Total Advanced':
+                    p_data.append([
+                        Paragraph(label, styles['body']),
+                        Paragraph(f'<font color="#dc2626">₹{value:,.2f}</font>', styles['body_r']),
+                    ])
                 else:
                     p_data.append([
                         Paragraph(label, styles['body']),
                         Paragraph(f"₹{value:,.2f}", styles['body_r']),
                     ])
-            p_table = Table(p_data, repeatRows=1, colWidths=[46 * mm, 38 * mm])
+            p_table = Table(p_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
             apply_data_table_style(p_table, total_row=False)
-            pay_flow.append(p_table)
-
-            elements.append(Spacer(1, 8))
-            if work_flow:
-                box_table = Table(
-                    [[work_flow, pay_flow]],
-                    colWidths=[100 * mm, 84 * mm],
-                )
-                box_table.setStyle(TableStyle([
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 2),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-                    ('TOPPADDING', (0, 0), (-1, -1), 0),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-                ]))
-                elements.append(box_table)
-            else:
-                elements.extend(pay_flow)
+            elements.append(p_table)
 
         # ---------- 4. SETTLEMENTS IN RANGE ----------
         if st['settlements']:
