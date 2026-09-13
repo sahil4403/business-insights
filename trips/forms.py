@@ -193,11 +193,20 @@ class TripForm(forms.ModelForm):
         # VENDOR_SUPPLY: vendor ka apna driver hamare DB mein nahi hota — customer ke
         # naam par "<Customer> Driver" Labour banaya jata hai. Use bhi allow karo.
         _cust_id = str(self.data.get('customer') or '').strip() if self.is_bound else ''
+        _vendor_driver_name = str(self.data.get('vendor_driver_name') or '').strip() if self.is_bound else ''
         if (self.data.get('transaction_type') == 'VENDOR_SUPPLY' if self.is_bound else False) and _cust_id:
             _cust = Customer.objects.filter(pk=_cust_id).first()
             if _cust:
                 _driver_q = _driver_q | Q(
                     name__iexact=f"{_cust.name} Driver".strip(),
+                    is_active=True, status='ACTIVE'
+                )
+            # Customer dropdown option text "<code> - <name>" hota hai, isliye JS
+            # posted vendor driver ka naam DB name se alag ho sakta hai. View usi
+            # posted naam se Labour ensure karta hai, to validation me wahi allow karo.
+            if _vendor_driver_name:
+                _driver_q = _driver_q | Q(
+                    name__iexact=_vendor_driver_name,
                     is_active=True, status='ACTIVE'
                 )
 
