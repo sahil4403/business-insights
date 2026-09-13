@@ -425,7 +425,7 @@
                         </div>
                         <div class="px-4 pb-4">
                             {% if customer.customer_id %}
-                                <a href="{% url 'ledger:customer_statement' customer.customer_id %}"
+                                <a href="{% url 'ledger:customer_statement' customer.customer_id %}?next={{ request.get_full_path|urlencode }}"
                                    onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;"
                                    class="app-chip active-soft w-full mt-1">
                                     View Statement
@@ -477,7 +477,7 @@
                                 <td class="px-5 py-3.5 text-right font-bold text-brand-600 tabular-nums">₹{{ customer.total_outstanding|floatformat:2 }}</td>
                                 <td class="px-5 py-3.5 whitespace-nowrap">
                                     {% if customer.customer_id %}
-                                        <a href="{% url 'ledger:customer_statement' customer.customer_id %}"
+                                        <a href="{% url 'ledger:customer_statement' customer.customer_id %}?next={{ request.get_full_path|urlencode }}"
                                            onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}setTimeout(function(){window.location.href=this.href}.bind(this),80);return false;"
                                            class="app-chip active-soft h-9 px-3.5 text-[13px]">
                                             View Statement

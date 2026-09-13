@@ -10,6 +10,7 @@ from django.db.models.functions import Coalesce
 from django.db.models import Q
 from core.audit import log_action
 from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse
 from django.http import HttpResponse, Http404
 from django.db import transaction
 
@@ -616,6 +617,7 @@ def customer_statement(request, customer_id):
 
     context = {
         'customer': customer,
+        'back_url': get_safe_next(request, reverse('core:customer_report')),
         'transactions': transactions,
         'total_sales': total_sales,
         'total_received': total_received,
