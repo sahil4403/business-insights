@@ -5,9 +5,11 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from customers.models import Customer
 from master_data.models import CustomerType
+from trips.models import Trip
 
 
 class CustomerSortReturnTest(TestCase):
@@ -65,3 +67,78 @@ class CustomerSortReturnTest(TestCase):
             ),
             2,
         )
+
+
+class VendorSupplyBalanceTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='vendor-balance-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        customer_type, _ = CustomerType.objects.get_or_create(
+            code='VENDOR-BAL-TEST',
+            defaults={'name': 'Vendor Balance Test'},
+        )
+        self.customer = Customer.objects.create(
+            customer_code='VB-001',
+            name='Inward Vendor',
+            customer_type=customer_type,
+            opening_balance=Decimal('0.00'),
+            is_active=True,
+        )
+        self.trip = Trip.objects.create(
+            trip_date=timezone.localdate(),
+            transaction_type='VENDOR_SUPPLY',
+            customer=self.customer,
+            quantity=2,
+            rate=500,
+            trip_status='COMPLETED',
+        )
+
+    def test_vendor_supply_reduces_outstanding(self):
+        response = self.client.get(
+            reverse('core:customer_report'),
+            {'search': 'Inward Vendor'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        rows = response.context['customer_rows']
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['total_revenue'], Decimal('-1000.00'))
+        self.assertEqual(rows[0]['total_received'], Decimal('0.00'))
+        self.assertEqual(rows[0]['total_outstanding'], Decimal('-1000.00'))
+
+    def test_vendor_supply_shows_as_credit_in_statement(self):
+        response = self.client.get(
+            reverse('ledger:customer_statement', args=[self.customer.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        transactions = response.context['transactions']
+        vendor_rows = [t for t in transactions if t['type'] == 'VENDOR_SUPPLY']
+        self.assertEqual(len(vendor_rows), 1)
+        self.assertEqual(vendor_rows[0]['debit'], Decimal('0.00'))
+        self.assertEqual(vendor_rows[0]['credit'], Decimal('1000.00'))
+        self.assertEqual(response.context['closing_balance'], Decimal('-1000.00'))
+
+    def test_vendor_supply_has_no_pay_button_in_statement(self):
+        outward = Trip.objects.create(
+            trip_date=timezone.localdate(),
+            transaction_type='CUSTOMER_DELIVERY',
+            customer=self.customer,
+            quantity=1,
+            rate=500,
+            trip_status='COMPLETED',
+        )
+        response = self.client.get(
+            reverse('ledger:customer_statement', args=[self.customer.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        # Outward sale keeps its Pay action (mobile + desktop markup)...
+        self.assertContains(response, f'Pay \u20b9{outward.outstanding_amount:,.0f}')
+        # ...but the inward vendor row must not offer Pay.
+        self.assertEqual(content.count('Pay \u20b9'), 2)
