@@ -130,6 +130,24 @@ class VendorDriverTripEditTest(TestCase):
             [self.option_text_driver],
         )
 
+    def test_edit_save_returns_to_origin_page(self):
+        trip = self._make_trip()
+        response = self.client.post(
+            reverse('trips:edit', args=[trip.id]) + '?next=/trips/',
+            data={
+                'trip_date': timezone.localdate().isoformat(),
+                'transaction_type': 'VENDOR_SUPPLY',
+                'customer': str(self.customer.pk),
+                'vehicle_category': 'HYVA',
+                'quantity': '1',
+                'rate': '0',
+                'trip_status': 'COMPLETED',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], '/trips/')
+
     def test_edit_keeps_existing_driver_and_adds_vendor_driver(self):
         trip = self._make_trip()
         existing = Labour.objects.create(

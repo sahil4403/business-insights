@@ -578,7 +578,6 @@ def trip_edit(request, trip_id):
 
     from core.utils import get_safe_next_or_referer
     from django.urls import reverse
-    from urllib.parse import quote
 
     # Jahan se user aaya (Trips list / customer statement) — Back button yahin le jata hai.
     # Detail page `?next=` chain se bhejta hai taaki filters ke saath wahi list wapas mile.
@@ -640,11 +639,9 @@ def trip_edit(request, trip_id):
             if request.POST.get('save_and_view_statement') == '1' and trip.customer:
                 return redirect('ledger:customer_statement', customer_id=trip.customer.id)
 
-            # Save ke baad edit page par hi fresh load (success message), aur ?next= chain
-            # preserve karo taaki Back button wahi Trips list (filters sahit) par wapas le jaye.
-            return redirect(
-                f"{reverse('trips:edit', args=[trip.id])}?next={quote(back_url)}"
-            )
+            # Save ke baad origin page par wapas (statement/list jahan se edit
+            # khola tha) — success toast wahan dikhega, edit page par atakna nahi.
+            return redirect(back_url)
         else:
             # Invalid save — page wapas edit par dikhega (errors ke saath).
             # Log me exact reason capture karo taaki diagnose easy ho.
