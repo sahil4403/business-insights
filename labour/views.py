@@ -2634,7 +2634,7 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
 
             rr = head_row + 2
             group_dates = {g.date for g in (st.get('trip_groups') or [])}
-            for row in st['rows']:
+            for row in reversed(st['rows']):
                 d = row['date']
                 if d in group_dates:
                     continue
@@ -2675,7 +2675,7 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
             trip_total = Decimal('0')
             extras_done = set()
             if st.get('trip_groups'):
-                for g in st['trip_groups']:
+                for g in reversed(st['trip_groups']):
                     d = g.date
                     first_of_day = d not in extras_done
                     extras_done.add(d)
@@ -2699,7 +2699,7 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                     rr += 1
 
             # Show extra/advance-only days (days with no trip entry)
-            for row in st['rows']:
+            for row in reversed(st['rows']):
                 d = row['date']
                 if not any(g.date == d for g in (st.get('trip_groups') or [])):
                     if row['extra_amount'] or row['advance_amount']:
@@ -2788,10 +2788,10 @@ def _mistri_entries_data(st, styles):
 
     group_dates = {g.date for g in (st.get('trip_groups') or [])}
 
-    # Rare: trip-group rows first (same folding as the generic table).
+    # Rare: trip-group rows first, date-ascending (same folding as generic).
     extras_done = set()
     if st.get('trip_groups'):
-        for g in st['trip_groups']:
+        for g in reversed(st['trip_groups']):
             d = g.date
             first_of_day = d not in extras_done
             extras_done.add(d)
@@ -2811,8 +2811,8 @@ def _mistri_entries_data(st, styles):
                 Paragraph(f"<b>₹{share + rozi_amt + genuine_extra - advance:,.2f}</b>", styles['body_r']),
             ])
 
-    # Rozi / extra / advance days.
-    for row in st['rows']:
+    # Rozi / extra / advance days — date-ascending (purani date pehle).
+    for row in reversed(st['rows']):
         d = row['date']
         if d in group_dates:
             continue
@@ -3035,7 +3035,7 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
 
             extras_done = set()
             if st.get('trip_groups'):
-                for g in st['trip_groups']:
+                for g in reversed(st['trip_groups']):
                     d = g.date
                     first_of_day = d not in extras_done
                     extras_done.add(d)
@@ -3060,7 +3060,7 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                     ])
 
             # Extra/advance-only days (no trip entry)
-            for row in st['rows']:
+            for row in reversed(st['rows']):
                 d = row['date']
                 if not any(g.date == d for g in (st.get('trip_groups') or [])):
                     if row['extra_amount'] or row['advance_amount']:

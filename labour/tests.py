@@ -100,7 +100,6 @@ class MistriStatementTest(TestCase):
                 'export': 'excel',
             },
         )
-
         self.assertEqual(response.status_code, 200)
         workbook = load_workbook(filename=BytesIO(response.content), read_only=True)
         rows = [
@@ -133,3 +132,44 @@ class MistriStatementTest(TestCase):
         rozi_col = header.index('Rozi ₹')
         self.assertEqual(total_row[rozi_col], 1200)
         self.assertEqual(total_row[total_col], 1100)
+
+    def test_excel_export_dates_ascending_for_mistri(self):
+        response = self.client.get(
+            reverse('labour:statement_export', args=[self.mistri.id]),
+            {
+                'from_date': '2026-09-01',
+                'to_date': '2026-09-14',
+                'export': 'excel',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        workbook = load_workbook(filename=BytesIO(response.content), read_only=True)
+        rows = [
+            [cell.value for cell in row]
+            for row in workbook.active.iter_rows()
+        ]
+        header_idx = next(
+            idx for idx, row in enumerate(rows)
+            if 'Day Type' in row
+        )
+        date_col = rows[header_idx].index('Date')
+        data_dates = [
+            row[date_col] for row in rows[header_idx + 1:]
+            if row[date_col] and row[date_col] != 'TOTAL'
+        ]
+        self.assertEqual(data_dates, ['09-Sep-2026', '10-Sep-2026'])
+
+    def test_pdf_mistri_rows_ascending(self):
+        from core.pdf_utils import get_pdf_styles, get_registered_font
+        from .views import _mistri_entries_data
+
+        st = _labour_statement_for_period(
+            self.mistri, self.period_start, self.period_end,
+        )
+        styles = get_pdf_styles(get_registered_font())
+        data = _mistri_entries_data(st, styles)
+        dates = [
+            row[0].text for row in data[1:-1]
+        ]
+        self.assertEqual(dates, ['09-Sep-2026', '10-Sep-2026'])
