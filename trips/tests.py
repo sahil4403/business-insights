@@ -130,7 +130,7 @@ class VendorDriverTripEditTest(TestCase):
             [self.option_text_driver],
         )
 
-    def test_edit_save_returns_to_origin_page(self):
+    def test_edit_save_shows_popup_then_returns_to_origin(self):
         trip = self._make_trip()
         response = self.client.post(
             reverse('trips:edit', args=[trip.id]) + '?next=/trips/',
@@ -146,7 +146,36 @@ class VendorDriverTripEditTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['Location'], '/trips/')
+        self.assertIn('updated=1', response['Location'])
+        self.assertIn('next=/trips/', response['Location'])
+
+        popup_response = self.client.get(response['Location'])
+        self.assertEqual(popup_response.status_code, 200)
+        self.assertContains(popup_response, 'id="updated_modal"')
+        self.assertContains(popup_response, 'href="/trips/"')
+
+    def test_edit_success_message_reaches_origin_page(self):
+        trip = self._make_trip()
+        response = self.client.post(
+            reverse('trips:edit', args=[trip.id]) + '?next=/trips/',
+            data={
+                'trip_date': timezone.localdate().isoformat(),
+                'transaction_type': 'VENDOR_SUPPLY',
+                'customer': str(self.customer.pk),
+                'vehicle_category': 'HYVA',
+                'quantity': '1',
+                'rate': '0',
+                'trip_status': 'COMPLETED',
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        messages = [str(message) for message in response.context['messages']]
+        self.assertTrue(
+            any('updated successfully' in message for message in messages),
+            f'success toast missing, got: {messages}',
+        )
 
     def test_edit_keeps_existing_driver_and_adds_vendor_driver(self):
         trip = self._make_trip()

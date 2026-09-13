@@ -317,6 +317,18 @@
 
 </form>
 
+<!-- UPDATE SUCCESS POPUP (save par ?updated=1 ke saath dikhta hai) -->
+{% if request.GET.updated == '1' %}
+<div id="updated_modal" class="anim-modal fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6 md:p-4">
+    <div style="width: 100%; max-width: 400px;" class="bg-white rounded-2xl p-5 md:p-6 shadow-2xl border border-slate-200 text-center">
+        <div class="text-5xl mb-3">✅</div>
+        <h3 class="mt-0 text-lg font-bold" style="color: #16665a;">Trip Has Been Updated!</h3>
+        <p class="text-slate-500 text-sm mt-1 mb-5">Your changes were saved successfully.</p>
+        <a href="{{ back_url }}" class="btn btn-primary w-full">OK</a>
+    </div>
+</div>
+{% endif %}
+
 <!-- STATEMENT CONFIRMATION MODAL -->
 <div id="statement_confirm_modal" class="hidden fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
     <div class="bg-white rounded-2xl w-full max-w-md p-5 md:p-6 shadow-2xl border border-slate-200">
