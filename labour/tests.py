@@ -103,11 +103,33 @@ class MistriStatementTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         workbook = load_workbook(filename=BytesIO(response.content), read_only=True)
-        values = [
-            cell.value
+        rows = [
+            [cell.value for cell in row]
             for row in workbook.active.iter_rows()
-            for cell in row
         ]
+        values = [cell for row in rows for cell in row]
         self.assertIn('Day Type', values)
         self.assertIn('Full Day', values)
         self.assertIn('Half Day', values)
+        # Rate ek baar top par, har line me nahi.
+        self.assertNotIn('Rate', values)
+        self.assertTrue(
+            any(
+                isinstance(cell, str)
+                and 'Full Day' in cell
+                and 'Half Day' in cell
+                and 'Overtime' in cell
+                for cell in values
+            ),
+            'rate info line missing from mistri sheet',
+        )
+        # TOTAL net hona chahiye: Rozi + Extra - Advance = 1200 + 100 - 200.
+        header = next(
+            row for row in rows
+            if 'Day Type' in row
+        )
+        total_row = next(row for row in rows if 'TOTAL' in row)
+        total_col = header.index('Total ₹')
+        rozi_col = header.index('Rozi ₹')
+        self.assertEqual(total_row[rozi_col], 1200)
+        self.assertEqual(total_row[total_col], 1100)

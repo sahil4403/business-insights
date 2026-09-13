@@ -2621,16 +2621,18 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
         head_row = entries_start + 1
 
         if is_mistri_sheet:
-            # Mistri layout: Date | Day Type | Rate | Rozi | Extra | Advance | Total
+            # Mistri layout: Date | Day Type | Rozi | Extra | Advance | Total.
+            # Rate ek baar upar — har line me nahi. Total net: Rozi + Extra - Advance.
             rozi_by_date = st.get('rozi_by_date', {})
-            headers = ['Date', 'Day Type', 'Rate', 'Rozi ₹', 'Extra ₹', 'Advance ₹', 'Total ₹']
+            ws.cell(row=head_row, column=1, value=_mistri_rate_info(labour)).font = _F(bold=True)
+            headers = ['Date', 'Day Type', 'Rozi ₹', 'Extra ₹', 'Advance ₹', 'Total ₹']
             for col, h in enumerate(headers, start=1):
-                cell = ws.cell(row=head_row, column=col, value=h)
+                cell = ws.cell(row=head_row + 1, column=col, value=h)
                 cell.fill = header_fill
                 cell.font = header_font
                 cell.alignment = _A(horizontal='center', vertical='center')
 
-            rr = head_row + 1
+            rr = head_row + 2
             group_dates = {g.date for g in (st.get('trip_groups') or [])}
             for row in st['rows']:
                 d = row['date']
@@ -2643,25 +2645,23 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                     continue
                 ws.cell(row=rr, column=1, value=d.strftime('%d-%b-%Y'))
                 ws.cell(row=rr, column=2, value=rz['day_label'] if rz else 'Extra')
-                if rz:
-                    ws.cell(row=rr, column=3, value=float(rz['rate'])).number_format = '#,##0'
-                ws.cell(row=rr, column=4, value=float(rozi_amt)).number_format = '#,##0'
-                ws.cell(row=rr, column=5, value=float(genuine_extra)).number_format = '#,##0'
-                ws.cell(row=rr, column=6, value=float(row['advance_amount'])).number_format = '#,##0'
-                ws.cell(row=rr, column=7, value=float(rozi_amt + genuine_extra + row['advance_amount'])).font = _F(bold=True)
-                ws.cell(row=rr, column=7).number_format = '#,##0'
+                ws.cell(row=rr, column=3, value=float(rozi_amt)).number_format = '#,##0'
+                ws.cell(row=rr, column=4, value=float(genuine_extra)).number_format = '#,##0'
+                ws.cell(row=rr, column=5, value=float(row['advance_amount'])).number_format = '#,##0'
+                ws.cell(row=rr, column=6, value=float(rozi_amt + genuine_extra - row['advance_amount'])).font = _F(bold=True)
+                ws.cell(row=rr, column=6).number_format = '#,##0'
                 rr += 1
 
             ws.cell(row=rr, column=1, value='TOTAL').font = total_font
-            ws.cell(row=rr, column=4, value=float(rozi_total)).font = total_font
+            ws.cell(row=rr, column=3, value=float(rozi_total)).font = total_font
+            ws.cell(row=rr, column=3).number_format = '#,##0'
+            ws.cell(row=rr, column=4, value=float(st['extra_total'] - rozi_total)).font = total_font
             ws.cell(row=rr, column=4).number_format = '#,##0'
-            ws.cell(row=rr, column=5, value=float(st['extra_total'] - rozi_total)).font = total_font
+            ws.cell(row=rr, column=5, value=float(st['advance_total'])).font = total_font
             ws.cell(row=rr, column=5).number_format = '#,##0'
-            ws.cell(row=rr, column=6, value=float(st['advance_total'])).font = total_font
+            ws.cell(row=rr, column=6, value=float(rozi_total + (st['extra_total'] - rozi_total) - st['advance_total'])).font = total_font
             ws.cell(row=rr, column=6).number_format = '#,##0'
-            ws.cell(row=rr, column=7, value=float(st['total_salary'] - st['driver_total'])).font = total_font
-            ws.cell(row=rr, column=7).number_format = '#,##0'
-            for col in range(1, 8):
+            for col in range(1, 7):
                 ws.cell(row=rr, column=col).fill = total_fill
         else:
             headers = ['Date', 'Description', 'Trips', 'Rate', 'Trip ₹', 'Extra ₹', 'Advance ₹', 'Total ₹']
@@ -2744,11 +2744,31 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
     return response
 
 
+def _mistri_rate_info(labour):
+    """Rate card ek line me: Full Day / Half Day / Overtime (top par, ek baar)."""
+    if labour.category == 'MISTRI' and labour.sub_category == 'MISTRI':
+        full = LabourRozi.MISTRI_RATES['FULL']
+        half = LabourRozi.MISTRI_RATES['HALF']
+        overtime = LabourRozi.MISTRI_RATES['ONE_HALF']
+    else:
+        base = labour.base_daily_rate or Decimal('0')
+        full = base
+        half = base * Decimal('0.5')
+        overtime = base * Decimal('1.5')
+    return (
+        f"Rate — Full Day: ₹{full:,.0f} · "
+        f"Half Day: ₹{half:,.0f} · "
+        f"Overtime: ₹{overtime:,.0f}"
+    )
+
+
 def _mistri_entries_data(st, styles):
-    """Mistri statement rows: Date | Day Type | Rate | Rozi | Extra | Advance | Total.
+    """Mistri statement rows: Date | Day Type | Rozi | Extra | Advance | Total.
 
     Rozi (Full Day / Overtime / Half Day) apne column me — generic "Extra"
     label me nahi. Genuine extra payments alag column me rehte hain.
+    Total net hota hai: Rozi + Extra - Advance (dena kitna hai).
+    Rate har line me nahi — table ke upar ek rate-info line me.
     """
     from reportlab.platypus import Paragraph
 
@@ -2759,7 +2779,6 @@ def _mistri_entries_data(st, styles):
         [
             Paragraph('<b>Date</b>', styles['header']),
             Paragraph('<b>Day Type</b>', styles['header']),
-            Paragraph('<b>Rate (₹)</b>', styles['header_r']),
             Paragraph('<b>Rozi (₹)</b>', styles['header_r']),
             Paragraph('<b>Extra (₹)</b>', styles['header_r']),
             Paragraph('<b>Advance ₹</b>', styles['header_r']),
@@ -2777,18 +2796,19 @@ def _mistri_entries_data(st, styles):
             first_of_day = d not in extras_done
             extras_done.add(d)
             rz = rozi_by_date.get(d, {})
+            rozi_amt = rz.get('amount', Decimal('0'))
             extra = extra_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
+            genuine_extra = extra - rozi_amt
             advance = advance_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
             n = g.labourers.count() or 1
             share = g.total_amount / n
             data.append([
                 Paragraph(d.strftime('%d-%b-%Y'), styles['body']),
                 Paragraph(g.load_label or 'Tractor Trip', styles['body']),
-                Paragraph(f"₹{g.rate_per_trip:,.2f}", styles['body_r']),
-                Paragraph(f"₹{rz.get('amount', Decimal('0')):,.2f}", styles['body_r']),
-                Paragraph(f"₹{extra:,.2f}", styles['body_r']),
+                Paragraph(f"₹{rozi_amt:,.2f}", styles['body_r']),
+                Paragraph(f"₹{genuine_extra:,.2f}", styles['body_r']),
                 Paragraph(f"₹{advance:,.2f}", styles['body_r']),
-                Paragraph(f"<b>₹{share + extra + advance:,.2f}</b>", styles['body_r']),
+                Paragraph(f"<b>₹{share + rozi_amt + genuine_extra - advance:,.2f}</b>", styles['body_r']),
             ])
 
     # Rozi / extra / advance days.
@@ -2805,22 +2825,21 @@ def _mistri_entries_data(st, styles):
         data.append([
             Paragraph(d.strftime('%d-%b-%Y'), styles['body']),
             Paragraph(rz['day_label'] if rz else 'Extra', styles['body']),
-            Paragraph(f"₹{rz['rate']:,.2f}" if rz else '', styles['body_r']),
             Paragraph(f"₹{rozi_amt:,.2f}", styles['body_r']),
             Paragraph(f"₹{genuine_extra:,.2f}", styles['body_r']),
             Paragraph(f"₹{advance:,.2f}", styles['body_r']),
-            Paragraph(f"<b>₹{rozi_amt + genuine_extra + advance:,.2f}</b>", styles['body_r']),
+            Paragraph(f"<b>₹{rozi_amt + genuine_extra - advance:,.2f}</b>", styles['body_r']),
         ])
 
     genuine_extra_total = st['extra_total'] - st.get('rozi_total', Decimal('0'))
+    net_total = st.get('rozi_total', Decimal('0')) + genuine_extra_total - st['advance_total']
     data.append([
         Paragraph('<b>TOTAL</b>', styles['body']),
-        Paragraph('', styles['body']),
         Paragraph('', styles['body']),
         Paragraph(f"<b>₹{st.get('rozi_total', Decimal('0')):,.2f}</b>", styles['body_r']),
         Paragraph(f"<b>₹{genuine_extra_total:,.2f}</b>", styles['body_r']),
         Paragraph(f"<b>₹{st['advance_total']:,.2f}</b>", styles['body_r']),
-        Paragraph(f"<b>₹{(st['total_salary'] - st['driver_total']):,.2f}</b>", styles['body_r']),
+        Paragraph(f"<b>₹{net_total:,.2f}</b>", styles['body_r']),
     ])
     return data
 
@@ -2986,9 +3005,15 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
 
         # ---------- 3. ENTRIES ----------
         if is_mistri:
-            # Mistri: Day Type / Rate / Rozi layout (trip columns nahi).
+            # Mistri: Day Type / Rozi / Extra / Advance / net Total.
+            # Rate ek baar table ke upar — har line me nahi.
+            elements.append(Paragraph(
+                f"<b>{_mistri_rate_info(labour)}</b>",
+                _wrapped_style('MistriRate', fontSize=9, leading=12, textColor=BRAND_DARK),
+            ))
+            elements.append(Spacer(1, 4))
             entries_data = _mistri_entries_data(st, styles)
-            entries_widths = [26 * mm, 32 * mm, 22 * mm, 24 * mm, 24 * mm, 24 * mm, 26 * mm]
+            entries_widths = [30 * mm, 34 * mm, 26 * mm, 26 * mm, 26 * mm, 30 * mm]
         else:
             # Single table: trips + extra/bhatta + advance.
             extra_col_label = 'Bhatta (₹)' if labour.category == 'HYVA_DRIVER' else 'Extra (₹)'
