@@ -840,10 +840,16 @@ def trip_payment_edit(request, payment_id):
 
 @login_required(login_url='/login/')
 def trip_payment_delete(request, payment_id):
-    payment = get_object_or_404(
-        TripPayment.objects.select_related('trip', 'customer'),
-        pk=payment_id
+    payment = (
+        TripPayment.objects.select_related('trip', 'customer')
+        .filter(pk=payment_id)
+        .first()
     )
+    if payment is None:
+        # Payment already deleted (double-tap / back-button on the confirm
+        # page) — 404 ki jagah safe page par wapas bhejo.
+        messages.info(request, 'Payment already deleted.')
+        return redirect(get_safe_next(request, reverse('trips:list')))
     trip = payment.trip
     next_url = get_safe_next(
         request,

@@ -162,3 +162,60 @@ class VendorDriverTripEditTest(TestCase):
             sorted(driver.name for driver in trip.drivers.all()),
             sorted(['Gaju Bhau', self.option_text_driver]),
         )
+
+
+class PaymentDeleteResilienceTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='payment-delete-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+
+    def test_missing_payment_delete_redirects_instead_of_404(self):
+        url = reverse('trips:payment_delete', args=[999999]) + '?next=/trips/'
+
+        get_response = self.client.get(url)
+        post_response = self.client.post(url)
+
+        self.assertEqual(get_response.status_code, 302)
+        self.assertEqual(get_response['Location'], '/trips/')
+        self.assertEqual(post_response.status_code, 302)
+        self.assertEqual(post_response['Location'], '/trips/')
+
+    def test_valid_payment_delete_still_works(self):
+        customer_type, _ = CustomerType.objects.get_or_create(
+            code='PAY-DEL-TEST',
+            defaults={'name': 'Pay Delete Test'},
+        )
+        customer = Customer.objects.create(
+            customer_code='PD-001',
+            name='Pay Delete Customer',
+            customer_type=customer_type,
+            opening_balance=0,
+            is_active=True,
+        )
+        trip = Trip.objects.create(
+            trip_date=timezone.localdate(),
+            transaction_type='CUSTOMER_DELIVERY',
+            customer=customer,
+            quantity=1,
+            rate=100,
+            trip_status='COMPLETED',
+        )
+        payment = trip.payments.create(
+            payment_date=timezone.localdate(),
+            amount=100,
+            payment_type='RECEIVED',
+        )
+
+        response = self.client.post(
+            reverse('trips:payment_delete', args=[payment.id]) + '?next=/trips/'
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], '/trips/')
+        self.assertFalse(
+            trip.payments.filter(pk=payment.id).exists()
+        )
