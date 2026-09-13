@@ -384,9 +384,17 @@ class HyvaStatementTest(TestCase):
             idx for idx, row in enumerate(rows)
             if 'PAYMENT SUMMARY' in row
         )
+        work_idx = next(
+            idx for idx, row in enumerate(rows)
+            if 'WORK SUMMARY' in row
+        )
+        # Dono boxes paas-paas (same row se start).
+        self.assertEqual(pay_idx, work_idx)
+        pay_col = rows[pay_idx].index('PAYMENT SUMMARY')
+        self.assertEqual(pay_col, 4)
         pay_labels = [
-            row[0] for row in rows[pay_idx + 1:]
-            if row[0]
+            row[pay_col] for row in rows[pay_idx + 1:]
+            if row[pay_col]
         ]
         self.assertEqual(
             pay_labels,
@@ -402,8 +410,8 @@ class HyvaStatementTest(TestCase):
             ],
         )
         pay_values = {
-            row[0]: row[1] for row in rows[pay_idx + 1:]
-            if row[0] and row[0] != 'Description'
+            row[pay_col]: row[pay_col + 1] for row in rows[pay_idx + 1:]
+            if row[pay_col] and row[pay_col] != 'Description'
         }
         self.assertEqual(pay_values['Month Payment'], 12000)
         self.assertEqual(pay_values['Total Income Earned'], 13300)

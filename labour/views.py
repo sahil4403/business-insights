@@ -2715,45 +2715,47 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                     ws.cell(row=rr, column=8).number_format = '#,##0'
                     rr += 1
 
-            # WORK SUMMARY (category-wise) + PAYMENT SUMMARY — dates ke baad.
-            if st.get('trip_groups'):
-                rr += 1
-                ws.cell(row=rr, column=1, value='WORK SUMMARY').font = _F(bold=True, size=11)
-                rr += 1
+            # WORK SUMMARY (A-C) + PAYMENT SUMMARY (E-F), paas-paas boxes.
+            rr += 1
+            box_row = rr + 1
+            has_work = bool(st.get('trip_groups'))
+            if has_work:
+                ws.cell(row=box_row, column=1, value='WORK SUMMARY').font = _F(bold=True, size=11)
+            ws.cell(row=box_row, column=5, value='PAYMENT SUMMARY').font = _F(bold=True, size=11)
+            head = box_row + 1
+            if has_work:
                 for col, h in enumerate(['Category', 'Total Trips', 'Total Amount'], start=1):
-                    cell = ws.cell(row=rr, column=col, value=h)
+                    cell = ws.cell(row=head, column=col, value=h)
                     cell.fill = header_fill
                     cell.font = header_font
-                rr += 1
+            for col, h in enumerate(['Description', 'Amount'], start=5):
+                cell = ws.cell(row=head, column=col, value=h)
+                cell.fill = header_fill
+                cell.font = header_font
+            rr = head + 1
+            work_lines = []
+            if has_work:
                 cat_rows, grand_trips, grand_amount = _category_summary(st)
-                for label, trips, amount in cat_rows:
+                work_lines = [
+                    (label, trips, amount, False)
+                    for label, trips, amount in cat_rows
+                ]
+                work_lines.append(('Grand Total', grand_trips, grand_amount, True))
+            extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
+            pay_lines = _payment_summary_rows(st, extra_label)
+            for i in range(max(len(work_lines), len(pay_lines))):
+                if i < len(work_lines):
+                    label, trips, amount, is_total = work_lines[i]
                     ws.cell(row=rr, column=1, value=label)
                     ws.cell(row=rr, column=2, value=trips)
                     ws.cell(row=rr, column=3, value=float(amount)).number_format = '#,##0'
-                    rr += 1
-                ws.cell(row=rr, column=1, value='Grand Total').font = total_font
-                ws.cell(row=rr, column=2, value=grand_trips).font = total_font
-                ws.cell(row=rr, column=3, value=float(grand_amount)).font = total_font
-                ws.cell(row=rr, column=3).number_format = '#,##0'
-                for col in range(1, 4):
-                    ws.cell(row=rr, column=col).fill = total_fill
-                rr += 1
-
-            rr += 1
-            ws.cell(row=rr, column=1, value='PAYMENT SUMMARY').font = _F(bold=True, size=11)
-            rr += 1
-            for col, h in enumerate(['Description', 'Amount'], start=1):
-                cell = ws.cell(row=rr, column=col, value=h)
-                cell.fill = header_fill
-                cell.font = header_font
-            rr += 1
-            extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
-            for label, value in _payment_summary_rows(st, extra_label):
-                if label is None:
-                    rr += 1
-                    continue
-                ws.cell(row=rr, column=1, value=label)
-                ws.cell(row=rr, column=2, value=float(value)).number_format = '#,##0'
+                    if is_total:
+                        for col in range(1, 4):
+                            ws.cell(row=rr, column=col).font = total_font
+                            ws.cell(row=rr, column=col).fill = total_fill
+                if i < len(pay_lines) and pay_lines[i][0] is not None:
+                    ws.cell(row=rr, column=5, value=pay_lines[i][0])
+                    ws.cell(row=rr, column=6, value=float(pay_lines[i][1])).number_format = '#,##0'
                 rr += 1
 
         # ---- SETTLEMENTS (simple, optional) ----
@@ -3219,12 +3221,12 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                 elements.append(Spacer(1, 4))
         elements.append(entries_table)
 
-        # ---------- 3b. WORK + PAYMENT SUMMARY (dates ke baad) ----------
+        # ---------- 3b. WORK + PAYMENT SUMMARY: side-by-side boxes ----------
         if not is_mistri:
             summary_head = _wrapped_style('SumHead', fontSize=9.5, leading=12, textColor=BRAND_DARK)
+            work_flow = []
             if st.get('trip_groups'):
-                elements.append(Spacer(1, 8))
-                elements.append(Paragraph('<b>WORK SUMMARY</b>', summary_head))
+                work_flow.append(Paragraph('<b>WORK SUMMARY</b>', summary_head))
                 cat_rows, grand_trips, grand_amount = _category_summary(st)
                 w_data = [
                     [
@@ -3244,12 +3246,11 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                     Paragraph(f"<b>{grand_trips}</b>", styles['body_r']),
                     Paragraph(f"<b>₹{grand_amount:,.2f}</b>", styles['body_r']),
                 ])
-                w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 40 * mm, 56 * mm])
+                w_table = Table(w_data, repeatRows=1, colWidths=[54 * mm, 18 * mm, 28 * mm])
                 apply_data_table_style(w_table, total_row=True)
-                elements.append(w_table)
+                work_flow.append(w_table)
 
-            elements.append(Spacer(1, 8))
-            elements.append(Paragraph('<b>PAYMENT SUMMARY</b>', summary_head))
+            pay_flow = [Paragraph('<b>PAYMENT SUMMARY</b>', summary_head)]
             extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
             p_data = [
                 [
@@ -3268,9 +3269,26 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                         Paragraph(label, styles['body']),
                         Paragraph(f"₹{value:,.2f}", styles['body_r']),
                     ])
-            p_table = Table(p_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
+            p_table = Table(p_data, repeatRows=1, colWidths=[46 * mm, 38 * mm])
             apply_data_table_style(p_table, total_row=False)
-            elements.append(p_table)
+            pay_flow.append(p_table)
+
+            elements.append(Spacer(1, 8))
+            if work_flow:
+                box_table = Table(
+                    [[work_flow, pay_flow]],
+                    colWidths=[100 * mm, 84 * mm],
+                )
+                box_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                    ('TOPPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                ]))
+                elements.append(box_table)
+            else:
+                elements.extend(pay_flow)
 
         # ---------- 4. SETTLEMENTS IN RANGE ----------
         if st['settlements']:
