@@ -2664,6 +2664,11 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
             for col in range(1, 7):
                 ws.cell(row=rr, column=col).fill = total_fill
         else:
+            if labour.category == 'HYVA_DRIVER':
+                hyva_rates = _hyva_rate_info(st)
+                if hyva_rates:
+                    ws.cell(row=head_row, column=1, value=hyva_rates).font = _F(bold=True)
+                    head_row += 1
             headers = ['Date', 'Description', 'Trips', 'Rate', 'Trip ₹', 'Extra ₹', 'Advance ₹', 'Total ₹']
             for col, h in enumerate(headers, start=1):
                 cell = ws.cell(row=head_row, column=col, value=h)
@@ -2673,15 +2678,16 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
 
             rr = head_row + 1
             trip_total = Decimal('0')
-            extras_done = set()
-            if st.get('trip_groups'):
-                for g in reversed(st['trip_groups']):
+            folded_days = set()
+            for kind, item in _ordered_day_entries(st):
+                if kind == 'group':
+                    g = item
                     d = g.date
-                    first_of_day = d not in extras_done
-                    extras_done.add(d)
+                    first_of_day = d not in folded_days
+                    folded_days.add(d)
                     extra = extra_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
                     advance = advance_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
-                    desc = g.load_label or 'Tractor Trip'
+                    desc = _trip_group_desc(labour, g)
                     # Is labour ke share ka amount dikhao (group ka full amount NAHI).
                     n = g.labourers.count() or 1
                     share = g.total_amount / n
@@ -2697,26 +2703,63 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                     ws.cell(row=rr, column=8).number_format = '#,##0'
                     trip_total += share
                     rr += 1
+                else:
+                    row = item
+                    d = row['date']
+                    grand = row['extra_amount'] + row['advance_amount']
+                    ws.cell(row=rr, column=1, value=d.strftime('%d-%b-%Y'))
+                    ws.cell(row=rr, column=2, value='Bhatta' if labour.category == 'HYVA_DRIVER' else 'Extra / Advance')
+                    ws.cell(row=rr, column=6, value=float(row['extra_amount'])).number_format = '#,##0'
+                    ws.cell(row=rr, column=7, value=float(row['advance_amount'])).number_format = '#,##0'
+                    ws.cell(row=rr, column=8, value=float(grand)).font = _F(bold=True)
+                    ws.cell(row=rr, column=8).number_format = '#,##0'
+                    rr += 1
 
-            # Show extra/advance-only days (days with no trip entry)
-            for row in reversed(st['rows']):
-                d = row['date']
-                if not any(g.date == d for g in (st.get('trip_groups') or [])):
-                    if row['extra_amount'] or row['advance_amount']:
-                        grand = row['extra_amount'] + row['advance_amount']
-                        ws.cell(row=rr, column=1, value=d.strftime('%d-%b-%Y'))
-                        ws.cell(row=rr, column=2, value='Extra / Advance')
-                        ws.cell(row=rr, column=6, value=float(row['extra_amount'])).number_format = '#,##0'
-                        ws.cell(row=rr, column=7, value=float(row['advance_amount'])).number_format = '#,##0'
-                        ws.cell(row=rr, column=8, value=float(grand)).font = _F(bold=True)
-                        ws.cell(row=rr, column=8).number_format = '#,##0'
-                        rr += 1
+            # WORK SUMMARY (category-wise) + PAYMENT SUMMARY — dates ke baad.
+            if st.get('trip_groups'):
+                rr += 1
+                ws.cell(row=rr, column=1, value='WORK SUMMARY').font = _F(bold=True, size=11)
+                rr += 1
+                for col, h in enumerate(['Category', 'Total Trips', 'Total Amount'], start=1):
+                    cell = ws.cell(row=rr, column=col, value=h)
+                    cell.fill = header_fill
+                    cell.font = header_font
+                rr += 1
+                cat_rows, grand_trips, grand_amount = _category_summary(st)
+                for label, trips, amount in cat_rows:
+                    ws.cell(row=rr, column=1, value=label)
+                    ws.cell(row=rr, column=2, value=trips)
+                    ws.cell(row=rr, column=3, value=float(amount)).number_format = '#,##0'
+                    rr += 1
+                ws.cell(row=rr, column=1, value='Grand Total').font = total_font
+                ws.cell(row=rr, column=2, value=grand_trips).font = total_font
+                ws.cell(row=rr, column=3, value=float(grand_amount)).font = total_font
+                ws.cell(row=rr, column=3).number_format = '#,##0'
+                for col in range(1, 4):
+                    ws.cell(row=rr, column=col).fill = total_fill
+                rr += 1
 
-            ws.cell(row=rr, column=7, value='TOTAL').font = total_font
-            ws.cell(row=rr, column=8, value=float(st['total_salary'] - st['driver_total'])).font = total_font
-            ws.cell(row=rr, column=8).number_format = '#,##0'
-            for col in range(1, 9):
-                ws.cell(row=rr, column=col).fill = total_fill
+            rr += 1
+            ws.cell(row=rr, column=1, value='PAYMENT SUMMARY').font = _F(bold=True, size=11)
+            rr += 1
+            for col, h in enumerate(['Description', 'Amount'], start=1):
+                cell = ws.cell(row=rr, column=col, value=h)
+                cell.fill = header_fill
+                cell.font = header_font
+            rr += 1
+            extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
+            for label, value in [
+                ('Total Earning', st['trip_total']),
+                (extra_label, st['extra_total']),
+                ('Total Salary', st['total_salary']),
+                ('Total Advanced', st['advance_total']),
+                ('Net Payable (Salary - Adv)', st['payment']),
+                ('Old Balance', st['old_balance']),
+                ('Final Amount', st['final_amount']),
+            ]:
+                ws.cell(row=rr, column=1, value=label)
+                ws.cell(row=rr, column=2, value=float(value)).number_format = '#,##0'
+                rr += 1
 
         # ---- SETTLEMENTS (simple, optional) ----
         if st['settlements']:
@@ -2760,6 +2803,69 @@ def _mistri_rate_info(labour):
         f"Half Day: ₹{half:,.0f} · "
         f"Overtime: ₹{overtime:,.0f}"
     )
+
+
+def _trip_group_desc(labour, group):
+    """Entries table wali work description (Hyva prefix ke saath)."""
+    desc = group.load_label or 'Tractor Trip'
+    if labour.category == 'HYVA_DRIVER':
+        desc = 'Hyva' + (f' ({group.load_label})' if group.load_label else '')
+    return desc
+
+
+def _hyva_rate_info(st):
+    """Distinct load-type rates, ek line me — har row me rate nahi."""
+    seen = []
+    for g in st.get('trip_groups') or []:
+        key = (g.load_label or 'Tractor Trip', g.rate_per_trip)
+        if key not in seen:
+            seen.append(key)
+    parts = [f"{label}: ₹{rate:,.0f}" for label, rate in reversed(seen)]
+    return 'Rate — ' + ' · '.join(parts) if parts else ''
+
+
+def _ordered_day_entries(st):
+    """Date-ascending interleaved entries: ('group', group) / ('extra', row).
+
+    Trip rows aur extra/advance-only rows apni date-position par aate hain
+    (Bhatta rows sabse end me nahi).
+    """
+    groups_by_date = defaultdict(list)
+    for g in sorted(st.get('trip_groups') or [], key=lambda g: (g.date, g.id)):
+        groups_by_date[g.date].append(g)
+    extra_rows = {
+        row['date']: row for row in st['rows']
+        if (row['extra_amount'] or row['advance_amount'])
+        and row['date'] not in groups_by_date
+    }
+    entries = []
+    for d in sorted(set(groups_by_date) | set(extra_rows)):
+        entries.extend(('group', g) for g in groups_by_date.get(d, []))
+        if d in extra_rows:
+            entries.append(('extra', extra_rows[d]))
+    return entries
+
+
+def _category_summary(st):
+    """Load-type wise (Category | Trips | Amount) + grand trips/amount."""
+    labour = st['labour']
+    summary = []
+    seen = set()
+    grand_trips = 0
+    grand_amount = Decimal('0')
+    for g in st.get('trip_groups') or []:
+        n = g.labourers.count() or 1
+        share = g.total_amount / n
+        grand_trips += g.trip_count
+        grand_amount += share
+        desc = _trip_group_desc(labour, g)
+        for i, (label, trips, amount) in enumerate(summary):
+            if label == desc:
+                summary[i] = (label, trips + g.trip_count, amount + share)
+                break
+        else:
+            summary.append((desc, g.trip_count, share))
+    return summary, grand_trips, grand_amount
 
 
 def _mistri_entries_data(st, styles):
@@ -3015,7 +3121,8 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
             entries_data = _mistri_entries_data(st, styles)
             entries_widths = [30 * mm, 34 * mm, 26 * mm, 26 * mm, 26 * mm, 30 * mm]
         else:
-            # Single table: trips + extra/bhatta + advance.
+            # Single table: trips + extra/bhatta + advance — date-ascending,
+            # trip aur extra rows apni date-position par (interleaved).
             extra_col_label = 'Bhatta (₹)' if labour.category == 'HYVA_DRIVER' else 'Extra (₹)'
             extra_by_date = {row['date']: row['extra_amount'] for row in st['rows']}
             advance_by_date = {row['date']: row['advance_amount'] for row in st['rows']}
@@ -3033,17 +3140,16 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                 ]
             ]
 
-            extras_done = set()
-            if st.get('trip_groups'):
-                for g in reversed(st['trip_groups']):
+            folded_days = set()
+            for kind, item in _ordered_day_entries(st):
+                if kind == 'group':
+                    g = item
                     d = g.date
-                    first_of_day = d not in extras_done
-                    extras_done.add(d)
+                    first_of_day = d not in folded_days
+                    folded_days.add(d)
                     extra = extra_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
                     advance = advance_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
-                    desc = (g.load_label or 'Tractor Trip')
-                    if labour.category == 'HYVA_DRIVER':
-                        desc = 'Hyva' + (f' ({g.load_label})' if g.load_label else '')
+                    desc = _trip_group_desc(labour, g)
                     # Is labour ke share ka amount dikhao (group ka full amount NAHI).
                     n = g.labourers.count() or 1
                     share = g.total_amount / n
@@ -3058,35 +3164,21 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                         Paragraph(f"₹{advance:,.2f}", styles['body_r']),
                         Paragraph(f"<b>₹{grand:,.2f}</b>", styles['body_r']),
                     ])
-
-            # Extra/advance-only days (no trip entry)
-            for row in reversed(st['rows']):
-                d = row['date']
-                if not any(g.date == d for g in (st.get('trip_groups') or [])):
-                    if row['extra_amount'] or row['advance_amount']:
-                        desc = 'Bhatta' if labour.category == 'HYVA_DRIVER' else 'Extra'
-                        grand = row['extra_amount'] + row['advance_amount']
-                        entries_data.append([
-                            Paragraph(d.strftime('%d-%b-%Y'), styles['body']),
-                            Paragraph(desc, styles['body']),
-                            Paragraph('', styles['body_r']),
-                            Paragraph('', styles['body_r']),
-                            Paragraph('', styles['body_r']),
-                            Paragraph(f"₹{row['extra_amount']:,.2f}", styles['body_r']),
-                            Paragraph(f"₹{row['advance_amount']:,.2f}", styles['body_r']),
-                            Paragraph(f"<b>₹{grand:,.2f}</b>", styles['body_r']),
-                        ])
-
-            entries_data.append([
-                Paragraph('<b>TOTAL</b>', styles['body']),
-                Paragraph('', styles['body']),
-                Paragraph('', styles['body']),
-                Paragraph('', styles['body']),
-                Paragraph('', styles['body']),
-                Paragraph(f"<b>₹{st['extra_total']:,.2f}</b>", styles['body_r']),
-                Paragraph(f"<b>₹{st['advance_total']:,.2f}</b>", styles['body_r']),
-                Paragraph(f"<b>₹{(st['total_salary'] - st['driver_total']):,.2f}</b>", styles['body_r']),
-            ])
+                else:
+                    row = item
+                    d = row['date']
+                    desc = 'Bhatta' if labour.category == 'HYVA_DRIVER' else 'Extra'
+                    grand = row['extra_amount'] + row['advance_amount']
+                    entries_data.append([
+                        Paragraph(d.strftime('%d-%b-%Y'), styles['body']),
+                        Paragraph(desc, styles['body']),
+                        Paragraph('', styles['body_r']),
+                        Paragraph('', styles['body_r']),
+                        Paragraph('', styles['body_r']),
+                        Paragraph(f"₹{row['extra_amount']:,.2f}", styles['body_r']),
+                        Paragraph(f"₹{row['advance_amount']:,.2f}", styles['body_r']),
+                        Paragraph(f"<b>₹{grand:,.2f}</b>", styles['body_r']),
+                    ])
             entries_widths = [24 * mm, 28 * mm, 12 * mm, 22 * mm, 24 * mm, 24 * mm, 24 * mm, 24 * mm]
 
         entries_table = Table(
@@ -3095,7 +3187,70 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
             colWidths=entries_widths,
         )
         apply_data_table_style(entries_table, total_row=True)
+        if not is_mistri and labour.category == 'HYVA_DRIVER':
+            hyva_rates = _hyva_rate_info(st)
+            if hyva_rates:
+                elements.append(Paragraph(
+                    f"<b>{hyva_rates}</b>",
+                    _wrapped_style('HyvaRate', fontSize=9, leading=12, textColor=BRAND_DARK),
+                ))
+                elements.append(Spacer(1, 4))
         elements.append(entries_table)
+
+        # ---------- 3b. WORK + PAYMENT SUMMARY (dates ke baad) ----------
+        if not is_mistri:
+            summary_head = _wrapped_style('SumHead', fontSize=9.5, leading=12, textColor=BRAND_DARK)
+            if st.get('trip_groups'):
+                elements.append(Spacer(1, 8))
+                elements.append(Paragraph('<b>WORK SUMMARY</b>', summary_head))
+                cat_rows, grand_trips, grand_amount = _category_summary(st)
+                w_data = [
+                    [
+                        Paragraph('<b>Category</b>', styles['header']),
+                        Paragraph('<b>Total Trips</b>', styles['header_r']),
+                        Paragraph('<b>Total Amount</b>', styles['header_r']),
+                    ]
+                ]
+                for label, trips, amount in cat_rows:
+                    w_data.append([
+                        Paragraph(label, styles['body']),
+                        Paragraph(str(trips), styles['body_r']),
+                        Paragraph(f"₹{amount:,.2f}", styles['body_r']),
+                    ])
+                w_data.append([
+                    Paragraph('<b>Grand Total</b>', styles['body']),
+                    Paragraph(f"<b>{grand_trips}</b>", styles['body_r']),
+                    Paragraph(f"<b>₹{grand_amount:,.2f}</b>", styles['body_r']),
+                ])
+                w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 40 * mm, 56 * mm])
+                apply_data_table_style(w_table, total_row=True)
+                elements.append(w_table)
+
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph('<b>PAYMENT SUMMARY</b>', summary_head))
+            extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
+            p_data = [
+                [
+                    Paragraph('<b>Description</b>', styles['header']),
+                    Paragraph('<b>Amount</b>', styles['header_r']),
+                ]
+            ]
+            for label, value in [
+                ('Total Earning', st['trip_total']),
+                (extra_label, st['extra_total']),
+                ('Total Salary', st['total_salary']),
+                ('Total Advanced', st['advance_total']),
+                ('Net Payable (Salary - Adv)', st['payment']),
+                ('Old Balance', st['old_balance']),
+                ('Final Amount', st['final_amount']),
+            ]:
+                p_data.append([
+                    Paragraph(label, styles['body']),
+                    Paragraph(f"₹{value:,.2f}", styles['body_r']),
+                ])
+            p_table = Table(p_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
+            apply_data_table_style(p_table, total_row=False)
+            elements.append(p_table)
 
         # ---------- 4. SETTLEMENTS IN RANGE ----------
         if st['settlements']:
