@@ -2838,14 +2838,20 @@ def _hyva_rate_info(st):
 
 
 def _tractor_rate_info(st):
-    """Distinct per-trip rates, ek line me — har row me rate nahi."""
-    rates = []
+    """Distinct per-trip rates with description — Hand Trip / JCB Loading."""
+    fill_labels = {'HAND': 'Hand Trip', 'JCB': 'JCB Loading'}
+    seen = []
     for g in st.get('trip_groups') or []:
-        if g.rate_per_trip not in rates:
-            rates.append(g.rate_per_trip)
-    if not rates:
+        key = (
+            fill_labels.get(g.fill_type, g.get_fill_type_display()),
+            g.rate_per_trip,
+        )
+        if key not in seen:
+            seen.append(key)
+    if not seen:
         return ''
-    return 'Rate: ' + ' · '.join(f"₹{rate:,.0f}" for rate in rates) + ' per trip'
+    parts = [f"{label}: ₹{rate:,.0f}" for label, rate in seen]
+    return 'Rate — ' + ' · '.join(parts)
 
 
 def _rate_box_rows(pairs, columns=2):

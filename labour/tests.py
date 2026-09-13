@@ -563,6 +563,21 @@ class TractorStatementTest(TestCase):
         self.assertIn('₹450', info)
         self.assertEqual(info.count('₹450'), 1)
 
+    def test_tractor_rate_info_describes_hand_and_jcb(self):
+        from .views import _tractor_rate_info
+
+        jcb_group = LabourTripGroup.objects.create(
+            date=date(2026, 9, 11),
+            trip_count=2,
+            rate_per_trip=Decimal('100.00'),
+            fill_type='JCB',
+        )
+        jcb_group.labourers.add(self.labour)
+        info = _tractor_rate_info(self._statement())
+
+        self.assertIn('Hand Trip: ₹450', info)
+        self.assertIn('JCB Loading: ₹100', info)
+
     def test_excel_tractor_layout(self):
         response = self.client.get(
             reverse('labour:statement_export', args=[self.labour.id]),
