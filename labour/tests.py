@@ -483,3 +483,19 @@ class HyvaStatementTest(TestCase):
         )
         self.assertTrue(final_row[pay_col].font.bold)
         self.assertTrue(final_row[pay_col + 1].font.bold)
+
+    def test_summary_sections_stay_together(self):
+        from reportlab.platypus import KeepTogether
+
+        from core.pdf_utils import get_pdf_styles, get_registered_font
+        from .views import _summary_flowables
+
+        st = self._statement()
+        styles = get_pdf_styles(get_registered_font())
+        blocks = _summary_flowables(st, self.driver, styles, get_registered_font())
+
+        # Work + Payment blocks, dono page-split se protected.
+        self.assertEqual(len(blocks), 2)
+        self.assertTrue(
+            all(isinstance(block, KeepTogether) for block in blocks)
+        )

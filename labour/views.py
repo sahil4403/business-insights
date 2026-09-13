@@ -2951,6 +2951,91 @@ def _payment_summary_rows(st, extra_label='Total Extra'):
     return rows
 
 
+def _summary_flowables(st, labour, styles, font_name):
+    """WORK + PAYMENT SUMMARY blocks — page-split se protected.
+
+    Har section KeepTogether me: jagah na ho to poora section next page
+    par shift hoga, beech me katke nahi.
+    """
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import KeepTogether, Paragraph, Spacer, Table, TableStyle
+
+    from core.pdf_utils import apply_data_table_style, BRAND_DARK
+
+    summary_head = ParagraphStyle(
+        'SumHead', parent=getSampleStyleSheet()['Normal'],
+        fontName=font_name, fontSize=9.5, leading=12,
+        textColor=BRAND_DARK,
+    )
+    blocks = []
+    if st.get('trip_groups'):
+        cat_rows, grand_trips, grand_amount = _category_summary(st)
+        w_data = [
+            [
+                Paragraph('<b>Category</b>', styles['header']),
+                Paragraph('<b>Total Trips</b>', styles['header_r']),
+                Paragraph('<b>Total Amount</b>', styles['header_r']),
+            ]
+        ]
+        for label, trips, amount in cat_rows:
+            w_data.append([
+                Paragraph(label, styles['body']),
+                Paragraph(str(trips), styles['body_r']),
+                Paragraph(f"₹{amount:,.2f}", styles['body_r']),
+            ])
+        w_data.append([
+            Paragraph('<b>Grand Total</b>', styles['body']),
+            Paragraph(f"<b>{grand_trips}</b>", styles['body_r']),
+            Paragraph(f"<b>₹{grand_amount:,.2f}</b>", styles['body_r']),
+        ])
+        w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 40 * mm, 56 * mm])
+        apply_data_table_style(w_table, total_row=True)
+        blocks.append(KeepTogether([
+            Spacer(1, 12),
+            Paragraph('<b>WORK SUMMARY</b>', summary_head),
+            w_table,
+        ]))
+
+    extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
+    p_data = [
+        [
+            Paragraph('<b>Description</b>', styles['header']),
+            Paragraph('<b>Amount</b>', styles['header_r']),
+        ]
+    ]
+    for label, value in _payment_summary_rows(st, extra_label):
+        if label is None:
+            p_data.append([
+                Paragraph('', styles['body']),
+                Paragraph('', styles['body_r']),
+            ])
+        elif label == 'Final Payment':
+            p_data.append([
+                Paragraph(f"<b>{label}</b>", styles['body']),
+                Paragraph(f"<b>₹{value:,.2f}</b>", styles['body_r']),
+            ])
+        elif label == 'Total Advanced':
+            p_data.append([
+                Paragraph(label, styles['body']),
+                Paragraph(f'<font color="#dc2626">₹{value:,.2f}</font>', styles['body_r']),
+            ])
+        else:
+            p_data.append([
+                Paragraph(label, styles['body']),
+                Paragraph(f"₹{value:,.2f}", styles['body_r']),
+            ])
+    p_table = Table(p_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
+    apply_data_table_style(p_table, total_row=False)
+    blocks.append(KeepTogether([
+        Spacer(1, 12),
+        Paragraph('<b>PAYMENT SUMMARY</b>', summary_head),
+        p_table,
+    ]))
+    return blocks
+
+
 def _mistri_entries_data(st, styles):
     """Mistri statement rows: Date | Day Type | Rozi | Extra | Advance | Total.
 
@@ -3229,68 +3314,9 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                 elements.append(Spacer(1, 4))
         elements.append(entries_table)
 
-        # ---------- 3b. WORK + PAYMENT SUMMARY: stacked boxes, gap ke saath ----------
+        # ---------- 3b. WORK + PAYMENT SUMMARY: stacked, split-proof ----------
         if not is_mistri:
-            summary_head = _wrapped_style('SumHead', fontSize=9.5, leading=12, textColor=BRAND_DARK)
-            if st.get('trip_groups'):
-                elements.append(Spacer(1, 12))
-                elements.append(Paragraph('<b>WORK SUMMARY</b>', summary_head))
-                cat_rows, grand_trips, grand_amount = _category_summary(st)
-                w_data = [
-                    [
-                        Paragraph('<b>Category</b>', styles['header']),
-                        Paragraph('<b>Total Trips</b>', styles['header_r']),
-                        Paragraph('<b>Total Amount</b>', styles['header_r']),
-                    ]
-                ]
-                for label, trips, amount in cat_rows:
-                    w_data.append([
-                        Paragraph(label, styles['body']),
-                        Paragraph(str(trips), styles['body_r']),
-                        Paragraph(f"₹{amount:,.2f}", styles['body_r']),
-                    ])
-                w_data.append([
-                    Paragraph('<b>Grand Total</b>', styles['body']),
-                    Paragraph(f"<b>{grand_trips}</b>", styles['body_r']),
-                    Paragraph(f"<b>₹{grand_amount:,.2f}</b>", styles['body_r']),
-                ])
-                w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 40 * mm, 56 * mm])
-                apply_data_table_style(w_table, total_row=True)
-                elements.append(w_table)
-
-            elements.append(Spacer(1, 12))
-            elements.append(Paragraph('<b>PAYMENT SUMMARY</b>', summary_head))
-            extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
-            p_data = [
-                [
-                    Paragraph('<b>Description</b>', styles['header']),
-                    Paragraph('<b>Amount</b>', styles['header_r']),
-                ]
-            ]
-            for label, value in _payment_summary_rows(st, extra_label):
-                if label is None:
-                    p_data.append([
-                        Paragraph('', styles['body']),
-                        Paragraph('', styles['body_r']),
-                    ])
-                elif label == 'Final Payment':
-                    p_data.append([
-                        Paragraph(f"<b>{label}</b>", styles['body']),
-                        Paragraph(f"<b>₹{value:,.2f}</b>", styles['body_r']),
-                    ])
-                elif label == 'Total Advanced':
-                    p_data.append([
-                        Paragraph(label, styles['body']),
-                        Paragraph(f'<font color="#dc2626">₹{value:,.2f}</font>', styles['body_r']),
-                    ])
-                else:
-                    p_data.append([
-                        Paragraph(label, styles['body']),
-                        Paragraph(f"₹{value:,.2f}", styles['body_r']),
-                    ])
-            p_table = Table(p_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
-            apply_data_table_style(p_table, total_row=False)
-            elements.append(p_table)
+            elements.extend(_summary_flowables(st, labour, styles, font_name))
 
         # ---------- 4. SETTLEMENTS IN RANGE ----------
         if st['settlements']:
