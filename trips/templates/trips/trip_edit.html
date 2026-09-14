@@ -895,13 +895,13 @@ function confirmSaveAndViewStatement(shouldSave) {
             if (blankOption) vehicleSelectEl.appendChild(blankOption.cloneNode(true));
             originalOptions.forEach(opt => {
                 if (!opt.value) return;
-                if (!want || vehicleTypeOf(opt) === want) {
+                // Saved/selected vehicle kabhi mat hatao — filter sirf nayi choice narrow karta hai.
+                if (!want || vehicleTypeOf(opt) === want || opt.value === current) {
                     const clone = opt.cloneNode(true);
                     if (clone.value === current) clone.selected = true;
                     vehicleSelectEl.appendChild(clone);
                 }
             });
-            if (want && vehicleSelectEl.value !== current) vehicleSelectEl.value = "";
             toggleJcbSectionVisibility();
         }
 
@@ -936,8 +936,7 @@ function confirmSaveAndViewStatement(shouldSave) {
 
         function filterDrivers() {
             const want = (typeSel.value || "").toLowerCase();
-            const current = driverSelect.value;
-            let keptCurrent = false;
+            const selectedVals = Array.from(driverSelect.selectedOptions).map(function (o) { return o.value; });
 
             driverSelect.innerHTML = "";
             allDriverOptions.forEach(opt => {
@@ -946,8 +945,7 @@ function confirmSaveAndViewStatement(shouldSave) {
                     return;
                 }
                 const name = opt.text.trim().toLowerCase();
-                // Nitin Prasad Driver row: syncNitin handle karta hai
-                if (name.indexOf('nitin prasad') !== -1) return;
+                const isSelected = selectedVals.indexOf(opt.value) !== -1;
                 const isTractorOnly = tractorOnlyNames.some(n => name.indexOf(n) !== -1);
                 let show;
                 if (want === "tractor") {
@@ -957,16 +955,13 @@ function confirmSaveAndViewStatement(shouldSave) {
                 } else {
                     show = true;
                 }
-                if (show) {
+                // Selected drivers + Nitin options (syncNitin ke liye) hamesha rakho.
+                if (show || isSelected || name.indexOf('nitin prasad') !== -1) {
                     const clone = opt.cloneNode(true);
-                    if (clone.value === current) {
-                        clone.selected = true;
-                        keptCurrent = true;
-                    }
+                    if (isSelected) clone.selected = true;
                     driverSelect.appendChild(clone);
                 }
             });
-            if (current && !keptCurrent) driverSelect.value = "";
 
             rows.forEach(row => {
                 const name = (row.getAttribute("data-driver-name") || "").trim().toLowerCase();
@@ -984,12 +979,9 @@ function confirmSaveAndViewStatement(shouldSave) {
                 if (show) {
                     row.style.display = "flex";
                 } else {
+                    // Row chhupao par tick hui checkbox mat hatao — saved/selected
+                    // driver khona nahi chahiye; galat combo server rok lega.
                     row.style.display = "none";
-                    const chk = row.querySelector(".driver-checkbox");
-                    if (chk && chk.checked) {
-                        chk.checked = false;
-                        chk.dispatchEvent(new Event("change"));
-                    }
                 }
             });
 
