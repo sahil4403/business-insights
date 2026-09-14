@@ -142,3 +142,67 @@ class VendorSupplyBalanceTest(TestCase):
         self.assertContains(response, f'Pay \u20b9{outward.outstanding_amount:,.0f}')
         # ...but the inward vendor row must not offer Pay.
         self.assertEqual(content.count('Pay \u20b9'), 2)
+
+
+class CustomerMobileUiTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='mobile-ui-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        customer_type, _ = CustomerType.objects.get_or_create(
+            code='MOBILE-UI-TEST',
+            defaults={'name': 'Mobile UI Test'},
+        )
+        Customer.objects.create(
+            customer_code='MOB-ALPHA',
+            name='Alpha Customer',
+            customer_type=customer_type,
+            opening_balance=Decimal('100.00'),
+            is_active=True,
+        )
+        Customer.objects.create(
+            customer_code='MOB-BETA',
+            name='Beta Customer',
+            customer_type=customer_type,
+            opening_balance=Decimal('200.00'),
+            is_active=True,
+        )
+        self.list_path = reverse('core:customer_report')
+
+    def test_mobile_sort_dropdown_with_selected(self):
+        response = self.client.get(f'{self.list_path}?sort=desc')
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('id="mobile-sort"', content)
+        self.assertIn(
+            f'<option value="{response.context["sort_desc_url"]}" selected>',
+            content,
+        )
+        self.assertIn(
+            f'<option value="{response.context["sort_asc_url"]}" >',
+            content,
+        )
+
+    def test_overdue_pill_count(self):
+        response = self.client.get(self.list_path)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['overdue_count'], 2)
+        self.assertContains(response, '2 Overdue')
+
+    def test_search_keeps_sort_param(self):
+        response = self.client.get(f'{self.list_path}?sort=asc')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="sort" value="asc"')
+
+    def test_mobile_cards_have_initials(self):
+        response = self.client.get(self.list_path)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '>AC<')
+        self.assertContains(response, '>BC<')

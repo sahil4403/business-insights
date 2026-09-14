@@ -683,6 +683,11 @@ def customer_report(request):
             'customer_name':
                 info['name'],
 
+            'initials':
+                ''.join(
+                    word[0] for word in (info['name'] or '').split()[:2]
+                ).upper() or '•',
+
             'customer_code':
                 info.get('customer_code') or '',
 
@@ -1200,6 +1205,11 @@ def customer_report(request):
     clear_sort_params = base_params.copy()
     clear_sort_params.pop('sort', None)
 
+    # Overdue bell count (display filters se pehle — saare outstanding).
+    overdue_count = sum(
+        1 for row in customer_rows if row['total_outstanding'] > 0
+    )
+
     context = {
         'customer_rows': customer_rows,
         'from_date': from_date,
@@ -1213,6 +1223,7 @@ def customer_report(request):
         'max_amount': max_amount_str,
         'is_limited': is_limited,
         'showing_count': len(customer_rows),
+        'overdue_count': overdue_count,
         'is_admin_user': request.user.is_authenticated and request.user.is_superuser,
     }
 
