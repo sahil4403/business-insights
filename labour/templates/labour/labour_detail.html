@@ -222,8 +222,9 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
             <input type="number" name="outstanding_amount" value="{{ old_balance.amount|floatformat:2 }}" min="0" step="0.01" class="input" placeholder="e.g. 500">
         </div>
         <button type="submit" class="btn glass glass-tint">Set</button>
+        <button type="submit" name="mode" value="add" class="btn glass">+ Add</button>
     </form>
-    <p class="text-[11px] text-slate-400 mt-2">Positive amount = labour owes you (prior dues). Enter 0 to clear.</p>
+    <p class="text-[11px] text-slate-400 mt-2">Positive amount = labour owes you (prior dues). Set purana overwrite karta hai · Add upar jodta hai · 0 se clear.</p>
 </details>
 
 <!-- Date range filter -->

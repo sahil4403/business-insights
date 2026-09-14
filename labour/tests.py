@@ -675,3 +675,44 @@ class HyvaBhattaOnlyTest(TestCase):
                 labour=self.driver, date=date(2026, 9, 10), note='Bhatta'
             ).exists()
         )
+
+
+class OutstandingAdjustTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='outstanding-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.driver = Labour.objects.create(
+            name='Gaju Bhau',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+        from .models import LabourOldBalance
+        LabourOldBalance.objects.create(labour=self.driver, amount=Decimal('500.00'))
+
+    def _balance(self):
+        from .models import LabourOldBalance
+        return LabourOldBalance.objects.get(labour=self.driver).amount
+
+    def test_add_mode_adds_on_top(self):
+        response = self.client.post(
+            reverse('labour:outstanding_set', args=[self.driver.pk]),
+            data={'outstanding_amount': '300', 'mode': 'add'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self._balance(), Decimal('800.00'))
+
+    def test_default_still_sets_absolute(self):
+        response = self.client.post(
+            reverse('labour:outstanding_set', args=[self.driver.pk]),
+            data={'outstanding_amount': '300'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self._balance(), Decimal('300.00'))

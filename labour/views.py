@@ -1565,8 +1565,9 @@ def driver_payment_create(request, labour_id=None):
 @login_required(login_url='/login/')
 @require_POST
 def labour_set_outstanding(request, labour_id):
-    """Directly set the running old balance (outstanding) for a labour.
-    Positive amount = labour owes owner. Use for prior dues / manual adjust."""
+    """Running old balance (outstanding) manage karo for a labour.
+    Positive amount = labour owes owner. Use for prior dues / manual adjust.
+    mode=add → amount upar jod do; warna absolute set (purana overwrite)."""
     labour = get_object_or_404(Labour, pk=labour_id)
     ob = _ensure_old_balance(labour)
     raw = request.POST.get('outstanding_amount', '').strip()
@@ -1578,9 +1579,14 @@ def labour_set_outstanding(request, labour_id):
     if new_amount < 0:
         messages.error(request, 'Amount cannot be negative. Use 0 to clear dues.')
         return redirect('labour:detail', labour_id=labour.id)
-    ob.amount = new_amount
-    ob.save()
-    messages.success(request, f'Outstanding for {labour.name} set to ₹{new_amount:.2f}.')
+    if request.POST.get('mode') == 'add':
+        ob.amount += new_amount
+        ob.save()
+        messages.success(request, f'₹{new_amount:.2f} added. Outstanding for {labour.name} is now ₹{ob.amount:.2f}.')
+    else:
+        ob.amount = new_amount
+        ob.save()
+        messages.success(request, f'Outstanding for {labour.name} set to ₹{new_amount:.2f}.')
     return redirect('labour:detail', labour_id=labour.id)
 
 
