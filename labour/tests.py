@@ -773,3 +773,31 @@ class SettlementMathTest(TestCase):
         settlement.recalculate()
 
         self.assertEqual(settlement.final_old_balance, Decimal('0.00'))
+
+
+class LabourRollupCollapsedTest(TestCase):
+    def test_daily_rollup_hidden_by_default(self):
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username='rollup-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(user)
+        driver = Labour.objects.create(
+            name='Gaju Bhau',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+        response = self.client.get(
+            reverse('labour:detail', args=[driver.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn(
+            '<details class="app-surface overflow-hidden mb-4 group labour-rollup" data-reveal>',
+            content,
+        )
+        self.assertNotIn('labour-rollup" data-reveal open', content)
