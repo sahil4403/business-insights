@@ -104,11 +104,15 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST'),
-            'PORT': os.getenv('DB_PORT'),
+            'NAME': os.getenv("DB_NAME"),
+            'USER': os.getenv("DB_USER"),
+            'PASSWORD': os.getenv("DB_PASSWORD"),
+            'HOST': os.getenv("DB_HOST"),
+            'PORT': os.getenv("DB_PORT"),
+            # Persistent DB connections (per-request reconnect nahi) +
+            # health check taaki stale connection kabhi error na de.
+            'CONN_MAX_AGE': int(os.getenv("DB_CONN_MAX_AGE", "60")),
+            'CONN_HEALTH_CHECKS': True,
         }
     }
 

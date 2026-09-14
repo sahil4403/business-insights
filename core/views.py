@@ -2583,18 +2583,32 @@ def overdue_reminders(request):
     from django.db.models.functions import Coalesce as _Coalesce
 
     today = timezone.localdate()
-    customers = Customer.objects.filter(is_active=True).order_by('name')
+    customers = list(Customer.objects.filter(is_active=True).order_by('name'))
+    customer_ids = [customer.pk for customer in customers]
+
+    # Bulk fetch (per-customer queries nahi — N+1 se bachao).
+    trips_by_customer = {}
+    for trip in Trip.objects.filter(
+        customer_id__in=customer_ids
+    ).select_related('vehicle', 'vehicle__vehicle_type'):
+        trips_by_customer.setdefault(trip.customer_id, []).append(trip)
+
+    payments_by_customer = {}
+    for payment in TripPayment.objects.filter(
+        _Q(customer_id__in=customer_ids)
+        | _Q(trip__customer_id__in=customer_ids)
+    ).annotate(
+        effective_date=_Coalesce('payment_date', 'trip__trip_date'),
+        owner_id=_Coalesce('customer_id', 'trip__customer_id'),
+    ):
+        payments_by_customer.setdefault(payment.owner_id, []).append(payment)
 
     rows = []
     total_due = _D('0')
 
     for customer in customers:
-        trips = list(Trip.objects.select_related('vehicle', 'vehicle__vehicle_type').filter(customer=customer))
-        payments = (
-            TripPayment.objects.filter(
-                _Q(customer=customer) | _Q(trip__customer=customer)
-            ).annotate(effective_date=_Coalesce('payment_date', 'trip__trip_date'))
-        )
+        trips = trips_by_customer.get(customer.pk, [])
+        payments = payments_by_customer.get(customer.pk, [])
 
         opening = customer.opening_balance or _D('0')
         sales = sum(
@@ -2610,12 +2624,11 @@ def overdue_reminders(request):
         if outstanding <= 0:
             continue
 
-        last_payment = (
-            payments.exclude(payment_type='PAID')
-            .filter(effective_date__isnull=False)
-            .order_by('-effective_date')
-            .first()
-        )
+        dated = [
+            p for p in payments
+            if p.payment_type != 'PAID' and p.effective_date
+        ]
+        last_payment = max(dated, key=lambda p: p.effective_date) if dated else None
 
         digits = ''.join(ch for ch in (customer.mobile or '') if ch.isdigit())
         if len(digits) == 10:

@@ -502,6 +502,7 @@ class LabourTripGroup(models.Model):
 
     class Meta:
         ordering = ['-date', '-id']
+        indexes = [models.Index(fields=['date'])]
 
     def save(self, *args, **kwargs):
         if self.load_type in self.HYVA_LOAD_RATES:
@@ -541,6 +542,7 @@ class LabourExtraPayment(models.Model):
 
     class Meta:
         ordering = ['-date', '-id']
+        indexes = [models.Index(fields=['labour', 'date'])]
 
     def __str__(self):
         return f"{self.labour.name} · {self.date} · ₹{self.amount}"
@@ -560,6 +562,7 @@ class LabourAdvance(models.Model):
 
     class Meta:
         ordering = ['-date', '-id']
+        indexes = [models.Index(fields=['labour', 'date'])]
         constraints = [
             models.UniqueConstraint(
                 fields=['labour', 'date'],
@@ -613,6 +616,7 @@ class LabourRozi(models.Model):
 
     class Meta:
         ordering = ['-date', '-id']
+        indexes = [models.Index(fields=['labour', 'date'])]
 
     def save(self, *args, **kwargs):
         if self.day_type in self.DAY_MULTIPLIER:
@@ -643,6 +647,7 @@ class LabourDriverPayment(models.Model):
 
     class Meta:
         ordering = ['-period_end', '-id']
+        indexes = [models.Index(fields=['labour', 'period_start'])]
 
     def __str__(self):
         return f"{self.labour.name} driver · {self.period_start}→{self.period_end} · ₹{self.amount}"
@@ -715,6 +720,7 @@ class LabourSettlement(models.Model):
 
     class Meta:
         ordering = ['-settlement_date', '-id']
+        indexes = [models.Index(fields=['labour', 'settlement_date'])]
 
     def __str__(self):
         return f"{self.labour.name} settle {self.settlement_date}"

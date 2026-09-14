@@ -99,12 +99,16 @@ def _day_aggregates_for_labour(labour, period_start, period_end):
             }
         return days[d]
 
-    # Trips: walk groups in range
-    for grp in LabourTripGroup.objects.filter(
-        date__gte=period_start, date__lte=period_end
-    ).prefetch_related('labourers'):
-        n = grp.labourers.count()
-        if n and grp.labourers.filter(pk=labour.pk).exists():
+    # Trips: walk groups in range (labourers prefetched — per-group queries nahi).
+    groups = list(
+        LabourTripGroup.objects.filter(
+            date__gte=period_start, date__lte=period_end
+        ).prefetch_related('labourers')
+    )
+    for grp in groups:
+        member_ids = [labour.pk for labour in grp.labourers.all()]
+        n = len(member_ids)
+        if n and labour.pk in member_ids:
             _ensure(grp.date)['trips_amount'] += grp.total_amount / n
 
     # Extras
