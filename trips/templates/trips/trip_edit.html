@@ -452,21 +452,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
         Array.prototype.forEach.call(drvSel.options, function (o) {
             if (o.text.trim().toLowerCase().indexOf('nitin prasad') !== -1) {
-                o.hidden = !showNitin;
-                o.disabled = !showNitin;
-                if (!showNitin) o.selected = false;
+                // Selected (linked) driver kabhi disable/unselect mat karo —
+                // warna outward trip ka vendor driver gayab ho jayega.
+                var keepSelected = o.selected;
+                o.hidden = !showNitin && !keepSelected;
+                o.disabled = !showNitin && !keepSelected;
+                if (!showNitin && !keepSelected) o.selected = false;
             }
         });
 
         Array.prototype.forEach.call(driverRowsAll, function (row) {
             var nm = (row.getAttribute('data-driver-name') || '').trim().toLowerCase();
             if (nm.indexOf('nitin prasad') !== -1) {
-                row.style.display = showNitin ? 'flex' : 'none';
-                var chk = row.querySelector('.driver-checkbox');
-                if (!showNitin && chk && chk.checked) {
-                    chk.checked = false;
-                    chk.dispatchEvent(new Event('change'));
-                }
+                var rowChk = row.querySelector('.driver-checkbox');
+                var rowChecked = rowChk && rowChk.checked;
+                row.style.display = (showNitin || rowChecked) ? 'flex' : 'none';
             }
         });
     }
@@ -979,9 +979,11 @@ function confirmSaveAndViewStatement(shouldSave) {
                 if (show) {
                     row.style.display = "flex";
                 } else {
-                    // Row chhupao par tick hui checkbox mat hatao — saved/selected
-                    // driver khona nahi chahiye; galat combo server rok lega.
-                    row.style.display = "none";
+                    var rowChk = row.querySelector(".driver-checkbox");
+                    var rowChecked = rowChk && rowChk.checked;
+                    // Tick hua (linked) driver hamesha dikhao — outward trip ka
+                    // vendor driver chhupna nahi chahiye. Galat combo server rok lega.
+                    row.style.display = rowChecked ? "flex" : "none";
                 }
             });
 

@@ -211,6 +211,48 @@ class VendorDriverTripEditTest(TestCase):
         )
 
 
+    def test_outward_edit_keeps_linked_vendor_driver(self):
+        vendor_driver = Labour.objects.create(
+            name=f'{self.customer} Driver',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+            is_vendor=True,
+        )
+        trip = Trip.objects.create(
+            trip_date=timezone.localdate(),
+            transaction_type='CUSTOMER_DELIVERY',
+            customer=self.customer,
+            quantity=1,
+            rate=100,
+            trip_status='COMPLETED',
+        )
+        trip.drivers.add(vendor_driver)
+        response = self.client.post(
+            reverse('trips:edit', args=[trip.id]),
+            data={
+                'trip_date': timezone.localdate().isoformat(),
+                'transaction_type': 'CUSTOMER_DELIVERY',
+                'customer': str(self.customer.pk),
+                'destination': 'New Place',
+                'vehicle_category': 'HYVA',
+                'quantity': '1',
+                'rate': '100',
+                'trip_status': 'COMPLETED',
+                'drivers': [str(vendor_driver.pk)],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        trip.refresh_from_db()
+        self.assertEqual(
+            [driver.name for driver in trip.drivers.all()],
+            [vendor_driver.name],
+        )
+        self.assertEqual(trip.destination, 'New Place')
+
+
 class PaymentDeleteResilienceTest(TestCase):
     def setUp(self):
         user_model = get_user_model()
