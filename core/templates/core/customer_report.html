@@ -460,19 +460,6 @@
                                 </a>
                                 {% endif %}
                             </div>
-                        </div>
-                        {% if customer.customer_id %}
-                        <a href="{% url 'ledger:customer_statement' customer.customer_id %}?next={{ request.get_full_path|urlencode }}"
-                           onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}window.location.href=this.href;return false;"
-                           class="mt-3 h-12 px-4 rounded-full active-soft font-bold text-[14px] flex items-center justify-center no-underline">
-                            <span class="inline-flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8"/></svg>
-                                View Statement
-                            </span>
-                        </a>
-                        {% else %}
-                        <div class="mt-3 h-12 px-4 rounded-full bg-slate-100 text-slate-400 font-bold text-[14px] flex items-center justify-center">Internal Stock</div>
-                        {% endif %}
                     </div>
                 {% empty %}
                     <div class="text-center py-12 text-slate-500 text-sm rounded-xl border border-dashed border-slate-300">
