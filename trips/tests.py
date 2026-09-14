@@ -432,3 +432,52 @@ class TripDetailBackUrlTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['back_url'], statement_url)
+
+
+class TripCreateRedirectTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='trip-create-redirect-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        customer_type, _ = CustomerType.objects.get_or_create(
+            code='CREATE-REDIRECT-TEST',
+            defaults={'name': 'Create Redirect Test'},
+        )
+        self.customer = Customer.objects.create(
+            customer_code='CR-001',
+            name='Redirect Customer',
+            customer_type=customer_type,
+            opening_balance=0,
+            is_active=True,
+        )
+
+    def test_create_opens_new_trip_detail_after_popup(self):
+        response = self.client.post(
+            reverse('trips:create'),
+            data={
+                'trip_date': timezone.localdate().isoformat(),
+                'transaction_type': 'CUSTOMER_DELIVERY',
+                'customer': str(self.customer.pk),
+                'destination': 'Site A',
+                'vehicle_category': 'HYVA',
+                'quantity': '2',
+                'rate': '100',
+                'trip_status': 'COMPLETED',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        trip = Trip.objects.get(customer=self.customer)
+        detail_url = reverse('trips:detail', args=[trip.pk])
+        self.assertIn(detail_url, response['Location'])
+        self.assertIn('created=1', response['Location'])
+
+        detail_response = self.client.get(response['Location'])
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertContains(detail_response, 'id="created_modal"')
+        self.assertEqual(
+            detail_response.context['back_url'], reverse('trips:create')
+        )

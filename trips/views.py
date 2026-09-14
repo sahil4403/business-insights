@@ -561,7 +561,13 @@ def trip_create(request):
             if request.POST.get('save_and_view_statement') == '1' and trip.customer:
                 return redirect('ledger:customer_statement', customer_id=trip.customer.id)
 
-            return redirect(f"{reverse('trips:create')}?created=1")
+            # Save ke baad naye trip ka detail page (?created=1 popup ke saath).
+            # Wahan se Back dabane par wapas Add Trip form (rapid entry loop).
+            from urllib.parse import quote
+            return redirect(
+                f"{reverse('trips:detail', args=[trip.id])}"
+                f"?created=1&next={quote(reverse('trips:create'))}"
+            )
         else:
             err_list = [f"{field}: {', '.join(errs)}" for field, errs in form.errors.items()]
             messages.error(request, f"Failed to create trip: {'; '.join(err_list)}")
