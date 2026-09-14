@@ -206,3 +206,11 @@ class CustomerMobileUiTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '>AC<')
         self.assertContains(response, '>BC<')
+
+    def test_mobile_back_is_icon_only(self):
+        response = self.client.get(self.list_path)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'aria-label="Back to Dashboard"')
+        self.assertNotContains(response, 'Back to Dashboard</a>')
+        self.assertNotContains(response, '>Back to Dashboard')
