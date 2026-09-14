@@ -912,12 +912,13 @@ def trip_detail(request, trip_id):
         pk=trip_id,
     )
 
-    from core.utils import get_safe_next_or_referer
+    from core.utils import get_safe_back_url
     from django.urls import reverse
 
     # Smart back: return to where the user came from (e.g. customer statement),
     # falling back to the trips list only when there is no internal referrer.
-    back_url = get_safe_next_or_referer(
+    # Form/action pages referer me ignore hote hain (Back-loop nahi banega).
+    back_url = get_safe_back_url(
         request,
         reverse('trips:list'),
     )

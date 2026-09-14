@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from django.utils.http import url_has_allowed_host_and_scheme
 
 
@@ -38,5 +40,44 @@ def get_safe_next_or_referer(request, default):
         require_https=request.is_secure(),
     ):
         return referer
+
+    return default
+
+
+# Form/action pages jahan wapas jaana Back-loop banata hai
+# (e.g. payment form se Cancel karke trip par aao, phir Back dabao).
+_ACTION_PATH_BITS = (
+    '/add/',
+    '/edit/',
+    '/delete/',
+    '/remove/',
+    '/payment/',
+    'record-payment',
+    'link-customer',
+    '/settle',
+    '/revert',
+    '/outstanding/',
+)
+
+
+def get_safe_back_url(request, default):
+    """
+    Back-button target: explicit ?next= > safe referer > default.
+    Referer ko ignore karo agar wo form/action page ho — warna Back
+    usi form par wapas bhejkar loop bana deta hai.
+    """
+    safe_next = get_safe_next(request, '')
+    if safe_next:
+        return safe_next
+
+    referer = request.META.get('HTTP_REFERER', '')
+    if referer and url_has_allowed_host_and_scheme(
+        referer,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        path = urlparse(referer).path
+        if not any(bit in path for bit in _ACTION_PATH_BITS):
+            return referer
 
     return default

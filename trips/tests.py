@@ -338,3 +338,55 @@ class TripListPaginationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context['trips']), 100)
         self.assertTrue(response.context['trips_truncated'])
+
+
+class TripDetailBackUrlTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='trip-back-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.trip = Trip.objects.create(
+            trip_date=timezone.localdate(),
+            transaction_type='CUSTOMER_DELIVERY',
+            quantity=1,
+            rate=100,
+            trip_status='COMPLETED',
+        )
+        self.detail_url = reverse('trips:detail', args=[self.trip.pk])
+        self.list_url = reverse('trips:list')
+
+    def test_back_skips_payment_form_referer(self):
+        response = self.client.get(
+            self.detail_url,
+            HTTP_REFERER=(
+                f'http://testserver/trips/payment/add/'
+                f'?next={self.detail_url}'
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['back_url'], self.list_url)
+
+    def test_back_keeps_list_referer(self):
+        response = self.client.get(
+            self.detail_url,
+            HTTP_REFERER=f'http://testserver{self.list_url}',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context['back_url'], f'http://testserver{self.list_url}'
+        )
+
+    def test_back_prefers_explicit_next(self):
+        statement_url = '/ledger/customer/1/'
+        response = self.client.get(
+            f'{self.detail_url}?next={statement_url}',
+            HTTP_REFERER=f'http://testserver/trips/payment/add/',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['back_url'], statement_url)
