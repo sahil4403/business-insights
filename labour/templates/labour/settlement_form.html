@@ -142,18 +142,18 @@
     function update() {
         var obDeduct = parseFloat(obInput.value) || 0;
         var cash = parseFloat(cashInput.value) || 0;
-        var newOB = obBefore + netPayable - obDeduct - cash;
+        var newOB = obBefore - netPayable - obDeduct + cash;
         finalEl.classList.remove('neg', 'pos');
-        if (newOB < -0.01) {
+        if (newOB > 0.01) {
             finalEl.classList.add('neg');
-            finalEl.textContent = 'Outstanding ' + fmt(Math.abs(newOB));
+            finalEl.textContent = 'Outstanding ' + fmt(newOB);
             explain.textContent = 'Labour still owes owner this much (will carry forward)';
         } else if (Math.abs(newOB) < 0.01) {
             finalEl.textContent = '₹0 · All settled';
             explain.textContent = 'No balance carried forward';
         } else {
             finalEl.classList.add('pos');
-            finalEl.textContent = fmt(newOB);
+            finalEl.textContent = fmt(Math.abs(newOB));
             explain.textContent = 'Owner still owes labour this much';
         }
     }

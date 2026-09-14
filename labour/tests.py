@@ -716,3 +716,60 @@ class OutstandingAdjustTest(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self._balance(), Decimal('300.00'))
+
+
+class SettlementMathTest(TestCase):
+    def test_period_earning_reduces_old_balance(self):
+        from .models import LabourExtraPayment, LabourSettlement
+
+        driver = Labour.objects.create(
+            name='Gaju Bhau',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+        LabourExtraPayment.objects.create(
+            labour=driver, date=date(2026, 9, 10), amount=Decimal('15600.00'),
+        )
+        settlement = LabourSettlement(
+            labour=driver,
+            settlement_date=date(2026, 9, 14),
+            period_start=date(2026, 9, 1),
+            period_end=date(2026, 9, 14),
+            old_balance_before=Decimal('15000.00'),
+            old_balance_deducted=Decimal('0'),
+            cash_paid=Decimal('0'),
+        )
+
+        settlement.recalculate()
+
+        self.assertEqual(settlement.net_payable, Decimal('15600.00'))
+        self.assertEqual(settlement.final_old_balance, Decimal('-600.00'))
+
+    def test_cash_paid_settles_remaining(self):
+        from .models import LabourExtraPayment, LabourSettlement
+
+        driver = Labour.objects.create(
+            name='Gaju Bhau',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+        LabourExtraPayment.objects.create(
+            labour=driver, date=date(2026, 9, 10), amount=Decimal('15600.00'),
+        )
+        settlement = LabourSettlement(
+            labour=driver,
+            settlement_date=date(2026, 9, 14),
+            period_start=date(2026, 9, 1),
+            period_end=date(2026, 9, 14),
+            old_balance_before=Decimal('15000.00'),
+            old_balance_deducted=Decimal('0'),
+            cash_paid=Decimal('600.00'),
+        )
+
+        settlement.recalculate()
+
+        self.assertEqual(settlement.final_old_balance, Decimal('0.00'))

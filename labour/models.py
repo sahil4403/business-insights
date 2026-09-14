@@ -704,7 +704,8 @@ class LabourSettlement(models.Model):
         max_digits=12, decimal_places=2, default=0,
     )
 
-    # Calculated: old_balance_before + net_payable - old_balance_deducted - cash_paid
+    # Calculated: old_balance_before - net_payable - old_balance_deducted + cash_paid
+    # (positive final = labour still owes owner; negative = owner owes labour).
     final_old_balance = models.DecimalField(
         max_digits=12, decimal_places=2, default=0,
     )
@@ -754,9 +755,11 @@ class LabourSettlement(models.Model):
         self.total_salary = trip_total + extra_total + rozi_total + driver_total
         self.total_advance = advance_total
         self.net_payable = self.total_salary - self.total_advance
+        # Period earning owner ko deni hai → old dues ghat-te hain;
+        # cash owner ne diya → dues badhte hain.
         self.final_old_balance = (
-            self.old_balance_before + self.net_payable
-            - self.old_balance_deducted - self.cash_paid
+            self.old_balance_before - self.net_payable
+            - self.old_balance_deducted + self.cash_paid
         )
         return self
 
