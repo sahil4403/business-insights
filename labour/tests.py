@@ -605,3 +605,73 @@ class TractorStatementTest(TestCase):
         )
         total_row = next(row for row in rows if 'TOTAL' in row)
         self.assertEqual(total_row[header.index('Total ₹')], 2500)
+
+
+class HyvaBhattaOnlyTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='hyva-bhatta-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.driver = Labour.objects.create(
+            name='Gaju Bhau',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+
+    def test_create_bhatta_without_load_lines(self):
+        from .models import LabourExtraPayment, LabourTripGroup
+
+        response = self.client.post(
+            reverse('labour:hyva_trip_add'),
+            data={
+                'date': '2026-09-10',
+                'labourers': [str(self.driver.pk)],
+                'bhatta': 'on',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            LabourTripGroup.objects.filter(
+                date=date(2026, 9, 10), labourers=self.driver
+            ).count(),
+            0,
+        )
+        self.assertTrue(
+            LabourExtraPayment.objects.filter(
+                labour=self.driver, date=date(2026, 9, 10), note='Bhatta'
+            ).exists()
+        )
+
+    def test_edit_bhatta_without_load_lines(self):
+        from .models import LabourExtraPayment, LabourTripGroup
+
+        group = LabourTripGroup.objects.create(
+            date=date(2026, 9, 10),
+            trip_count=2,
+            load_type='FLYASH_HYVA',
+        )
+        group.labourers.add(self.driver)
+        response = self.client.post(
+            reverse('labour:hyva_trip_edit', args=[group.pk]),
+            data={
+                'date': '2026-09-10',
+                'labourers': [str(self.driver.pk)],
+                'bhatta': 'on',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            LabourTripGroup.objects.filter(pk=group.pk).exists()
+        )
+        self.assertTrue(
+            LabourExtraPayment.objects.filter(
+                labour=self.driver, date=date(2026, 9, 10), note='Bhatta'
+            ).exists()
+        )

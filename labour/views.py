@@ -753,7 +753,7 @@ def hyva_trip_create(request):
                 rows.append({'load_type': lt_code, 'trip_count': trips})
             i += 1
 
-        if form.is_valid() and rows:
+        if form.is_valid() and (rows or form.cleaned_data.get('bhatta')):
             date = form.cleaned_data['date']
             labourers = list(form.cleaned_data['labourers'])
             bhatta = form.cleaned_data.get('bhatta')
@@ -785,13 +785,19 @@ def hyva_trip_create(request):
                     )
 
             total_trips = sum(g.trip_count for g in groups)
-            messages.success(
-                request,
-                f'Hyva trip saved · {len(groups)} load line(s) · '
-                f'{total_trips} trips · ₹{total}'
-                + (f' (+ bhatta ₹{LabourHyvaTripForm.BHATTA_AMOUNT}/labour)' if bhatta else '')
-                + '.',
-            )
+            if rows:
+                messages.success(
+                    request,
+                    f'Hyva trip saved · {len(groups)} load line(s) · '
+                    f'{total_trips} trips · ₹{total}'
+                    + (f' (+ bhatta ₹{LabourHyvaTripForm.BHATTA_AMOUNT}/labour)' if bhatta else '')
+                    + '.',
+                )
+            else:
+                messages.success(
+                    request,
+                    f'Bhatta saved · ₹{LabourHyvaTripForm.BHATTA_AMOUNT}/labour.',
+                )
             redirect_labour = None
             pre_lab_id = request.GET.get('labour_id')
             if pre_lab_id:
@@ -817,7 +823,7 @@ def hyva_trip_create(request):
         pre_lab_id = request.GET.get('labour_id')
         if pre_lab_id:
             context['preselected_ids'] = {int(pre_lab_id)}
-        if not rows:
+        if not rows and not request.POST.get('bhatta'):
             context['row_error'] = 'Kam se kam ek load line mein trips count dalo (load type select karke).'
         return render(request, 'labour/hyva_trip_form.html', context)
 
@@ -892,7 +898,7 @@ def hyva_trip_edit(request, group_id):
                 rows.append({'load_type': lt_code, 'trip_count': trips})
             i += 1
 
-        if form.is_valid() and rows:
+        if form.is_valid() and (rows or form.cleaned_data.get('bhatta')):
             labourers = list(form.cleaned_data['labourers'])
             bhatta = form.cleaned_data.get('bhatta')
             note = form.cleaned_data.get('note', '')
@@ -948,13 +954,19 @@ def hyva_trip_edit(request, group_id):
                 Decimal(r['trip_count']) * Decimal(load_rates[r['load_type']])
                 for r in rows
             )
-            messages.success(
-                request,
-                f'Hyva entry updated · {len(rows)} load line(s) · '
-                f'{total_trips} trips · ₹{total}'
-                + (f' (+ bhatta ₹{LabourHyvaTripForm.BHATTA_AMOUNT}/labour)' if bhatta else '')
-                + '.',
-            )
+            if rows:
+                messages.success(
+                    request,
+                    f'Hyva entry updated · {len(rows)} load line(s) · '
+                    f'{total_trips} trips · ₹{total}'
+                    + (f' (+ bhatta ₹{LabourHyvaTripForm.BHATTA_AMOUNT}/labour)' if bhatta else '')
+                    + '.',
+                )
+            else:
+                messages.success(
+                    request,
+                    f'Bhatta updated · ₹{LabourHyvaTripForm.BHATTA_AMOUNT}/labour.',
+                )
             target_labour = group.labourers.first() or (labourers[0] if labourers else None)
             qs = '?saved=1'
             qs += f'&lines={len(rows)}'
@@ -979,7 +991,7 @@ def hyva_trip_edit(request, group_id):
             ],
             'rate_map': rates,
         }
-        if not rows:
+        if not rows and not request.POST.get('bhatta'):
             context['row_error'] = 'Kam se kam ek load line mein trips count dalo (load type select karke).'
         return render(request, 'labour/hyva_trip_edit.html', context)
 
