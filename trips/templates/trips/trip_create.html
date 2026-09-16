@@ -412,7 +412,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var sugBox = document.getElementById('customer_typeahead_list');
     if (!custSelect || !searchInput || !sugBox) return;
 
-    var allOptions = Array.prototype.filter.call(custSelect.options, function (o) { return o.value; });
+    // Har baar fresh options (quick-add ke baad naya customer turant mile — refresh nahi).
+    function allOptions() {
+        return Array.prototype.filter.call(custSelect.options, function (o) { return o.value; });
+    }
 
     function setSelected(value, text) {
         custSelect.value = value;
@@ -424,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderSuggestions(q) {
         q = (q || '').trim().toLowerCase();
         sugBox.innerHTML = '';
-        var matches = allOptions.filter(function (o) {
+        var matches = allOptions().filter(function (o) {
             return o.text.toLowerCase().indexOf(q) !== -1;
         }).slice(0, 8);
 
@@ -460,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             // Also show "Add New Customer" at bottom if search text doesn't match exactly
             if (q.length > 0) {
-                var exactMatch = allOptions.some(function (o) { return o.text.toLowerCase() === q; });
+                var exactMatch = allOptions().some(function (o) { return o.text.toLowerCase() === q; });
                 if (!exactMatch) {
                     var addDiv2 = document.createElement('div');
                     addDiv2.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:13px; font-weight:700; color:#16665a; background:#f0fdf9; border-top:2px solid #e2e8f0;';

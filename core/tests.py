@@ -214,3 +214,35 @@ class CustomerMobileUiTest(TestCase):
         self.assertContains(response, 'aria-label="Back to Dashboard"')
         self.assertNotContains(response, 'Back to Dashboard</a>')
         self.assertNotContains(response, '>Back to Dashboard')
+
+
+class QuickAddCustomerTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='quick-add-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+
+    def test_quick_add_returns_usable_customer(self):
+        from customers.models import Customer
+
+        response = self.client.post(
+            reverse('core:quick_add_customer'),
+            data={'name': 'Instant Customer', 'mobile': '', 'city': ''},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['success'])
+        customer = Customer.objects.get(pk=payload['id'])
+        self.assertTrue(customer.is_active)
+        self.assertEqual(customer.name, 'Instant Customer')
+        # Trip form me turant select ho sake (fresh queryset me mile).
+        from trips.forms import TripForm
+        form = TripForm()
+        self.assertIn(
+            customer.pk,
+            list(form.fields['customer'].queryset.values_list('pk', flat=True)),
+        )
