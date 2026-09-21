@@ -19,7 +19,11 @@
 
         <div>
             <label class="label">Labour</label>
+            {% if request.is_operator %}
+            <div class="input flex items-center font-bold text-slate-800">{{ labour.name }}</div>
+            {% else %}
             {{ form.labour }}
+            {% endif %}
         </div>
 
         <div>
