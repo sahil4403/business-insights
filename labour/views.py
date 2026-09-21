@@ -527,6 +527,9 @@ def labour_deactivate(request, labour_id):
     """Soft-delete: hide labour from list/details by setting is_active=False.
     Historical records (trips, advances, settlements) stay safe in the DB."""
     labour = get_object_or_404(Labour, pk=labour_id)
+    if labour.user_id:
+        messages.error(request, f'"{labour.name}" ka operator login linked hai — pehle login hatao, tabhi remove hoga.')
+        return redirect('labour:detail', labour_id=labour.id)
     labour.is_active = False
     labour.status = 'INACTIVE'
     labour.save(update_fields=['is_active', 'status', 'updated_at'])
