@@ -171,42 +171,16 @@
             <div class="tile-name">{{ cat.label }}</div>
             <div class="tile-count">{{ cat.count }} labour{% if cat.count != 1 %}s{% endif %}</div>
         </div>
-        {% if cat.add_url or cat.coming_soon %}
+        {% if cat.add_url %}
         <div class="tile-add-wrap">
-            {% if cat.coming_soon %}
-            <button type="button" onclick="openComingSoon()" class="tile-add is-trip">
-                ＋ {{ cat.add_label }}
-            </button>
-            {% else %}
             <a href="{% url cat.add_url %}{% if cat.add_query %}?{{ cat.add_query }}{% endif %}" class="tile-add{% if cat.code == 'TRACTOR' or cat.code == 'HYVA_DRIVER' or cat.code == 'JCB_OPERATOR' or cat.code == 'MISTRI' %} is-trip{% endif %}">
                 ＋ {{ cat.add_label }}
             </a>
-            {% endif %}
         </div>
         {% endif %}
     </div>
     {% endfor %}
 </div>
-
-<!-- Coming Soon popup (JCB Operator) -->
-<div id="coming-soon" class="anim-modal fixed inset-0 z-[100] hidden items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
-    <div class="app-surface w-full max-w-sm p-6 text-center rounded-2xl">
-        <div class="text-4xl mb-3">🚧</div>
-        <h2 class="text-xl font-extrabold text-slate-900 mb-1">Coming Soon</h2>
-        <p class="text-sm text-slate-500 mb-5">JCB Operator ka Trip Entry feature abhi aa raha hai. Jald hi available hoga.</p>
-        <button type="button" onclick="closeComingSoon()" class="app-chip h-10 px-5">← Back</button>
-    </div>
-</div>
-
-<script>
-function openComingSoon() { var el = document.getElementById('coming-soon'); el.classList.remove('hidden'); el.classList.add('flex'); }
-function closeComingSoon() { var el = document.getElementById('coming-soon'); el.classList.add('hidden'); el.classList.remove('flex'); }
-var cs = document.getElementById('coming-soon');
-if (cs) {
-    cs.addEventListener('click', function(e) { if (e.target === cs) closeComingSoon(); });
-    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeComingSoon(); });
-}
-</script>
 
 {% endblock %}
 
@@ -217,10 +191,6 @@ document.querySelectorAll('.cat-tile').forEach(function (tile) {
     tile.addEventListener('click', function (e) {
         if (e.target.closest('.tile-add')) return;
         var href = tile.getAttribute('data-href');
-        if (href && href.indexOf('JCB_OPERATOR') !== -1) {
-            openComingSoon();
-            return;
-        }
         // Loader dikhao aur turant navigate karo
         if (typeof window.__navLoading === 'function') window.__navLoading();
         if (window.__showPageLoader) window.__showPageLoader();

@@ -480,6 +480,15 @@ class LabourTripGroup(models.Model):
         'BHARRAN_HYVA': '100',
         'BHARRAN_HALFTON': '100',
     }
+    JCB_LOAD_RATES = {
+        'WHITE_HYVA': '200',
+        'FLYASH_HYVA': '50',
+        'HALFTON_WHITE': '0',
+        'HALFTON_FLYASH': '0',
+        'CRUSHED_HALFTON': '0',
+        'BHARRAN_HYVA': '50',
+        'BHARRAN_HALFTON': '0',
+    }
     load_type = models.CharField(
         max_length=20,
         choices=HYVA_LOAD_CHOICES,
@@ -505,7 +514,9 @@ class LabourTripGroup(models.Model):
         indexes = [models.Index(fields=['date'])]
 
     def save(self, *args, **kwargs):
-        if self.load_type in self.HYVA_LOAD_RATES:
+        if self.fill_type == 'JCB' and self.load_type in self.JCB_LOAD_RATES:
+            self.rate_per_trip = Decimal(self.JCB_LOAD_RATES[self.load_type])
+        elif self.load_type in self.HYVA_LOAD_RATES:
             self.rate_per_trip = Decimal(self.HYVA_LOAD_RATES[self.load_type])
         self.total_amount = self.trip_count * self.rate_per_trip
         super().save(*args, **kwargs)

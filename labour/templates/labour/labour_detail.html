@@ -160,7 +160,7 @@
         <a href="{% url trip_action.url %}?{% if trip_action.rozi %}category=MISTRI{% elif trip_action.query %}{{ trip_action.query }}{% endif %}" class="qa glass glass-tint">{{ trip_action.icon }} {{ trip_action.label }}</a>
     {% endif %}
     <a href="{% url 'labour:extra_add_for' labour.id %}" class="qa glass">💰 {% if labour.category == 'HYVA_DRIVER' %}Bhatta / Rozi{% else %}Extra{% endif %}</a>
-    {% if labour.category != 'TRACTOR' and labour.category != 'HYVA_DRIVER' %}
+    {% if labour.category != 'TRACTOR' and labour.category != 'HYVA_DRIVER' and labour.category != 'JCB_OPERATOR' %}
         <a href="{% url 'labour:rozi_add_for' labour.id %}" class="qa glass">👷 Add Rozi</a>
     {% endif %}
     <a href="{% url 'labour:advance_add_for' labour.id %}" class="qa glass">💸 Advance</a>
@@ -266,7 +266,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                     <tr>
                         <th class="px-4 py-3">Date</th>
                         <th class="px-4 py-3 text-right">Trips Amount</th>
-                        <th class="px-4 py-3 text-right">{% if labour.category == 'HYVA_DRIVER' %}Bhatta / Rozi{% else %}Extra{% endif %}</th>
+                        <th class="px-4 py-3 text-right">{% if labour.category == 'HYVA_DRIVER' or labour.category == 'JCB_OPERATOR' %}Bhatta / Rozi{% else %}Extra{% endif %}</th>
                         <th class="px-4 py-3 text-right">Total (T+E)</th>
                         <th class="px-4 py-3 text-right">Advance</th>
                     </tr>
@@ -299,7 +299,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                             <div class="num font-semibold text-slate-700">₹{{ r.trips_amount|floatformat:0 }}</div>
                         </div>
                         <div>
-                            <div class="text-[10px] uppercase text-slate-400 font-bold">{% if labour.category == 'HYVA_DRIVER' %}Bhatta / Rozi{% else %}Extra{% endif %}</div>
+                            <div class="text-[10px] uppercase text-slate-400 font-bold">{% if labour.category == 'HYVA_DRIVER' or labour.category == 'JCB_OPERATOR' %}Bhatta / Rozi{% else %}Extra{% endif %}</div>
                             <div class="num font-semibold text-slate-700">₹{{ r.extra_amount|floatformat:0 }}</div>
                         </div>
                         <div>
@@ -354,7 +354,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                         </div>
                         <div class="text-right shrink-0 flex items-center gap-1.5">
                             <div class="font-bold text-emerald-600 text-[13px] mr-1">+₹{{ g.total_amount|floatformat:2 }}</div>
-                            <a href="{% if labour.category == 'HYVA_DRIVER' %}{% url 'labour:hyva_trip_edit' g.id %}{% else %}{% url 'labour:trip_edit' g.id %}{% endif %}" class="app-chip !h-7 !w-7 !p-0 !px-0 !text-slate-600 text-[11px]" title="Edit">✏️</a>
+                            <a href="{% if labour.category == 'HYVA_DRIVER' %}{% url 'labour:hyva_trip_edit' g.id %}{% elif labour.category == 'JCB_OPERATOR' %}{% url 'labour:jcb_trip_edit' g.id %}{% else %}{% url 'labour:trip_edit' g.id %}{% endif %}" class="app-chip !h-7 !w-7 !p-0 !px-0 !text-slate-600 text-[11px]" title="Edit">✏️</a>
                             <form method="post" action="{% url 'labour:trip_delete' g.id %}" class="inline"
                                   onsubmit="return confirm('Is trip entry ko delete karna hai? Amount ₹{{ g.total_amount|floatformat:2 }} wapsa hoga.');">
                                 {% csrf_token %}

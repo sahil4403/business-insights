@@ -169,6 +169,63 @@ class LabourHyvaTripForm(forms.Form):
         ).exclude(is_vendor=True).order_by('name')
 
 
+class LabourJcbTripForm(forms.Form):
+    """JCB Operator loading entry.
+
+    Same multi-load-line flow as Hyva (each line becomes its own
+    LabourTripGroup sharing date+workers), but with JCB loading rates
+    and an optional daily bhatta (₹200) per selected operator.
+    """
+
+    BHATTA_AMOUNT = 200
+
+    JCB_LOAD_RATES = LabourTripGroup.JCB_LOAD_RATES
+
+    date = forms.DateField(
+        widget=DateInput(),
+        label='Date',
+    )
+    labourers = forms.ModelMultipleChoiceField(
+        queryset=Labour.objects.none(),
+        label='JCB Operators',
+    )
+    bhatta = forms.BooleanField(
+        required=False,
+        label=f'Bhatta (₹{BHATTA_AMOUNT}/day per operator)',
+        help_text='Daily allowance — chaahithe ek behatta lagana ho toh check karo',
+    )
+    advance = forms.DecimalField(
+        required=False,
+        min_value=0,
+        max_digits=12,
+        decimal_places=2,
+        label='Advance (₹ per operator, optional)',
+        help_text='Ussi din ka advance — har selected operator ko itna advance save hoga',
+        widget=forms.NumberInput(attrs={
+            'class': 'input',
+            'min': 0,
+            'step': '0.01',
+            'placeholder': 'Advance ₹ (optional)',
+        }),
+    )
+    note = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'input',
+            'rows': 2,
+            'placeholder': 'Optional note (site, location)',
+        }),
+        label='Note (optional)',
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['date'].initial = timezone.localdate()
+        self.fields['labourers'].queryset = Labour.objects.filter(
+            category='JCB_OPERATOR', is_active=True
+        ).exclude(is_vendor=True).order_by('name')
+
+
 class LabourExtraPaymentForm(forms.ModelForm):
     class Meta:
         model = LabourExtraPayment

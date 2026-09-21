@@ -29,6 +29,7 @@ from .forms import (
     LabourForm,
     LabourTripGroupForm,
     LabourHyvaTripForm,
+    LabourJcbTripForm,
     LabourExtraPaymentForm,
     LabourAdvanceForm,
     LabourAdvanceMultiForm,
@@ -211,8 +212,8 @@ def labour_list(request):
             add_url = 'labour:hyva_trip_add'
             add_label = 'Add Hyva Trip'
         elif code == 'JCB_OPERATOR':
-            add_url = ''
-            add_label = 'Coming Soon'
+            add_url = 'labour:jcb_trip_add'
+            add_label = 'Add JCB Loading'
         elif code == 'MISTRI':
             add_url = 'labour:rozi_multi'
             add_label = 'Add Mistri Rozi'
@@ -225,7 +226,7 @@ def labour_list(request):
             'add_url': add_url,
             'add_label': add_label,
             'add_query': 'category=MISTRI' if code == 'MISTRI' else '',
-            'coming_soon': code == 'JCB_OPERATOR',
+            'coming_soon': False,
         })
 
     cards = []
@@ -444,8 +445,8 @@ def labour_category_detail(request, category_code):
         add_url = 'labour:hyva_trip_add'
         add_label = 'Add Hyva Trip'
     elif category_code == 'JCB_OPERATOR':
-        add_url = ''
-        add_label = 'Add Trip'
+        add_url = 'labour:jcb_trip_add'
+        add_label = 'Add JCB Loading'
         add_query = ''
     elif category_code == 'MISTRI':
         add_url = 'labour:rozi_multi'
@@ -652,7 +653,8 @@ def labour_detail(request, labour_id):
         trip_action = {'url': 'labour:hyva_trip_add', 'label': 'Add Hyva Trip', 'icon': '🚛',
                        'query': f'labour_id={labour.id}'}
     elif labour.category == 'JCB_OPERATOR':
-        trip_action = {'url': '', 'label': 'Add Trip', 'icon': cat_icon, 'coming_soon': True}
+        trip_action = {'url': 'labour:jcb_trip_add', 'label': 'Add JCB Loading', 'icon': cat_icon,
+                       'query': f'labour_id={labour.id}'}
     elif labour.category == 'MISTRI':
         trip_action = {'url': 'labour:rozi_multi', 'label': 'Add Mistri Rozi', 'icon': '👷', 'rozi': True}
     else:
@@ -1025,6 +1027,344 @@ def hyva_trip_edit(request, group_id):
 
 
 # ----------------------------------------------------------------------------
+# JCB Operator loading entry — same multi-load-line flow as Hyva, but with
+# JCB loading rates (White Sand 200, Fly Ash 50, Bharran Hyva 50, Halfton 0)
+# plus optional daily bhatta (₹200) per selected operator.
+# ----------------------------------------------------------------------------
+
+@login_required(login_url='/login/')
+def jcb_trip_create(request):
+    """JCB Operator loading entry — multiple load lines on one day.
+
+    Each (load type, trip count) row becomes ONE LabourTripGroup (all sharing
+    the same date and operators). An optional bhatta (₹200/day) is recorded as
+    a single extra payment per selected operator.
+    """
+    load_choices = [c for c, _ in LabourTripGroup.HYVA_LOAD_CHOICES if c]
+    load_rates = LabourJcbTripForm.JCB_LOAD_RATES
+    rates = {code: load_rates[code] for code in load_choices}
+
+    if request.method == 'POST':
+        form = LabourJcbTripForm(request.POST)
+        rows = []
+        i = 0
+        while True:
+            lt_code = request.POST.get(f'load_type_{i}')
+            trip_raw = request.POST.get(f'trip_count_{i}')
+            if lt_code is None:
+                break
+            try:
+                trips = int(trip_raw or 0)
+            except (TypeError, ValueError):
+                trips = 0
+            if lt_code in rates and trips and trips > 0:
+                rows.append({'load_type': lt_code, 'trip_count': trips})
+            i += 1
+
+        if form.is_valid() and (rows or form.cleaned_data.get('bhatta') or (form.cleaned_data.get('advance') or 0)):
+            date = form.cleaned_data['date']
+            labourers = list(form.cleaned_data['labourers'])
+            bhatta = form.cleaned_data.get('bhatta')
+            advance_amount = form.cleaned_data.get('advance') or Decimal('0')
+            note = form.cleaned_data.get('note', '')
+
+            groups = []
+            total = 0
+            for row in rows:
+                grp = LabourTripGroup.objects.create(
+                    date=date,
+                    trip_count=row['trip_count'],
+                    rate_per_trip=Decimal(load_rates[row['load_type']]),
+                    load_type=row['load_type'],
+                    fill_type='JCB',
+                    total_amount=Decimal(row['trip_count']) * Decimal(load_rates[row['load_type']]),
+                    note=note,
+                )
+                grp.labourers.set(labourers)
+                groups.append(grp)
+                total += grp.total_amount
+
+            if bhatta:
+                for lab in labourers:
+                    LabourExtraPayment.objects.create(
+                        labour=lab,
+                        date=date,
+                        amount=Decimal(LabourJcbTripForm.BHATTA_AMOUNT),
+                        note='Bhatta',
+                    )
+
+            adv_saved, adv_skipped = [], []
+            if advance_amount and advance_amount > 0:
+                for lab in labourers:
+                    if LabourAdvance.objects.filter(labour=lab, date=date).exists():
+                        adv_skipped.append(lab.name)
+                    else:
+                        LabourAdvance.objects.create(
+                            labour=lab,
+                            date=date,
+                            amount=advance_amount,
+                            note='Advance (JCB loading)',
+                        )
+                        adv_saved.append(lab.name)
+
+            total_trips = sum(g.trip_count for g in groups)
+            adv_skip_msg = f" (advance pehle se tha: {', '.join(adv_skipped)})" if adv_skipped else ''
+            if rows:
+                messages.success(
+                    request,
+                    f'JCB loading saved · {len(groups)} load line(s) · '
+                    f'{total_trips} trips · ₹{total}'
+                    + (f' (+ bhatta ₹{LabourJcbTripForm.BHATTA_AMOUNT}/operator)' if bhatta else '')
+                    + (f' (+ advance ₹{advance_amount}/operator)' if adv_saved else '')
+                    + adv_skip_msg
+                    + '.',
+                )
+            else:
+                bits = []
+                if bhatta:
+                    bits.append(f'Bhatta ₹{LabourJcbTripForm.BHATTA_AMOUNT}/operator')
+                if adv_saved:
+                    bits.append(f'Advance ₹{advance_amount}/operator')
+                messages.success(
+                    request,
+                    ' + '.join(bits) + ' saved.' + adv_skip_msg,
+                )
+            redirect_labour = None
+            pre_lab_id = request.GET.get('labour_id')
+            if pre_lab_id:
+                redirect_labour = Labour.objects.filter(
+                    pk=pre_lab_id, category='JCB_OPERATOR', is_active=True
+                ).first()
+            if not redirect_labour and labourers:
+                redirect_labour = labourers[0]
+            if redirect_labour:
+                return redirect('labour:detail', labour_id=redirect_labour.id)
+            return redirect('labour:list')
+
+        context = {
+            'form': form,
+            'page_title': 'Add JCB Loading',
+            'load_options': [
+                {'code': code, 'label': label, 'rate': rates[code]}
+                for code, label in LabourTripGroup.HYVA_LOAD_CHOICES
+                if code
+            ],
+            'rate_map': rates,
+        }
+        pre_lab_id = request.GET.get('labour_id')
+        if pre_lab_id:
+            context['preselected_ids'] = {int(pre_lab_id)}
+        if not rows and not request.POST.get('bhatta') and not request.POST.get('advance'):
+            context['row_error'] = 'Kam se kam ek load line mein loading count dalo (load type select karke).'
+        return render(request, 'labour/jcb_trip_form.html', context)
+
+    form = LabourJcbTripForm(initial={'date': timezone.localdate()})
+    labour_id = request.GET.get('labour_id')
+    preselected_ids = set()
+    if labour_id:
+        pre = Labour.objects.filter(pk=labour_id, category='JCB_OPERATOR', is_active=True).first()
+        if pre:
+            form.fields['labourers'].initial = [pre.id]
+            preselected_ids = {pre.id}
+    return render(request, 'labour/jcb_trip_form.html', {
+        'form': form,
+        'page_title': 'Add JCB Loading',
+        'load_options': [
+            {'code': code, 'label': label, 'rate': rates[code]}
+            for code, label in LabourTripGroup.HYVA_LOAD_CHOICES
+            if code
+        ],
+        'rate_map': rates,
+        'preselected_ids': preselected_ids,
+    })
+
+
+@login_required(login_url='/login/')
+def jcb_trip_edit(request, group_id):
+    """Edit a JCB Operator's full day entry — load lines AND bhatta together."""
+    try:
+        group = LabourTripGroup.objects.get(pk=group_id)
+    except LabourTripGroup.DoesNotExist:
+        messages.info(request, 'Ye entry pehle se change/delete ho chuki hai — page fresh karo.')
+        return redirect('labour:list')
+
+    date = group.date
+    lab_ids = set(group.labourers.values_list('id', flat=True))
+    siblings = [
+        g for g in LabourTripGroup.objects.filter(date=date).order_by('id')
+        if set(g.labourers.values_list('id', flat=True)) == lab_ids
+    ]
+    if not siblings:
+        siblings = [group]
+
+    load_choices = [c for c, _ in LabourTripGroup.HYVA_LOAD_CHOICES if c]
+    load_rates = LabourJcbTripForm.JCB_LOAD_RATES
+    rates = {code: load_rates[code] for code in load_choices}
+
+    bhatta_count = LabourExtraPayment.objects.filter(
+        labour__in=lab_ids, date=date, note='Bhatta'
+    ).count()
+
+    if request.method == 'POST':
+        form = LabourJcbTripForm(request.POST)
+        rows = []
+        i = 0
+        while True:
+            lt_code = request.POST.get(f'load_type_{i}')
+            trip_raw = request.POST.get(f'trip_count_{i}')
+            if lt_code is None:
+                break
+            try:
+                trips = int(trip_raw or 0)
+            except (TypeError, ValueError):
+                trips = 0
+            if lt_code in rates and trips and trips > 0:
+                rows.append({'load_type': lt_code, 'trip_count': trips})
+            i += 1
+
+        if form.is_valid() and (rows or form.cleaned_data.get('bhatta') or (form.cleaned_data.get('advance') or 0)):
+            labourers = list(form.cleaned_data['labourers'])
+            bhatta = form.cleaned_data.get('bhatta')
+            advance_amount = form.cleaned_data.get('advance') or Decimal('0')
+            note = form.cleaned_data.get('note', '')
+
+            for idx, row in enumerate(rows):
+                if idx < len(siblings):
+                    g = siblings[idx]
+                    g.date = date
+                    g.trip_count = row['trip_count']
+                    g.load_type = row['load_type']
+                    g.fill_type = 'JCB'
+                    g.note = note
+                    g.save()
+                    g.labourers.set(labourers)
+                else:
+                    g = LabourTripGroup.objects.create(
+                        date=date,
+                        trip_count=row['trip_count'],
+                        rate_per_trip=Decimal(load_rates[row['load_type']]),
+                        load_type=row['load_type'],
+                        fill_type='JCB',
+                        total_amount=Decimal(row['trip_count']) * Decimal(load_rates[row['load_type']]),
+                        note=note,
+                    )
+                    g.labourers.set(labourers)
+
+            for g in siblings[len(rows):]:
+                g.delete()
+
+            labourer_ids = [l.id for l in labourers]
+            bhatta_scope = LabourExtraPayment.objects.filter(
+                labour__in=lab_ids | set(labourer_ids),
+                date=date, note='Bhatta',
+            )
+            if bhatta:
+                existing = set(bhatta_scope.values_list('labour_id', flat=True))
+                for l in labourers:
+                    if l.id not in existing:
+                        LabourExtraPayment.objects.create(
+                            labour=l, date=date,
+                            amount=Decimal(LabourJcbTripForm.BHATTA_AMOUNT),
+                            note='Bhatta',
+                        )
+                bhatta_scope.exclude(labour_id__in=labourer_ids).delete()
+            else:
+                bhatta_scope.delete()
+
+            # Advance: typed value sets/updates the day's advance per operator.
+            # Blank chhoda to existing advance ko haath nahi lagate.
+            adv_set = []
+            if advance_amount and advance_amount > 0:
+                for l in labourers:
+                    LabourAdvance.objects.update_or_create(
+                        labour=l, date=date,
+                        defaults={'amount': advance_amount, 'note': 'Advance (JCB loading)'},
+                    )
+                    adv_set.append(l.name)
+
+            total_trips = sum(r['trip_count'] for r in rows)
+            total = sum(
+                Decimal(r['trip_count']) * Decimal(load_rates[r['load_type']])
+                for r in rows
+            )
+            if rows:
+                messages.success(
+                    request,
+                    f'JCB entry updated · {len(rows)} load line(s) · '
+                    f'{total_trips} trips · ₹{total}'
+                    + (f' (+ bhatta ₹{LabourJcbTripForm.BHATTA_AMOUNT}/operator)' if bhatta else '')
+                    + (f' (+ advance ₹{advance_amount}/operator)' if adv_set else '')
+                    + '.',
+                )
+            else:
+                bits = []
+                if bhatta:
+                    bits.append(f'Bhatta ₹{LabourJcbTripForm.BHATTA_AMOUNT}/operator')
+                if adv_set:
+                    bits.append(f'Advance ₹{advance_amount}/operator')
+                messages.success(
+                    request,
+                    ' + '.join(bits) + ' updated.',
+                )
+            target_labour = group.labourers.first() or (labourers[0] if labourers else None)
+            qs = '?saved=1'
+            qs += f'&lines={len(rows)}'
+            qs += f'&trips={total_trips}'
+            qs += f'&total={total}'
+            qs += f'&bhatta=1' if bhatta else '&bhatta=0'
+            qs += f'&labourers={len(labourer_ids)}' if labourer_ids else ''
+            return redirect(f"{reverse('labour:detail', args=[target_labour.id if target_labour else 1])}{qs}")
+
+        context = {
+            'form': form,
+            'page_title': 'Edit JCB Loading',
+            'editing': True,
+            'editing_date': date,
+            'existing_rows': rows,
+            'lab_ids': lab_ids,
+            'bhatta_on': bool(request.POST.get('bhatta')),
+            'load_options': [
+                {'code': code, 'label': label, 'rate': rates[code]}
+                for code, label in LabourTripGroup.HYVA_LOAD_CHOICES
+                if code
+            ],
+            'rate_map': rates,
+        }
+        if not rows and not request.POST.get('bhatta') and not request.POST.get('advance'):
+            context['row_error'] = 'Kam se kam ek load line mein loading count dalo (load type select karke).'
+        return render(request, 'labour/jcb_trip_edit.html', context)
+
+    adv_amounts = set(
+        LabourAdvance.objects.filter(labour__in=lab_ids, date=date).values_list('amount', flat=True)
+    )
+    adv_initial = adv_amounts.pop() if len(adv_amounts) == 1 else None
+    form = LabourJcbTripForm(initial={
+        'date': date,
+        'bhatta': bool(bhatta_count),
+        'advance': adv_initial,
+    })
+    form.fields['labourers'].initial = list(lab_ids)
+    return render(request, 'labour/jcb_trip_edit.html', {
+        'form': form,
+        'page_title': 'Edit JCB Loading',
+        'editing': True,
+        'editing_date': date,
+        'existing_rows': [
+            {'load_type': g.load_type, 'trip_count': g.trip_count, 'load_label': g.load_label}
+            for g in siblings
+        ],
+        'lab_ids': lab_ids,
+        'bhatta_on': bool(bhatta_count),
+        'load_options': [
+            {'code': code, 'label': label, 'rate': rates[code]}
+            for code, label in LabourTripGroup.HYVA_LOAD_CHOICES
+            if code
+        ],
+        'rate_map': rates,
+    })
+
+
+# ----------------------------------------------------------------------------
 # Trip entry edit / delete / list — fix a wrong entry, shares recalculate
 # automatically (total = trips × rate, split across the group).
 # ----------------------------------------------------------------------------
@@ -1179,9 +1519,18 @@ def trip_group_list(request):
     if current_year:
         years.append(current_year)
 
-    add_url = 'labour:hyva_trip_add' if category == 'HYVA_DRIVER' else 'labour:trip_add'
-    add_label = '＋ Add Hyva Trip' if category == 'HYVA_DRIVER' else '＋ Add Trip'
-    page_title = 'Hyva Trip Entries' if category == 'HYVA_DRIVER' else ('Tractor Trip Entries' if category == 'TRACTOR' else 'Trip Entries')
+    if category == 'HYVA_DRIVER':
+        add_url = 'labour:hyva_trip_add'
+        add_label = '＋ Add Hyva Trip'
+        page_title = 'Hyva Trip Entries'
+    elif category == 'JCB_OPERATOR':
+        add_url = 'labour:jcb_trip_add'
+        add_label = '＋ Add JCB Loading'
+        page_title = 'JCB Loading Entries'
+    else:
+        add_url = 'labour:trip_add'
+        add_label = '＋ Add Trip'
+        page_title = 'Tractor Trip Entries' if category == 'TRACTOR' else 'Trip Entries'
 
     return render(request, 'labour/trip_group_list.html', {
         'years': years,
