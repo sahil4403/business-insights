@@ -17,6 +17,12 @@
     <form method="post" class="app-surface p-4 md:p-5 space-y-4" data-animate>
         {% csrf_token %}
 
+        {% if form.non_field_errors %}
+            <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
         <div>
             <label class="label">Labour</label>
             {% if request.is_operator %}
@@ -24,21 +30,25 @@
             {% else %}
             {{ form.labour }}
             {% endif %}
+            {% if form.labour.errors %}<p class="text-xs text-red-600 mt-2">{{ form.labour.errors|join:", " }}</p>{% endif %}
         </div>
 
         <div>
             <label class="label">Date</label>
             {{ form.date }}
+            {% if form.date.errors %}<p class="text-xs text-red-600 mt-2">{{ form.date.errors|join:", " }}</p>{% endif %}
         </div>
 
         <div>
             <label class="label">Amount (₹)</label>
             {{ form.amount }}
+            {% if form.amount.errors %}<p class="text-xs text-red-600 mt-2">{{ form.amount.errors|join:", " }}</p>{% endif %}
         </div>
 
         <div>
             <label class="label">Note (optional)</label>
             {{ form.note }}
+            {% if form.note.errors %}<p class="text-xs text-red-600 mt-2">{{ form.note.errors|join:", " }}</p>{% endif %}
         </div>
 
         <div class="flex gap-2 pt-2">
