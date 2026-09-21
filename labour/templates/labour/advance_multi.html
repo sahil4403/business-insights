@@ -49,6 +49,9 @@
                             {% if has_existing %}
                                 <span class="text-[10px] text-emerald-600 font-bold ml-1">✓</span>
                             {% endif %}
+                            {% if l.last_advance %}
+                                <span class="text-[10px] text-slate-400 font-semibold ml-1">· last {{ l.last_advance|date:"d-M" }}</span>
+                            {% endif %}
                         </div>
                         <input type="number" name="amount_{{ l.id }}" min="0" step="0.01" placeholder="₹0"
                                value="{{ amount|default_if_none:'' }}"

@@ -14,7 +14,7 @@ import re
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Sum, Q
+from django.db.models import F, Max, Sum, Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
@@ -1470,12 +1470,15 @@ def advance_multi(request):
     selected_date = _parse_date(request.POST.get('date') or request.GET.get('date'), today)
 
     category_filter = request.POST.get('category') or request.GET.get('category') or ''
+    labour_filters = {'is_active': True}
     if category_filter:
-        labours = list(Labour.objects.filter(
-            is_active=True, category=category_filter
-        ).exclude(is_vendor=True).order_by('name'))
-    else:
-        labours = list(Labour.objects.filter(is_active=True).exclude(is_vendor=True).order_by('name'))
+        labour_filters['category'] = category_filter
+    # Recent advance lene wale upar, purane/kabhi-na-lene wale neeche.
+    labours = list(
+        Labour.objects.filter(**labour_filters).exclude(is_vendor=True).annotate(
+            last_advance=Max('advances__date')
+        ).order_by(F('last_advance').desc(nulls_last=True), 'name')
+    )
     # Existing advances for selected_date, to pre-fill
     existing = {
         a.labour_id: a

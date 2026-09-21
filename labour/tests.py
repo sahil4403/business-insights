@@ -801,3 +801,46 @@ class LabourRollupCollapsedTest(TestCase):
             content,
         )
         self.assertNotIn('labour-rollup" data-reveal open', content)
+
+
+class QuickAdvancesOrderTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='quick-adv-order-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.old_taker = Labour.objects.create(
+            name='Old Taker',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+        )
+        self.recent_taker = Labour.objects.create(
+            name='Recent Taker',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+        )
+        self.never_taker = Labour.objects.create(
+            name='Never Taker',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+        )
+        LabourAdvance.objects.create(
+            labour=self.old_taker, date=date(2026, 1, 5), amount=Decimal('100.00'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.recent_taker, date=date(2026, 9, 13), amount=Decimal('100.00'),
+        )
+
+    def test_recent_advance_takers_come_first(self):
+        response = self.client.get(reverse('labour:advance_multi'))
+
+        self.assertEqual(response.status_code, 200)
+        names = [
+            labour.name for labour, _amount, _has in response.context['labour_rows']
+        ]
+        self.assertEqual(names, ['Recent Taker', 'Old Taker', 'Never Taker'])
