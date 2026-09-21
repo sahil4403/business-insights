@@ -123,8 +123,8 @@
             </form>
             {% endif %}
             <details class="relative">
-                <summary class="h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold inline-flex items-center gap-1 hover:bg-slate-50 cursor-pointer list-none">🏷️ <span class="hidden sm:inline">Outstanding</span></summary>
-                <div class="absolute right-0 top-11 z-40 w-64 app-surface rounded-xl border border-slate-200 shadow-lg p-3">
+                <summary class="h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold inline-flex items-center gap-1 hover:bg-slate-50 cursor-pointer list-none [&::-webkit-details-marker]:hidden">🏷️ <span class="hidden sm:inline">Outstanding</span></summary>
+                <div class="absolute right-0 top-11 z-40 w-64 max-w-[calc(100vw-1.5rem)] app-surface rounded-xl border border-slate-200 shadow-lg p-3">
                     <form method="post" action="{% url 'labour:outstanding_set' labour.id %}" class="space-y-2">
                         {% csrf_token %}
                         <label class="label !mb-1">Outstanding (₹) · one-time</label>
@@ -249,28 +249,36 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 
 
 <!-- Date range filter -->
-<form method="get" class="app-surface glass-panel p-3 md:p-4 mb-4" data-animate>
-    <div class="flex items-center justify-between mb-2.5">
-        <div class="text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-slate-400">📅 Date Range</div>
-        {% if request.GET.from_date or request.GET.to_date %}
-            <a href="{% url 'labour:detail' labour.id %}" class="text-[11px] font-bold text-brand-600 hover:underline">Reset</a>
-        {% endif %}
-    </div>
-    <div class="grid grid-cols-2 gap-2">
-        <div class="date-cell">
-            <span class="date-cell-label">From</span>
-            <input type="date" name="from_date" value="{{ period_start|date:'Y-m-d' }}" class="date-input">
+<details class="mb-4 app-surface rounded-xl overflow-hidden group" data-animate>
+    <summary class="flex items-center justify-between p-4 md:p-5 cursor-pointer select-none">
+        <span class="font-bold text-slate-900 text-[15px] flex items-center gap-2">
+            📅 Date Range
+        </span>
+        <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide group-open:hidden">Show</span>
+            <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide hidden group-open:inline-block">Hide</span>
+            <span class="text-slate-400 text-xs group-open:rotate-180 transition-transform">▼</span>
         </div>
-        <div class="date-cell">
-            <span class="date-cell-label">To</span>
-            <input type="date" name="to_date" value="{{ period_end|date:'Y-m-d' }}" class="date-input">
-        </div>
+    </summary>
+    <div class="px-4 md:px-5 pb-4 md:pb-5 pt-0">
+        <form method="get">
+            <div class="grid grid-cols-2 gap-2">
+                <div class="date-cell">
+                    <span class="date-cell-label">From</span>
+                    <input type="date" name="from_date" value="{{ period_start|date:'Y-m-d' }}" class="date-input">
+                </div>
+                <div class="date-cell">
+                    <span class="date-cell-label">To</span>
+                    <input type="date" name="to_date" value="{{ period_end|date:'Y-m-d' }}" class="date-input">
+                </div>
+            </div>
+            <div class="mt-2 flex gap-2">
+                <button type="submit" class="qa glass glass-tint flex-1 justify-center">Apply</button>
+                <a href="{% url 'labour:detail' labour.id %}" class="qa glass">All</a>
+            </div>
+        </form>
     </div>
-    <div class="mt-2 flex gap-2">
-        <button type="submit" class="qa glass glass-tint flex-1 justify-center">Apply</button>
-        <a href="{% url 'labour:detail' labour.id %}" class="qa glass">All</a>
-    </div>
-</form>
+</details>
 
 <!-- Daily table -->
 <div class="app-surface overflow-hidden mb-4" data-reveal>
