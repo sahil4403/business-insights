@@ -110,6 +110,7 @@
             </p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
+            {% if not request.is_operator %}
             <a href="{% url 'labour:edit' labour.id %}"
                class="h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold inline-flex items-center gap-1 hover:bg-slate-50 no-underline">✏️ Edit</a>
             <form method="post" action="{% url 'labour:remove' labour.id %}"
@@ -120,6 +121,21 @@
                     🗑 Remove
                 </button>
             </form>
+            {% endif %}
+            <details class="relative">
+                <summary class="h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold inline-flex items-center gap-1 hover:bg-slate-50 cursor-pointer list-none">🏷️ <span class="hidden sm:inline">Outstanding</span></summary>
+                <div class="absolute right-0 top-11 z-40 w-64 app-surface rounded-xl border border-slate-200 shadow-lg p-3">
+                    <form method="post" action="{% url 'labour:outstanding_set' labour.id %}" class="space-y-2">
+                        {% csrf_token %}
+                        <label class="label !mb-1">Outstanding (₹) · one-time</label>
+                        <input type="number" name="outstanding_amount" value="{{ old_balance.amount|floatformat:2 }}" min="0" step="0.01" class="input" placeholder="e.g. 500">
+                        <div class="flex gap-2">
+                            <button type="submit" class="btn glass glass-tint flex-1 justify-center">Set</button>
+                            <button type="submit" name="mode" value="add" class="btn glass flex-1 justify-center">+ Add</button>
+                        </div>
+                    </form>
+                </div>
+            </details>
         </div>
     </div>
 </div>
@@ -164,13 +180,36 @@
         <a href="{% url 'labour:rozi_add_for' labour.id %}" class="qa glass">👷 Add Rozi</a>
     {% endif %}
     <a href="{% url 'labour:advance_add_for' labour.id %}" class="qa glass">💸 Advance</a>
+    {% if not request.is_operator %}
     {% if labour.category == 'TRACTOR' %}
         <a href="{% url 'labour:advance_multi' %}?category=TRACTOR" class="qa glass">⚡ Quick Advance</a>
     {% endif %}
     {% if labour.is_driver and not labour.is_vendor %}
         <a href="{% url 'labour:driver_add_for' labour.id %}" class="qa glass">🚗 Driver</a>
     {% endif %}
+    {% endif %}
 </div>
+
+<!-- Mark holiday -->
+<details class="app-surface glass-panel p-3 md:p-4 mb-4" data-animate>
+    <summary class="cursor-pointer list-none text-sm font-bold text-slate-800 flex items-center justify-between py-1">
+        <span>🏖️ Mark Holiday</span>
+        <span class="text-slate-400 text-xs">▾</span>
+    </summary>
+    <form method="post" action="{% url 'labour:holiday_add_for' labour.id %}" class="mt-3 flex flex-wrap items-end gap-2">
+        {% csrf_token %}
+        <div class="flex-1 min-w-[140px]">
+            <label class="label">Date</label>
+            <input type="date" name="date" value="{{ today|date:'Y-m-d' }}" class="input">
+        </div>
+        <div class="flex-[2] min-w-[160px]">
+            <label class="label">Note (optional)</label>
+            <input type="text" name="note" maxlength="255" class="input" placeholder="e.g. Diwali, gaon gaya">
+        </div>
+        <button type="submit" class="btn glass glass-tint">🏖️ Save</button>
+    </form>
+    <p class="text-[11px] text-slate-400 mt-2">Sirf record — holiday pe ₹0, salary pe asar nahi.</p>
+</details>
 
 <!-- Coming Soon popup -->
 <div id="coming-soon" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
@@ -209,24 +248,6 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 {% endif %}
 
 
-<!-- Set outstanding -->
-<details class="app-surface glass-panel p-3 md:p-4 mb-4" data-animate>
-    <summary class="cursor-pointer list-none text-sm font-bold text-slate-800 flex items-center justify-between py-1">
-        <span>🏷 Set Outstanding Balance</span>
-        <span class="text-slate-400 text-xs">▾</span>
-    </summary>
-    <form method="post" action="{% url 'labour:outstanding_set' labour.id %}" class="mt-3 flex flex-wrap items-end gap-2">
-        {% csrf_token %}
-        <div class="flex-1 min-w-[140px]">
-            <label class="label">Outstanding (₹)</label>
-            <input type="number" name="outstanding_amount" value="{{ old_balance.amount|floatformat:2 }}" min="0" step="0.01" class="input" placeholder="e.g. 500">
-        </div>
-        <button type="submit" class="btn glass glass-tint">Set</button>
-        <button type="submit" name="mode" value="add" class="btn glass">+ Add</button>
-    </form>
-    <p class="text-[11px] text-slate-400 mt-2">Positive amount = labour owes you (prior dues). Set purana overwrite karta hai · Add upar jodta hai · 0 se clear.</p>
-</details>
-
 <!-- Date range filter -->
 <form method="get" class="app-surface glass-panel p-3 md:p-4 mb-4" data-animate>
     <div class="flex items-center justify-between mb-2.5">
@@ -254,7 +275,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 <!-- Daily table -->
 <div class="app-surface overflow-hidden mb-4" data-reveal>
     <div class="px-4 md:px-5 py-3.5 border-b border-slate-100">
-        <div class="font-bold text-slate-900 text-[15px]">Daily Activity</div>
+        <div class="font-bold text-slate-900 text-[15px]">Daily Activity{% if holiday_count %} <span class="ml-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">🏖️ {{ holiday_count }} holiday{{ holiday_count|pluralize }}</span>{% endif %}</div>
         <div class="text-[12px] text-slate-500 mt-0.5">Trip shares are split across the group automatically</div>
     </div>
 
@@ -355,11 +376,13 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                         <div class="text-right shrink-0 flex items-center gap-1.5">
                             <div class="font-bold text-emerald-600 text-[13px] mr-1">+₹{{ g.total_amount|floatformat:2 }}</div>
                             <a href="{% if labour.category == 'HYVA_DRIVER' %}{% url 'labour:hyva_trip_edit' g.id %}{% elif labour.category == 'JCB_OPERATOR' %}{% url 'labour:jcb_trip_edit' g.id %}{% else %}{% url 'labour:trip_edit' g.id %}{% endif %}" class="app-chip !h-7 !w-7 !p-0 !px-0 !text-slate-600 text-[11px]" title="Edit">✏️</a>
+                            {% if not request.is_operator %}
                             <form method="post" action="{% url 'labour:trip_delete' g.id %}" class="inline"
                                   onsubmit="return confirm('Is trip entry ko delete karna hai? Amount ₹{{ g.total_amount|floatformat:2 }} wapsa hoga.');">
                                 {% csrf_token %}
                                 <button type="submit" class="app-chip !h-7 !w-7 !p-0 !px-0 !text-red-600 text-[11px]" title="Delete">🗑</button>
                             </form>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -395,6 +418,22 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                                   onsubmit="return confirm('Advance amount ₹{{ a.amount|floatformat:2 }} delete karna hai?');">
                                 {% csrf_token %}
                                 <button type="submit" class="app-chip !h-7 !w-7 !p-0 !px-0 !text-red-600 text-[11px]" title="Delete">🗑</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% for hd in day.holidays %}
+                    <div class="flex items-start justify-between py-1.5 {% if not forloop.last %}border-b border-slate-50{% endif %}">
+                        <div>
+                            <div class="font-bold text-amber-600 text-xs">🏖️ Holiday{% if hd.note %} · {{ hd.note }}{% endif %}</div>
+                            <div class="text-[11px] text-slate-500">Record only — ₹0</div>
+                        </div>
+                        <div class="text-right shrink-0 flex items-center gap-1.5">
+                            <form method="post" action="{% url 'labour:holiday_delete' hd.id %}" class="inline"
+                                  onsubmit="return confirm('{{ hd.date|date:'d-M-Y' }} ki holiday hatani hai?');">
+                                {% csrf_token %}
+                                <button type="submit" class="app-chip !h-7 !w-7 !p-0 !px-0 !text-red-600 text-[11px]" title="Remove holiday">🗑</button>
                             </form>
                         </div>
                     </div>
@@ -464,7 +503,9 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
         </div>
 
         <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col md:flex-row md:items-center gap-2">
+            {% if not request.is_operator %}
             <a href="{% url 'labour:settle' labour.id %}" class="btn btn-primary w-full md:w-auto">🧾 Settle This Period</a>
+            {% endif %}
             <div class="flex gap-2 w-full md:w-auto">
                 <a href="{% url 'labour:statement_export' labour.id %}?export=pdf{% if period_start %}&from_date={{ period_start|date:'Y-m-d' }}{% endif %}{% if period_end %}&to_date={{ period_end|date:'Y-m-d' }}{% endif %}"
                    class="btn btn-ghost flex-1 md:flex-none">📄 Statement PDF</a>
@@ -493,7 +534,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                     <div class="text-[11px] text-slate-400">New old balance: <span class="num font-bold">₹{{ s.final_old_balance|floatformat:0 }}</span></div>
                 </div>
             </div>
-            {% if s.id == latest_settlement_id %}
+            {% if s.id == latest_settlement_id and not request.is_operator %}
                 <div class="mt-2 flex gap-2">
                     <a href="{% url 'labour:settlement_edit' s.id %}" class="qa glass flex-1 justify-center">✏️ Edit</a>
                     <form method="post" action="{% url 'labour:settlement_revert' s.id %}" class="flex-1"

@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from master_data.models import LabourType
 
@@ -84,6 +85,15 @@ class Labour(models.Model):
         decimal_places=2,
         default=Decimal('500'),
         help_text="Base daily rate (Rozi full day). One & Half = 1.5x, Half = 0.5x"
+    )
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='operator_labour',
+        help_text="Linked login for restricted operator mode — operator sees only his own page"
     )
 
     created_at = models.DateTimeField(
@@ -583,6 +593,30 @@ class LabourAdvance(models.Model):
 
     def __str__(self):
         return f"{self.labour.name} · {self.date} · ₹{self.amount}"
+
+
+class LabourHoliday(models.Model):
+    """Marked holiday/leave day — record only (Rs 0, no pay impact)."""
+    labour = models.ForeignKey(
+        Labour,
+        on_delete=models.CASCADE,
+        related_name='holidays',
+    )
+    date = models.DateField()
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['labour', 'date'],
+                name='unique_holiday_per_labour_per_day',
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.labour.name} · {self.date} · Holiday"
 
 
 class LabourRozi(models.Model):

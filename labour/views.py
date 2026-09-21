@@ -46,6 +46,7 @@ from .models import (
     LabourOldBalance,
     LabourSettlement,
     LabourRozi,
+    LabourHoliday,
 )
 
 
@@ -592,7 +593,13 @@ def labour_detail(request, labour_id):
         labour=labour, date__gte=period_start, date__lte=period_end
     ).order_by('-date', '-id'))
 
-    # Group trips, extras, and advances by date (each date shows all its load lines + extras + advances + day total)
+    # Holidays in the period (record only — no pay impact)
+    holidays_list = list(LabourHoliday.objects.filter(
+        labour=labour, date__gte=period_start, date__lte=period_end
+    ).order_by('-date', '-id'))
+    holiday_count = len(holidays_list)
+
+    # Group trips, extras, advances and holidays by date (each date shows all its load lines + extras + advances + holidays + day total)
     trip_groups_by_date = []
     _day_order = {}
 
@@ -604,6 +611,7 @@ def labour_detail(request, labour_id):
                 'groups': [],
                 'extras': [],
                 'advances': [],
+                'holidays': [],
                 'trip_total': Decimal('0'),
                 'trip_count': 0,
             })
@@ -622,6 +630,10 @@ def labour_detail(request, labour_id):
     for a in advances_list:
         bucket = _get_bucket(a.date)
         bucket['advances'].append(a)
+
+    for hd in holidays_list:
+        bucket = _get_bucket(hd.date)
+        bucket['holidays'].append(hd)
 
     trip_groups_by_date.sort(key=lambda x: x['date'], reverse=True)
 
@@ -682,6 +694,8 @@ def labour_detail(request, labour_id):
         'trip_action': trip_action,
         'trip_groups': trip_groups,
         'trip_groups_by_date': trip_groups_by_date,
+        'holiday_count': holiday_count,
+        'today': today,
     }
     return render(request, 'labour/labour_detail.html', context)
 
@@ -1046,6 +1060,9 @@ def jcb_trip_create(request):
 
     if request.method == 'POST':
         form = LabourJcbTripForm(request.POST)
+        op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+        if op_lab is not None:
+            form.fields['labourers'].queryset = Labour.objects.filter(pk=op_lab.pk)
         rows = []
         i = 0
         while True:
@@ -1066,6 +1083,8 @@ def jcb_trip_create(request):
             labourers = list(form.cleaned_data['labourers'])
             bhatta = form.cleaned_data.get('bhatta')
             advance_amount = form.cleaned_data.get('advance') or Decimal('0')
+            if op_lab is not None:
+                labourers = [op_lab]
             note = form.cleaned_data.get('note', '')
 
             groups = []
@@ -1166,6 +1185,11 @@ def jcb_trip_create(request):
         if pre:
             form.fields['labourers'].initial = [pre.id]
             preselected_ids = {pre.id}
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None:
+        form.fields['labourers'].queryset = Labour.objects.filter(pk=op_lab.pk)
+        form.fields['labourers'].initial = [op_lab.id]
+        preselected_ids = {op_lab.id}
     return render(request, 'labour/jcb_trip_form.html', {
         'form': form,
         'page_title': 'Add JCB Loading',
@@ -1197,6 +1221,15 @@ def jcb_trip_edit(request, group_id):
     if not siblings:
         siblings = [group]
 
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None:
+        day_lab_ids = set()
+        for g in siblings:
+            day_lab_ids.update(g.labourers.values_list('id', flat=True))
+        if day_lab_ids != {op_lab.id}:
+            messages.info(request, 'Sirf apni entry edit kar sakte ho.')
+            return redirect(f'/labour/{op_lab.id}/')
+
     load_choices = [c for c, _ in LabourTripGroup.HYVA_LOAD_CHOICES if c]
     load_rates = LabourJcbTripForm.JCB_LOAD_RATES
     rates = {code: load_rates[code] for code in load_choices}
@@ -1207,6 +1240,8 @@ def jcb_trip_edit(request, group_id):
 
     if request.method == 'POST':
         form = LabourJcbTripForm(request.POST)
+        if op_lab is not None:
+            form.fields['labourers'].queryset = Labour.objects.filter(pk=op_lab.pk)
         rows = []
         i = 0
         while True:
@@ -1226,6 +1261,8 @@ def jcb_trip_edit(request, group_id):
             labourers = list(form.cleaned_data['labourers'])
             bhatta = form.cleaned_data.get('bhatta')
             advance_amount = form.cleaned_data.get('advance') or Decimal('0')
+            if op_lab is not None:
+                labourers = [op_lab]
             note = form.cleaned_data.get('note', '')
 
             for idx, row in enumerate(rows):
@@ -1344,6 +1381,10 @@ def jcb_trip_edit(request, group_id):
         'advance': adv_initial,
     })
     form.fields['labourers'].initial = list(lab_ids)
+    if op_lab is not None:
+        form.fields['labourers'].queryset = Labour.objects.filter(pk=op_lab.pk)
+        form.fields['labourers'].initial = [op_lab.id]
+        lab_ids = {op_lab.id}
     return render(request, 'labour/jcb_trip_edit.html', {
         'form': form,
         'page_title': 'Edit JCB Loading',
@@ -1550,6 +1591,9 @@ def extra_create(request, labour_id=None):
     labour = None
     if labour_id:
         labour = get_object_or_404(Labour, pk=labour_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None:
+        labour = op_lab
 
     if request.method == 'POST':
         form = LabourExtraPaymentForm(request.POST, labour=labour)
@@ -1575,6 +1619,10 @@ def extra_create(request, labour_id=None):
 @require_POST
 def extra_delete(request, extra_id):
     extra = get_object_or_404(LabourExtraPayment, pk=extra_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None and extra.labour_id != op_lab.id:
+        messages.info(request, 'Sirf apni entry edit kar sakte ho.')
+        return redirect(f'/labour/{op_lab.id}/')
     labour_id = extra.labour.id
     amt = extra.amount
     extra.delete()
@@ -1584,6 +1632,10 @@ def extra_delete(request, extra_id):
 @login_required(login_url='/login/')
 def extra_edit(request, extra_id):
     extra = get_object_or_404(LabourExtraPayment, pk=extra_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None and extra.labour_id != op_lab.id:
+        messages.info(request, 'Sirf apni entry edit kar sakte ho.')
+        return redirect(f'/labour/{op_lab.id}/')
     if request.method == 'POST':
         form = LabourExtraPaymentForm(request.POST, instance=extra, labour=extra.labour)
         if form.is_valid():
@@ -1610,6 +1662,9 @@ def advance_create(request, labour_id=None):
     labour = None
     if labour_id:
         labour = get_object_or_404(Labour, pk=labour_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None:
+        labour = op_lab
 
     if request.method == 'POST':
         form = LabourAdvanceForm(request.POST, labour=labour)
@@ -1641,6 +1696,10 @@ def advance_create(request, labour_id=None):
 @require_POST
 def advance_delete(request, advance_id):
     advance = get_object_or_404(LabourAdvance, pk=advance_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None and advance.labour_id != op_lab.id:
+        messages.info(request, 'Sirf apni entry edit kar sakte ho.')
+        return redirect(f'/labour/{op_lab.id}/')
     labour_id = advance.labour.id
     amt = advance.amount
     advance.delete()
@@ -1650,6 +1709,10 @@ def advance_delete(request, advance_id):
 @login_required(login_url='/login/')
 def advance_edit(request, advance_id):
     adv = get_object_or_404(LabourAdvance, pk=advance_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None and adv.labour_id != op_lab.id:
+        messages.info(request, 'Sirf apni entry edit kar sakte ho.')
+        return redirect(f'/labour/{op_lab.id}/')
     if request.method == 'POST':
         form = LabourAdvanceForm(request.POST, instance=adv, labour=adv.labour)
         if form.is_valid():
@@ -1664,6 +1727,45 @@ def advance_edit(request, advance_id):
         'page_title': 'Edit Advance',
         'labour': adv.labour,
     })
+
+
+# ----------------------------------------------------------------------------
+# Holiday — marked leave day, record only (Rs 0, no pay impact).
+# Operator can mark/unmark only his own days; admin any labour.
+# ----------------------------------------------------------------------------
+
+@login_required(login_url='/login/')
+def holiday_create(request, labour_id):
+    labour = get_object_or_404(Labour, pk=labour_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None:
+        labour = op_lab
+    if request.method == 'POST':
+        day = _parse_date(request.POST.get('date'), timezone.localdate())
+        note = (request.POST.get('note') or '').strip()[:255]
+        obj, created = LabourHoliday.objects.get_or_create(
+            labour=labour, date=day, defaults={'note': note},
+        )
+        if created:
+            messages.success(request, f'Holiday marked · {day:%d-%b-%Y}.')
+        else:
+            messages.info(request, f'{day:%d-%b-%Y} pehle se holiday hai.')
+    return redirect('labour:detail', labour_id=labour.id)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def holiday_delete(request, holiday_id):
+    hol = get_object_or_404(LabourHoliday, pk=holiday_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None and hol.labour_id != op_lab.id:
+        messages.info(request, 'Sirf apni entry edit kar sakte ho.')
+        return redirect(f'/labour/{op_lab.id}/')
+    labour_id = hol.labour_id
+    hol_date = hol.date
+    hol.delete()
+    messages.success(request, f'Holiday {hol_date:%d-%b-%Y} hataya.')
+    return redirect('labour:detail', labour_id=labour_id)
 
 
 @login_required(login_url='/login/')
@@ -1925,6 +2027,9 @@ def labour_set_outstanding(request, labour_id):
     Positive amount = labour owes owner. Use for prior dues / manual adjust.
     mode=add → amount upar jod do; warna absolute set (purana overwrite)."""
     labour = get_object_or_404(Labour, pk=labour_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None:
+        labour = op_lab
     ob = _ensure_old_balance(labour)
     raw = request.POST.get('outstanding_amount', '').strip()
     try:
