@@ -1676,6 +1676,8 @@ def advance_create(request, labour_id=None):
                 obj.save()
             except Exception as e:  # unique constraint
                 messages.error(request, f'Already an advance for this labour on that date.')
+                if labour is not None:
+                    return redirect('labour:detail', labour_id=labour.id)
                 return render(request, 'labour/advance_form.html', {
                     'form': form, 'page_title': 'Add Advance', 'labour': labour,
                 })
@@ -1683,6 +1685,13 @@ def advance_create(request, labour_id=None):
             if labour is not None:
                 return redirect('labour:detail', labour_id=labour.id)
             return redirect('labour:list')
+        else:
+            # Same-date advance already exists (unique check fails validation):
+            # send back to main page with a clear message instead of a dead re-render.
+            dup_date = _parse_date(request.POST.get('date'))
+            if labour is not None and dup_date is not None and LabourAdvance.objects.filter(labour=labour, date=dup_date).exists():
+                messages.error(request, f'Already an advance for this labour on that date.')
+                return redirect('labour:detail', labour_id=labour.id)
     else:
         form = LabourAdvanceForm(labour=labour)
 
