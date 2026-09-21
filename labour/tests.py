@@ -844,3 +844,43 @@ class QuickAdvancesOrderTest(TestCase):
             labour.name for labour, _amount, _has in response.context['labour_rows']
         ]
         self.assertEqual(names, ['Recent Taker', 'Old Taker', 'Never Taker'])
+
+
+class HyvaRoziButtonTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='hyva-rozi-button-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.hyva_driver = Labour.objects.create(
+            name='Gaju Bhau',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+        self.mistri = Labour.objects.create(
+            name='Raju Bhau',
+            category='MISTRI',
+            sub_category='MISTRI',
+            is_active=True,
+            status='ACTIVE',
+        )
+
+    def test_hyva_driver_has_no_add_rozi_button(self):
+        response = self.client.get(
+            reverse('labour:detail', args=[self.hyva_driver.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Add Rozi')
+
+    def test_mistri_keeps_add_rozi_button(self):
+        response = self.client.get(
+            reverse('labour:detail', args=[self.mistri.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Add Rozi')

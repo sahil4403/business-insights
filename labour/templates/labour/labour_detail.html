@@ -160,7 +160,7 @@
         <a href="{% url trip_action.url %}?{% if trip_action.rozi %}category=MISTRI{% elif trip_action.query %}{{ trip_action.query }}{% endif %}" class="qa glass glass-tint">{{ trip_action.icon }} {{ trip_action.label }}</a>
     {% endif %}
     <a href="{% url 'labour:extra_add_for' labour.id %}" class="qa glass">💰 {% if labour.category == 'HYVA_DRIVER' %}Bhatta / Rozi{% else %}Extra{% endif %}</a>
-    {% if labour.category != 'TRACTOR' %}
+    {% if labour.category != 'TRACTOR' and labour.category != 'HYVA_DRIVER' %}
         <a href="{% url 'labour:rozi_add_for' labour.id %}" class="qa glass">👷 Add Rozi</a>
     {% endif %}
     <a href="{% url 'labour:advance_add_for' labour.id %}" class="qa glass">💸 Advance</a>
