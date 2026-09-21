@@ -1597,6 +1597,8 @@ def extra_create(request, labour_id=None):
 
     if request.method == 'POST':
         form = LabourExtraPaymentForm(request.POST, labour=labour)
+        if op_lab is not None:
+            form.fields.pop('labour', None)
         if form.is_valid():
             obj = form.save(commit=False)
             if labour is not None:
@@ -1608,6 +1610,8 @@ def extra_create(request, labour_id=None):
             return redirect('labour:list')
     else:
         form = LabourExtraPaymentForm(labour=labour)
+        if op_lab is not None:
+            form.fields.pop('labour', None)
 
     return render(request, 'labour/extra_form.html', {
         'form': form,
@@ -1668,6 +1672,8 @@ def advance_create(request, labour_id=None):
 
     if request.method == 'POST':
         form = LabourAdvanceForm(request.POST, labour=labour)
+        if op_lab is not None:
+            form.fields.pop('labour', None)
         if form.is_valid():
             obj = form.save(commit=False)
             if labour is not None:
@@ -1694,6 +1700,8 @@ def advance_create(request, labour_id=None):
                 return redirect('labour:detail', labour_id=labour.id)
     else:
         form = LabourAdvanceForm(labour=labour)
+        if op_lab is not None:
+            form.fields.pop('labour', None)
 
     return render(request, 'labour/advance_form.html', {
         'form': form,
