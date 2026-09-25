@@ -1,8 +1,10 @@
 from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.views import View
+from django.views.decorators.http import require_POST
 
 from core.rate_limit import (
     login_rate_limit_check,
@@ -45,13 +47,79 @@ class UserLogoutView(View):
 
 
 # ============================================================
+# WEB PUSH (VAPID) — free browser notifications
+# ============================================================
+
+import json
+import os
+
+
+@login_required(login_url='/login/')
+def push_vapid_key(request):
+    """Public VAPID key for the browser subscribe call (public = safe to expose)."""
+    return JsonResponse({'publicKey': os.getenv('VAPID_PUBLIC_KEY', '')})
+
+
+@login_required(login_url='/login/')
+@require_POST
+def push_subscribe(request):
+    """Save (or refresh) this browser's push subscription for the logged-in user."""
+    from .models import PushSubscription
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({'ok': False, 'error': 'bad json'}, status=400)
+    endpoint = (data.get('endpoint') or '').strip()
+    keys = data.get('keys') or {}
+    p256dh = (keys.get('p256dh') or '').strip()
+    auth = (keys.get('auth') or '').strip()
+    if not endpoint or not p256dh or not auth:
+        return JsonResponse({'ok': False, 'error': 'missing fields'}, status=400)
+    PushSubscription.objects.update_or_create(
+        endpoint=endpoint,
+        defaults={'user': request.user, 'p256dh': p256dh, 'auth': auth},
+    )
+    return JsonResponse({'ok': True})
+
+
+@login_required(login_url='/login/')
+@require_POST
+def push_test(request):
+    """Send a test push to the current user's own browsers."""
+    from .push import notify_users
+
+    sent = notify_users(
+        [request.user],
+        '🔔 Test Notification',
+        'Push on hai — Santosh ki entry yahin aayegi.',
+        url='/labour/',
+    )
+    if sent:
+        return JsonResponse({'ok': True, 'sent': sent})
+    return JsonResponse(
+        {'ok': False, 'error': 'koi subscription nahi / VAPID key missing — pehle Allow dabao'},
+        status=400,
+    )
+
+
+def serve_sw_js(request):
+    """Service worker at /sw.js (root scope). No login — browsers fetch it directly."""
+    from django.http import HttpResponse
+    from django.template import loader
+
+    content = loader.render_to_string('sw.js', {}, request)
+    return HttpResponse(content, content_type='application/javascript')
+
+
+# ============================================================
 # STAFF MANAGEMENT (Superuser Only)
 # ============================================================
 import logging
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model, update_session_auth_hash
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib.sessions.models import Session
 from django.shortcuts import get_object_or_404, redirect, render
 

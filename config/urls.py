@@ -22,7 +22,7 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
-from authentication.views import staff_manage
+from authentication.views import staff_manage, serve_sw_js
 from core.views import custom_admin_login, js_error_beacon
 
 urlpatterns = [
@@ -34,6 +34,8 @@ urlpatterns = [
     path("vehicles/", include("vehicles.urls")),
     path("labour/", include("labour.urls")),
     path('login/', include('authentication.urls')),
+    path('push/', include('authentication.push_urls')),
+    path('sw.js', serve_sw_js, name='sw_js'),
     path("staff/", staff_manage, name='staff_manage'),
     path("__jserr__/", js_error_beacon, name='js_error_beacon'),
     path('', include('core.urls')),

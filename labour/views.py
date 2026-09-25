@@ -1159,6 +1159,18 @@ def jcb_trip_create(request):
                 ).first()
             if not redirect_labour and labourers:
                 redirect_labour = labourers[0]
+            try:
+                from authentication.push import notify_superusers
+                names = ', '.join(l.name for l in labourers[:3])
+                target = redirect_labour or (labourers[0] if labourers else None)
+                notify_superusers(
+                    '🏗️ JCB Loading',
+                    f'{names} · {total_trips} loading · ₹{total}',
+                    url=f'/labour/{target.id}/' if target else '/labour/',
+                    exclude_user=request.user,
+                )
+            except Exception:
+                pass
             if redirect_labour:
                 return redirect('labour:detail', labour_id=redirect_labour.id)
             return redirect('labour:list')
