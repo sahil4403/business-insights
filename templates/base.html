@@ -429,6 +429,15 @@
                 banner.classList.remove('flex');
                 if (permanent) { try { localStorage.setItem('push-dismissed', '1'); } catch (e) {} }
             }
+            function fetchJSON(url, opts) {
+                return fetch(url, opts).then(function (r) {
+                    var ct = r.headers.get('content-type') || '';
+                    if (ct.indexOf('application/json') === -1) {
+                        throw new Error('server purana hai ya login expire — pull + Reload + dobara login karo');
+                    }
+                    return r.json();
+                });
+            }
             navigator.serviceWorker.register('/sw.js').then(function (reg) {
                 return reg.pushManager.getSubscription();
             }).then(function (sub) {
@@ -441,7 +450,7 @@
             document.getElementById('push-allow').addEventListener('click', function () {
                 Notification.requestPermission().then(function (perm) {
                     if (perm !== 'granted') { hide(true); return null; }
-                    return fetch('/push/vapid-key/').then(function (r) { return r.json(); });
+                    return fetchJSON('/push/vapid-key/');
                 }).then(function (j) {
                     if (!j) return null;
                     if (!j.publicKey) { alert('Server pe VAPID key missing hai (.env check karo)'); return null; }
@@ -450,19 +459,19 @@
                     });
                 }).then(function (sub) {
                     if (!sub) return null;
-                    return fetch('/push/subscribe/', {
+                    return fetchJSON('/push/subscribe/', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                         body: JSON.stringify(sub.toJSON()),
                     });
-                }).then(function (r) {
-                    if (!r) return;
-                    if (!r.ok) { alert('Subscribe fail — dobara login karke try karo'); return; }
+                }).then(function (j) {
                     hide(true);
-                    fetch('/push/test/', {
+                    return fetchJSON('/push/test/', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                     });
+                }).then(function (j) {
+                    if (j && j.ok === false) { alert('Notification: ' + (j.error || 'fail')); return; }
                 }).catch(function (e) { alert('Notification error: ' + e); });
             });
         })();
