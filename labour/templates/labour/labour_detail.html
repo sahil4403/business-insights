@@ -289,7 +289,18 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
         <div class="text-[12px] text-slate-500 mt-0.5">Trip shares are split across the group automatically</div>
     </div>
 
-    {% if rows %}
+    {% if rows_by_month %}
+        {% for m in rows_by_month %}
+        <details class="border-b border-slate-100 last:border-0 group" {% if forloop.first %}open{% endif %}>
+            <summary class="flex items-center justify-between gap-2 px-4 md:px-5 py-3 cursor-pointer select-none">
+                <span class="font-bold text-slate-900 text-[14px]">📅 {{ m.label }}</span>
+                <span class="flex items-center gap-2 shrink-0">
+                    <span class="text-[11px] text-slate-500 num">{{ m.rows|length }} day{{ m.rows|length|pluralize }} · ₹{{ m.trip_total|floatformat:0 }}</span>
+                    <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide group-open:hidden">Show</span>
+                    <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide hidden group-open:inline-block">Hide</span>
+                </span>
+            </summary>
+            <div class="pb-2">
         <!-- Desktop table -->
         <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-sm">
@@ -303,7 +314,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                     </tr>
                 </thead>
                 <tbody>
-                    {% for r in rows %}
+                    {% for r in m.rows %}
                         <tr class="border-t border-slate-100">
                             <td class="px-4 py-3 font-semibold text-slate-800">{{ r.date|date:"d-M-Y" }}</td>
                             <td class="px-4 py-3 text-right num">₹{{ r.trips_amount|floatformat:2 }}</td>
@@ -318,7 +329,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 
         <!-- Mobile rows -->
         <div class="md:hidden px-4 py-2">
-            {% for r in rows %}
+            {% for r in m.rows %}
                 <div class="border-b border-slate-100 last:border-0 py-2.5">
                     <div class="flex items-center justify-between mb-1.5">
                         <div class="font-semibold text-slate-800 text-[13px]">{{ r.date|date:"d-M-Y" }}</div>
@@ -341,6 +352,9 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                 </div>
             {% endfor %}
         </div>
+            </div>
+        </details>
+        {% endfor %}
     {% else %}
         <div class="py-12 text-center text-slate-500 text-sm">No activity in this date range.</div>
     {% endif %}

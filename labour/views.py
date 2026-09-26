@@ -555,6 +555,23 @@ def labour_detail(request, labour_id):
     extra_total = sum((r['extra_amount'] for r in rows), Decimal('0'))
     advance_total = sum((r['advance_amount'] for r in rows), Decimal('0'))
 
+    # Month-wise grouping for Daily Activity (each month collapsible under its name)
+    rows_by_month = []
+    _month_order = {}
+    for r in rows:
+        key = (r['date'].year, r['date'].month)
+        if key not in _month_order:
+            _month_order[key] = len(rows_by_month)
+            rows_by_month.append({
+                'key': key,
+                'label': r['date'].strftime('%B %Y'),
+                'rows': [],
+                'trip_total': Decimal('0'),
+            })
+        bucket = rows_by_month[_month_order[key]]
+        bucket['rows'].append(r)
+        bucket['trip_total'] += r['trips_amount']
+
     # Driver payment for the period (overlapping ranges)
     driver_qs = LabourDriverPayment.objects.filter(labour=labour).filter(
         period_start__lte=period_end, period_end__gte=period_start
@@ -697,6 +714,7 @@ def labour_detail(request, labour_id):
         'trip_action': trip_action,
         'trip_groups': trip_groups,
         'trip_groups_by_date': trip_groups_by_date,
+        'rows_by_month': rows_by_month,
         'holiday_count': holiday_count,
         'today': today,
     }
