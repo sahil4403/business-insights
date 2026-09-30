@@ -210,6 +210,15 @@ class TripForm(forms.ModelForm):
                     is_active=True, status='ACTIVE'
                 )
 
+        # One-day naya driver (new_driver_name post hua): view usse pehle hi
+        # get_or_create kar chuka hai — validation me wahi naam allow karo.
+        _quick_driver_name = str(self.data.get('new_driver_name') or '').strip() if self.is_bound else ''
+        if _quick_driver_name:
+            _driver_q = _driver_q | Q(
+                name__iexact=_quick_driver_name,
+                is_active=True, status='ACTIVE'
+            )
+
         drivers_qs = Labour.objects.filter(_driver_q)
 
         # Edit mode: Vehicle Type dropdown ko trip ke actual category par set karo,
@@ -320,11 +329,20 @@ class TripForm(forms.ModelForm):
                 'Shubham Bhau',
             ]
 
+            # Is request me quick-add hua one-day driver (quick_created_ids — sirf
+            # abhi-bana PK) in rules se bahar hai — user ne use isi trip ke
+            # liye banaya hai. Purane permanent drivers pe rule jaisa tha vaisa.
+            _quick_ids = set(
+                x.strip() for x in (self.data.get('quick_created_ids') or '').split(',')
+                if x.strip()
+            ) if self.is_bound else set()
+
             if vehicle_cat == 'TRACTOR':
 
                 bad_drivers = [
                     d.name for d in drivers
                     if d.name not in tractor_only_names
+                    and str(d.pk) not in _quick_ids
                 ]
 
                 if bad_drivers:
@@ -339,6 +357,7 @@ class TripForm(forms.ModelForm):
                 bad_drivers = [
                     d.name for d in drivers
                     if d.name in tractor_only_names
+                    and str(d.pk) not in _quick_ids
                 ]
 
                 if bad_drivers:

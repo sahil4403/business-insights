@@ -507,6 +507,39 @@ def _ensure_vendor_driver(data):
         labour.save(update_fields=['is_vendor', 'updated_at'])
     return vendor_name, labour.pk
 
+
+QUICK_DRIVER_CATEGORY = {
+    'HYVA': 'HYVA_DRIVER',
+    'TRACTOR': 'TRACTOR',
+    'JCB': 'JCB_OPERATOR',
+    'HALFTON': 'HYVA_DRIVER',
+}
+
+
+def _ensure_quick_driver(data):
+    """Add Trip: ek din ka naya driver naam se — get_or_create karke link karo.
+
+    Vendor flow jaisa algorithm: naam strip + case-insensitive match (dobara
+    mat banao), vehicle category se Labour category map hoti hai. Permanent
+    drivers ki list untouched rehti hai. Returns (name, pk, created).
+    """
+    driver_name = (data.get('new_driver_name') or '').strip()
+    if not driver_name:
+        return None, None, False
+    vehicle_cat = (data.get('vehicle_category') or 'HYVA').strip().upper()
+    category = QUICK_DRIVER_CATEGORY.get(vehicle_cat, 'HYVA_DRIVER')
+    labour, created = Labour.objects.get_or_create(
+        name__iexact=driver_name,
+        defaults={
+            'name': driver_name,
+            'category': category,
+            'is_active': True,
+            'status': 'ACTIVE',
+            'is_driver': True,
+        },
+    )
+    return driver_name, labour.pk, created
+
 @login_required(login_url='/login/')
 def trip_create(request):
     if request.method == 'POST':
@@ -523,6 +556,18 @@ def trip_create(request):
                 data['drivers'] = str(_labour_id)
             if (data.get('vendor_driver_count') or '').strip():
                 data[f'driver_count_{_labour_id}'] = data.get('vendor_driver_count').strip()
+
+        # One-day naya driver: naam se get_or_create karke drivers me inject karo.
+        _quick_name, _quick_id, _quick_created = _ensure_quick_driver(data)
+        if _quick_id:
+            if 'drivers' in data:
+                data.setlist('drivers', data.getlist('drivers') + [str(_quick_id)])
+            else:
+                data['drivers'] = str(_quick_id)
+            if _quick_created:
+                data['quick_created_ids'] = str(_quick_id)
+            if (data.get('new_driver_count') or '').strip():
+                data[f'driver_count_{_quick_id}'] = data.get('new_driver_count').strip()
 
         form = TripForm(data)
         if form.is_valid():
@@ -617,6 +662,18 @@ def trip_edit(request, trip_id):
                 data['drivers'] = str(_labour_id)
             if (data.get('vendor_driver_count') or '').strip():
                 data[f'driver_count_{_labour_id}'] = data.get('vendor_driver_count').strip()
+
+        # One-day naya driver: naam se get_or_create karke drivers me inject karo.
+        _quick_name, _quick_id, _quick_created = _ensure_quick_driver(data)
+        if _quick_id:
+            if 'drivers' in data:
+                data.setlist('drivers', data.getlist('drivers') + [str(_quick_id)])
+            else:
+                data['drivers'] = str(_quick_id)
+            if _quick_created:
+                data['quick_created_ids'] = str(_quick_id)
+            if (data.get('new_driver_count') or '').strip():
+                data[f'driver_count_{_quick_id}'] = data.get('new_driver_count').strip()
 
         form = TripForm(
             data,

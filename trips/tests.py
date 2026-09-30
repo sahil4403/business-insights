@@ -481,3 +481,79 @@ class TripCreateRedirectTest(TestCase):
         self.assertEqual(
             detail_response.context['back_url'], reverse('trips:create')
         )
+
+
+class QuickDriverCreateTest(TestCase):
+    """Add Trip: one-day naya driver naam se — get_or_create + auto-select."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='quick-driver-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        customer_type, _ = CustomerType.objects.get_or_create(
+            code='QUICK-DRIVER-TEST',
+            defaults={'name': 'Quick Driver Test'},
+        )
+        self.customer = Customer.objects.create(
+            customer_code='QD-001',
+            name='Quick Driver Customer',
+            customer_type=customer_type,
+            opening_balance=0,
+            is_active=True,
+        )
+
+    def _base_post(self, **over):
+        data = {
+            'trip_date': timezone.localdate().isoformat(),
+            'transaction_type': 'CUSTOMER_DELIVERY',
+            'customer': str(self.customer.pk),
+            'destination': 'Site Q',
+            'vehicle_category': 'HYVA',
+            'quantity': '2',
+            'rate': '100',
+            'trip_status': 'COMPLETED',
+        }
+        data.update(over)
+        return self.client.post(reverse('trips:create'), data=data)
+
+    def test_new_driver_created_and_linked(self):
+        response = self._base_post(new_driver_name='One Day Driver', new_driver_count='3')
+        self.assertEqual(response.status_code, 302)
+        driver = Labour.objects.get(name='One Day Driver')
+        self.assertEqual(driver.category, 'HYVA_DRIVER')
+        self.assertTrue(driver.is_driver)
+        trip = Trip.objects.get(customer=self.customer)
+        self.assertIn(driver, trip.drivers.all())
+        self.assertEqual(trip.driver_trip_counts.get(str(driver.id)), 3)
+
+    def test_existing_name_reused_no_duplicate(self):
+        Labour.objects.create(
+            name='Repeat Driver', category='HYVA_DRIVER',
+            is_active=True, status='ACTIVE', is_driver=True,
+        )
+        before = Labour.objects.filter(name__iexact='repeat driver').count()
+        response = self._base_post(new_driver_name='repeat DRIVER')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Labour.objects.filter(name__iexact='repeat driver').count(), before)
+
+    def test_tractor_maps_tractor_category(self):
+        response = self._base_post(
+            new_driver_name='Tractor Temp', vehicle_category='TRACTOR',
+            drivers=[str(d.pk) for d in Labour.objects.filter(category='TRACTOR', is_active=True)[:1]],
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Labour.objects.get(name='Tractor Temp').category, 'TRACTOR')
+
+    def test_existing_tractor_driver_still_blocked_on_hyva(self):
+        Labour.objects.create(
+            name='Ankush Bhau', category='TRACTOR',
+            is_active=True, status='ACTIVE', is_driver=True,
+        )
+        response = self._base_post(
+            new_driver_name='Ankush Bhau', vehicle_category='HYVA',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Trip.objects.filter(customer=self.customer).count(), 0)
