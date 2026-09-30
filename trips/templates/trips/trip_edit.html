@@ -260,14 +260,22 @@
             {% endfor %}
         </div>
 
-        <div class="mt-3 p-3 rounded-xl border-[1.5px] border-dashed border-slate-300 bg-white">
-            <label class="label !mb-1">＋ New driver (one day)</label>
+        <details class="mt-3 rounded-xl border-[1.5px] border-dashed border-slate-300 bg-white group">
+            <summary class="flex items-center justify-between gap-2 p-3 cursor-pointer select-none">
+                <span class="label !mb-0">＋ New driver (one day)</span>
+                <span class="flex items-center gap-2 shrink-0">
+                    <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide group-open:hidden">Show</span>
+                    <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide hidden group-open:inline-block">Hide</span>
+                </span>
+            </summary>
+            <div class="px-3 pb-3">
             <div class="flex gap-2">
                 <input type="text" name="new_driver_name" maxlength="200" class="input flex-[2]" placeholder="Naam likho — save pe jud jayega">
                 <input type="number" name="new_driver_count" min="1" step="1" class="input flex-1" placeholder="Trips">
             </div>
             <p class="text-[11px] text-slate-400 mt-1.5">Naya naam dalo — permanent list same rahegi, ye driver banega aur auto-select hoga.</p>
-        </div>
+            </div>
+        </details>
 
         {% for error in form.drivers.errors %}
             <div class="error">{{ error }}</div>
