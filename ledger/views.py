@@ -565,6 +565,9 @@ def customer_statement(request, customer_id):
 
         transaction['balance'] = running_balance
 
+    # Display newest-first (har row ka balance point-in-time sahi rehta hai).
+    transactions.reverse()
+
     total_sales = sum(
         transaction['debit']
         for transaction in transactions
@@ -820,6 +823,9 @@ def customer_statement_pdf(request, customer_id):
         )
 
         transaction['balance'] = running_balance
+
+    # Display newest-first (har row ka balance point-in-time sahi rehta hai).
+    transactions.reverse()
 
     total_sales = sum(
         transaction['debit']
@@ -1406,6 +1412,9 @@ def _statement_data_for_customer(customer, from_date, to_date, today_date):
     total_sales = sum((t['debit'] for t in transactions), Decimal('0'))
     total_received = sum((t['credit'] for t in transactions), Decimal('0'))
     closing_balance = opening_balance + total_sales - total_received
+
+    # Display newest-first (har row ka balance point-in-time sahi rehta hai).
+    transactions.reverse()
 
     return {
         'customer': customer,
