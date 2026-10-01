@@ -23,7 +23,7 @@
         ← Back
     </a>
     <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ customer.name }}</span>
-    <span class="shrink-0 text-xs font-bold text-brand-600">{{ transactions|length }}</span>
+    <span class="shrink-0 text-xs font-bold text-brand-600">{{ total_count }}</span>
 </div>
 {% endblock %}
 
@@ -238,7 +238,7 @@
                 {% endfor %}
             {% endif %}
         </div>
-        <span class="text-xs text-slate-500 ml-auto shrink-0">{{ transactions|length }} transaction{{ transactions|length|pluralize }}</span>
+        <span class="text-xs text-slate-500 ml-auto shrink-0">{{ total_count }} transaction{{ total_count|pluralize }}</span>
     </div>
 
     <div class="max-h-[65vh] md:max-h-[560px] overflow-y-auto overscroll-contain">
@@ -447,6 +447,20 @@
         </div>
 
     </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="flex items-center justify-between gap-2 px-4 md:px-5 py-3 border-t border-slate-100">
+        <span class="text-[11px] font-bold text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ total_count }} total</span>
+        <span class="flex gap-2">
+            {% if page_obj.has_previous %}
+            <a href="?{% if qs_preserved %}{{ qs_preserved }}&{% endif %}page={{ page_obj.previous_page_number }}" class="app-chip sm glass">← Prev</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?{% if qs_preserved %}{{ qs_preserved }}&{% endif %}page={{ page_obj.next_page_number }}" class="app-chip sm glass primary">Next →</a>
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}
 
 </div>
 

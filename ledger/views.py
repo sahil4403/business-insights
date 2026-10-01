@@ -618,10 +618,27 @@ def customer_statement(request, customer_id):
         f"Thank You"
     )
 
+    # Pagination: 20 recent-first rows per page (totals/balances computed
+    # above over the FULL filtered set, so they stay correct on every page).
+    from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+    _preserved = request.GET.copy()
+    _preserved.pop('page', None)
+    qs_preserved = _preserved.urlencode()
+    paginator = Paginator(transactions, 20)
+    try:
+        page_obj = paginator.page(request.GET.get('page') or 1)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages or 1)
+
     context = {
         'customer': customer,
         'back_url': get_safe_next(request, reverse('core:customer_report')),
-        'transactions': transactions,
+        'transactions': list(page_obj.object_list),
+        'page_obj': page_obj,
+        'total_count': paginator.count,
+        'qs_preserved': qs_preserved,
         'total_sales': total_sales,
         'total_received': total_received,
         'opening_balance': opening_balance,
