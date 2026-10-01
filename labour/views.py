@@ -2254,6 +2254,12 @@ def _labour_statement_for_period(labour, period_start, period_end):
         settlement_date__lte=period_end,
     ))
 
+    holidays = list(LabourHoliday.objects.filter(
+        labour=labour,
+        date__gte=period_start,
+        date__lte=period_end,
+    ).order_by('date', 'id'))
+
     # Rozi day-wise breakdown (Mistri statements show Full Day / Overtime /
     # Half Day with rate instead of a generic "Extra" line).
     rozi_by_date = {}
@@ -2285,6 +2291,8 @@ def _labour_statement_for_period(labour, period_start, period_end):
         'payment': payment,
         'final_amount': final_amount,
         'settlements': settlements,
+        'holidays': holidays,
+        'holiday_count': len(holidays),
         'driver_payments': list(driver_qs),
         'trip_groups': trip_groups,
     }
@@ -3219,7 +3227,7 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                     # Is labour ke share ka amount dikhao (group ka full amount NAHI).
                     n = g.labourers.count() or 1
                     share = g.total_amount / n
-                    grand = share + extra + advance
+                    grand = share + extra - advance
                     ws.cell(row=rr, column=1, value=d.strftime('%d-%b-%Y'))
                     ws.cell(row=rr, column=2, value=desc)
                     ws.cell(row=rr, column=3, value=g.trip_count)
@@ -3231,15 +3239,22 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                     ws.cell(row=rr, column=8).number_format = '#,##0'
                     trip_total += share
                     rr += 1
-                else:
+                elif kind == 'extra':
                     row = item
                     d = row['date']
-                    grand = row['extra_amount'] + row['advance_amount']
+                    grand = row['extra_amount'] - row['advance_amount']
                     ws.cell(row=rr, column=1, value=d.strftime('%d-%b-%Y'))
                     ws.cell(row=rr, column=2, value='Bhatta' if labour.category == 'HYVA_DRIVER' else 'Extra / Advance')
                     ws.cell(row=rr, column=6, value=float(row['extra_amount'])).number_format = '#,##0'
                     ws.cell(row=rr, column=7, value=float(row['advance_amount'])).number_format = '#,##0'
                     ws.cell(row=rr, column=8, value=float(grand)).font = _F(bold=True)
+                    ws.cell(row=rr, column=8).number_format = '#,##0'
+                    rr += 1
+                elif kind == 'holiday':
+                    hd = item
+                    ws.cell(row=rr, column=1, value=hd.date.strftime('%d-%b-%Y'))
+                    ws.cell(row=rr, column=2, value='Holiday' + (f' · {hd.note}' if hd.note else ''))
+                    ws.cell(row=rr, column=8, value=0).font = _F(bold=True)
                     ws.cell(row=rr, column=8).number_format = '#,##0'
                     rr += 1
 
@@ -3427,10 +3442,10 @@ def _trip_group_desc(labour, group):
 
 
 def _ordered_day_entries(st):
-    """Date-ascending interleaved entries: ('group', group) / ('extra', row).
+    """Date-ascending interleaved entries: ('group', group) / ('extra', row) / ('holiday', holiday).
 
     Trip rows aur extra/advance-only rows apni date-position par aate hain
-    (Bhatta rows sabse end me nahi).
+    (Bhatta rows sabse end me nahi). Holiday-only days bhi apni date par.
     """
     groups_by_date = defaultdict(list)
     for g in sorted(st.get('trip_groups') or [], key=lambda g: (g.date, g.id)):
@@ -3440,11 +3455,15 @@ def _ordered_day_entries(st):
         if (row['extra_amount'] or row['advance_amount'])
         and row['date'] not in groups_by_date
     }
+    holidays_by_date = defaultdict(list)
+    for h in st.get('holidays') or []:
+        holidays_by_date[h.date].append(h)
     entries = []
-    for d in sorted(set(groups_by_date) | set(extra_rows)):
+    for d in sorted(set(groups_by_date) | set(extra_rows) | set(holidays_by_date)):
         entries.extend(('group', g) for g in groups_by_date.get(d, []))
         if d in extra_rows:
             entries.append(('extra', extra_rows[d]))
+        entries.extend(('holiday', h) for h in holidays_by_date.get(d, []))
     return entries
 
 
@@ -3857,7 +3876,7 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                     # Is labour ke share ka amount dikhao (group ka full amount NAHI).
                     n = g.labourers.count() or 1
                     share = g.total_amount / n
-                    grand = share + extra + advance
+                    grand = share + extra - advance
                     entries_data.append([
                         Paragraph(d.strftime('%d-%b-%Y'), styles['body']),
                         Paragraph(desc, styles['body']),
@@ -3868,11 +3887,11 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                         Paragraph(f"₹{advance:,.2f}", styles['body_r']),
                         Paragraph(f"<b>₹{grand:,.2f}</b>", styles['body_r']),
                     ])
-                else:
+                elif kind == 'extra':
                     row = item
                     d = row['date']
                     desc = 'Bhatta' if labour.category == 'HYVA_DRIVER' else 'Extra'
-                    grand = row['extra_amount'] + row['advance_amount']
+                    grand = row['extra_amount'] - row['advance_amount']
                     entries_data.append([
                         Paragraph(d.strftime('%d-%b-%Y'), styles['body']),
                         Paragraph(desc, styles['body']),
@@ -3882,6 +3901,19 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                         Paragraph(f"₹{row['extra_amount']:,.2f}", styles['body_r']),
                         Paragraph(f"₹{row['advance_amount']:,.2f}", styles['body_r']),
                         Paragraph(f"<b>₹{grand:,.2f}</b>", styles['body_r']),
+                    ])
+                elif kind == 'holiday':
+                    hd = item
+                    desc = 'Holiday' + (f" · {hd.note}" if hd.note else '')
+                    entries_data.append([
+                        Paragraph(hd.date.strftime('%d-%b-%Y'), styles['body']),
+                        Paragraph(desc, styles['body']),
+                        Paragraph('', styles['body_r']),
+                        Paragraph('', styles['body_r']),
+                        Paragraph('', styles['body_r']),
+                        Paragraph('', styles['body_r']),
+                        Paragraph('', styles['body_r']),
+                        Paragraph('<b>₹0.00</b>', styles['body_r']),
                     ])
             entries_widths = [24 * mm, 28 * mm, 12 * mm, 22 * mm, 24 * mm, 24 * mm, 24 * mm, 24 * mm]
 

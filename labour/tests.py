@@ -884,3 +884,63 @@ class HyvaRoziButtonTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Add Rozi')
+
+
+class StatementDayTotalsTest(TestCase):
+    """Day Total = trips + extra - advance (kabhi + advance nahi)."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='stmt-daytotal-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.labour = Labour.objects.create(
+            name='Stmt JCB',
+            category='JCB_OPERATOR',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+        grp = LabourTripGroup.objects.create(
+            date=date(2026, 9, 10),
+            trip_count=2,
+            load_type='WHITE_HYVA',
+            fill_type='JCB',
+        )
+        grp.labourers.add(self.labour)
+        LabourExtraPayment.objects.create(
+            labour=self.labour, date=date(2026, 9, 10), amount=Decimal('100.00'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.labour, date=date(2026, 9, 10), amount=Decimal('150.00'),
+        )
+        from labour.models import LabourHoliday
+        LabourHoliday.objects.create(
+            labour=self.labour, date=date(2026, 9, 11), note='Diwali',
+        )
+
+    def _excel_rows(self):
+        from openpyxl import load_workbook
+        from io import BytesIO
+
+        response = self.client.get(
+            reverse('labour:statement_export', args=[self.labour.pk]),
+            {'from_date': '2026-09-01', 'to_date': '2026-09-14', 'export': 'excel'},
+        )
+        self.assertEqual(response.status_code, 200)
+        workbook = load_workbook(filename=BytesIO(response.content), read_only=True)
+        return [[cell.value for cell in row] for row in workbook.active.iter_rows()]
+
+    def test_day_total_subtracts_advance(self):
+        rows = self._excel_rows()
+        day = next(r for r in rows if r[0] == '10-Sep-2026')
+        # trips 400 + extra 100 - advance 150 = 350 (kabhi + advance nahi).
+        self.assertEqual(day[7], 350)
+
+    def test_holiday_row_present(self):
+        rows = self._excel_rows()
+        hol = next(r for r in rows if r[0] == '11-Sep-2026')
+        self.assertTrue(str(hol[1]).startswith('Holiday'))
+        self.assertEqual(hol[7], 0)
