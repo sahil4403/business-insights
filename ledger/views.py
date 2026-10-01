@@ -565,8 +565,18 @@ def customer_statement(request, customer_id):
 
         transaction['balance'] = running_balance
 
-    # Display newest-first (har row ka balance point-in-time sahi rehta hai).
-    transactions.reverse()
+    # Display order: newest-first default, oldest-first on ?order=old.
+    # (Balances computed chronologically above, so per-row values stay
+    # point-in-time correct in either order.)
+    order = (request.GET.get('order') or 'new').lower()
+    if order not in ('new', 'old'):
+        order = 'new'
+    if order == 'new':
+        transactions.reverse()
+    _ordered = request.GET.copy()
+    _ordered.pop('page', None)
+    _ordered.pop('order', None)
+    order_base_qs = _ordered.urlencode()
 
     total_sales = sum(
         transaction['debit']
@@ -639,6 +649,8 @@ def customer_statement(request, customer_id):
         'page_obj': page_obj,
         'total_count': paginator.count,
         'qs_preserved': qs_preserved,
+        'order': order,
+        'order_base_qs': order_base_qs,
         'total_sales': total_sales,
         'total_received': total_received,
         'opening_balance': opening_balance,

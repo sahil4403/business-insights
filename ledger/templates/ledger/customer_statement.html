@@ -239,6 +239,20 @@
             {% endif %}
         </div>
         <span class="text-xs text-slate-500 ml-auto shrink-0">{{ total_count }} transaction{{ total_count|pluralize }}</span>
+        <select id="txn-order" class="app-chip sm shrink-0" aria-label="Sort order">
+            <option value="new" {% if order != 'old' %}selected{% endif %}>↓ Newest first</option>
+            <option value="old" {% if order == 'old' %}selected{% endif %}>↑ Oldest first</option>
+        </select>
+        <script>
+        (function () {
+            var sel = document.getElementById('txn-order');
+            if (!sel) return;
+            sel.addEventListener('change', function () {
+                var base = '{{ order_base_qs|escapejs }}';
+                window.location.search = base ? (base + '&order=' + sel.value) : ('order=' + sel.value);
+            });
+        })();
+        </script>
     </div>
 
     <div class="max-h-[65vh] md:max-h-[560px] overflow-y-auto overscroll-contain">

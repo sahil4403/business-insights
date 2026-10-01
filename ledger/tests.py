@@ -60,3 +60,9 @@ class StatementPaginationTest(TestCase):
         p1 = self.client.get(self.url).content.decode()
         # 25 trips x Rs 100, no payments: newest row balance 2500.
         self.assertIn('₹2500.00', p1)
+
+    def test_oldest_first_order(self):
+        r = self.client.get(self.url, {'order': 'old'})
+        dates = [t['date'].isoformat() for t in r.context['transactions']]
+        self.assertTrue(all(a <= b for a, b in zip(dates, dates[1:])))
+        self.assertIn('value="old" selected', r.content.decode())
