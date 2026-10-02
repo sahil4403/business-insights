@@ -3546,7 +3546,7 @@ def _summary_flowables(st, labour, styles, font_name):
     summary_head = ParagraphStyle(
         'SumHead', parent=getSampleStyleSheet()['Normal'],
         fontName=font_name, fontSize=9.5, leading=12,
-        textColor=BRAND_DARK,
+        textColor=BRAND_DARK, alignment=1,
     )
     blocks = []
 
@@ -3573,7 +3573,7 @@ def _summary_flowables(st, labour, styles, font_name):
             Paragraph(f"<b>{len(st.get('holidays') or [])}</b>", styles['body_r']),
         ],
     ]
-    a_table = Table(a_data, repeatRows=1, colWidths=[80 * mm, 50 * mm])
+    a_table = Table(a_data, repeatRows=1, colWidths=[80 * mm, 50 * mm], hAlign='CENTER')
     apply_data_table_style(a_table, total_row=False)
     _compact(a_table)
     # Summaries hamesha naye page se — teeno tables same width/first-col.
@@ -3602,7 +3602,7 @@ def _summary_flowables(st, labour, styles, font_name):
             Paragraph(f"<b>Grand Total · {grand_trips} trips</b>", styles['body']),
             Paragraph(f"<b>₹{grand_amount:,.2f}</b>", styles['body_r']),
         ])
-        w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 50 * mm])
+        w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 50 * mm], hAlign='CENTER')
         apply_data_table_style(w_table, total_row=True)
         _compact(w_table)
         blocks.append(KeepTogether([
@@ -3639,7 +3639,7 @@ def _summary_flowables(st, labour, styles, font_name):
                 Paragraph(label, styles['body']),
                 Paragraph(f"₹{value:,.2f}", styles['body_r']),
             ])
-    p_table = Table(p_data, repeatRows=1, colWidths=[80 * mm, 50 * mm])
+    p_table = Table(p_data, repeatRows=1, colWidths=[80 * mm, 50 * mm], hAlign='CENTER')
     apply_data_table_style(p_table, total_row=False)
     _compact(p_table)
     # Payment table flows across pages (header repeats) taaki aadha page
