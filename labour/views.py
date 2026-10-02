@@ -3539,7 +3539,7 @@ def _summary_flowables(st, labour, styles, font_name):
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import mm
-    from reportlab.platypus import KeepTogether, Paragraph, Spacer, Table, TableStyle
+    from reportlab.platypus import KeepTogether, PageBreak, Paragraph, Spacer, Table, TableStyle
 
     from core.pdf_utils import apply_data_table_style, BRAND_DARK
 
@@ -3576,6 +3576,8 @@ def _summary_flowables(st, labour, styles, font_name):
     a_table = Table(a_data, repeatRows=1, colWidths=[80 * mm, 50 * mm])
     apply_data_table_style(a_table, total_row=False)
     _compact(a_table)
+    # Summaries hamesha naye page se — teeno tables same width/first-col.
+    blocks.append(PageBreak())
     blocks.append(KeepTogether([
         Spacer(1, 12),
         Paragraph('<b>ATTENDANCE SUMMARY</b>', summary_head),
@@ -3603,7 +3605,7 @@ def _summary_flowables(st, labour, styles, font_name):
             Paragraph(f"<b>{grand_trips}</b>", styles['body_r']),
             Paragraph(f"<b>₹{grand_amount:,.2f}</b>", styles['body_r']),
         ])
-        w_table = Table(w_data, repeatRows=1, colWidths=[64 * mm, 30 * mm, 36 * mm])
+        w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 20 * mm, 30 * mm])
         apply_data_table_style(w_table, total_row=True)
         _compact(w_table)
         blocks.append(KeepTogether([

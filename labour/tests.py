@@ -485,7 +485,7 @@ class HyvaStatementTest(TestCase):
         self.assertTrue(final_row[pay_col + 1].font.bold)
 
     def test_summary_sections_stay_together(self):
-        from reportlab.platypus import KeepTogether
+        from reportlab.platypus import KeepTogether, PageBreak
 
         from core.pdf_utils import get_pdf_styles, get_registered_font
         from .views import _summary_flowables
@@ -494,14 +494,16 @@ class HyvaStatementTest(TestCase):
         styles = get_pdf_styles(get_registered_font())
         blocks = _summary_flowables(st, self.driver, styles, get_registered_font())
 
-        # Order: Attendance, Work (KeepTogether), phir Payment flow
-        # (heading + table, header repeats) taaki aadha page khaali na rahe.
-        self.assertEqual(len(blocks), 5)
+        # Order: PageBreak, Attendance, Work (KeepTogether), phir Payment flow.
+        # Summaries hamesha naye page se shuru hoti hain.
+        from reportlab.platypus import Paragraph
+        self.assertEqual(len(blocks), 6)
+        self.assertIsInstance(blocks[0], PageBreak)
         self.assertTrue(
-            all(isinstance(block, KeepTogether) for block in blocks[:2])
+            all(isinstance(block, KeepTogether) for block in blocks[1:3])
         )
-        self.assertIn('ATTENDANCE', blocks[0]._content[1].text)
-        self.assertIn('WORK', blocks[1]._content[1].text)
+        self.assertIn('ATTENDANCE', blocks[1]._content[1].text)
+        self.assertIn('WORK', blocks[2]._content[1].text)
 
 
 class TractorStatementTest(TestCase):
