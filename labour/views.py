@@ -2078,6 +2078,21 @@ def driver_payment_edit(request, payment_id):
     })
 
 
+@login_required(login_url='/login/')
+@require_POST
+def driver_payment_delete(request, payment_id):
+    pay = get_object_or_404(LabourDriverPayment, pk=payment_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None and pay.labour_id != op_lab.id:
+        messages.info(request, 'Sirf apni entry edit kar sakte ho.')
+        return redirect(f'/labour/{op_lab.id}/')
+    labour_id = pay.labour.id
+    amt = pay.amount
+    pay.delete()
+    messages.success(request, f'Driver payment of ₹{amt} deleted.')
+    return redirect('labour:detail', labour_id=labour_id)
+
+
 # ----------------------------------------------------------------------------
 # Settlement
 # ----------------------------------------------------------------------------
