@@ -67,6 +67,7 @@
                         {{ form.period_end }}
                     </div>
                 </div>
+                <p class="text-[11px] text-slate-500 mt-1.5">Date badalte hi summary usi period ka reload hoga.</p>
             {% endif %}
             <div>
                 <label class="label">Note (optional)</label>
@@ -160,6 +161,19 @@
     obInput.addEventListener('input', update);
     cashInput.addEventListener('input', update);
     update();
+
+    // Period date badalte hi same page us period ke summary ke saath reload.
+    var psInput = document.getElementById('id_period_start');
+    var peInput = document.getElementById('id_period_end');
+    function reloadForPeriod() {
+        if (!psInput || !peInput || !psInput.value || !peInput.value) return;
+        var url = window.location.pathname
+            + '?period_start=' + encodeURIComponent(psInput.value)
+            + '&period_end=' + encodeURIComponent(peInput.value);
+        window.location.href = url;
+    }
+    if (psInput) psInput.addEventListener('change', reloadForPeriod);
+    if (peInput) peInput.addEventListener('change', reloadForPeriod);
 })();
 </script>
 {% endblock %}
