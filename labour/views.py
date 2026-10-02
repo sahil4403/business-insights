@@ -3554,8 +3554,33 @@ def _summary_flowables(st, labour, styles, font_name):
         table.setStyle(TableStyle([
             ('TOPPADDING', (0, 0), (-1, -1), 3),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
         ]))
         return table
+
+    a_data = [
+        [
+            Paragraph('<b>Description</b>', styles['header']),
+            Paragraph('<b>Days</b>', styles['header_r']),
+        ],
+        [
+            Paragraph('Present Days', styles['body']),
+            Paragraph(f"<b>{st.get('present_days', 0)}</b>", styles['body_r']),
+        ],
+        [
+            Paragraph('Holiday Days', styles['body']),
+            Paragraph(f"<b>{len(st.get('holidays') or [])}</b>", styles['body_r']),
+        ],
+    ]
+    a_table = Table(a_data, repeatRows=1, colWidths=[80 * mm, 50 * mm])
+    apply_data_table_style(a_table, total_row=False)
+    _compact(a_table)
+    blocks.append(KeepTogether([
+        Spacer(1, 12),
+        Paragraph('<b>ATTENDANCE SUMMARY</b>', summary_head),
+        a_table,
+    ]))
 
     # Tractor ke liye Work Summary nahi — sirf Payment Summary.
     if st.get('trip_groups') and labour.category != 'TRACTOR':
@@ -3578,11 +3603,11 @@ def _summary_flowables(st, labour, styles, font_name):
             Paragraph(f"<b>{grand_trips}</b>", styles['body_r']),
             Paragraph(f"<b>₹{grand_amount:,.2f}</b>", styles['body_r']),
         ])
-        w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 40 * mm, 56 * mm])
+        w_table = Table(w_data, repeatRows=1, colWidths=[64 * mm, 30 * mm, 36 * mm])
         apply_data_table_style(w_table, total_row=True)
         _compact(w_table)
         blocks.append(KeepTogether([
-            Spacer(1, 6),
+            Spacer(1, 12),
             Paragraph('<b>WORK SUMMARY</b>', summary_head),
             w_table,
         ]))
@@ -3615,40 +3640,14 @@ def _summary_flowables(st, labour, styles, font_name):
                 Paragraph(label, styles['body']),
                 Paragraph(f"₹{value:,.2f}", styles['body_r']),
             ])
-    p_table = Table(p_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
+    p_table = Table(p_data, repeatRows=1, colWidths=[80 * mm, 50 * mm])
     apply_data_table_style(p_table, total_row=False)
     _compact(p_table)
     # Payment table flows across pages (header repeats) taaki aadha page
     # khaali na rahe — chhote Work/Attendance boxes upar KeepTogether me.
-    blocks.append(Spacer(1, 6))
+    blocks.append(Spacer(1, 12))
     blocks.append(Paragraph('<b>PAYMENT SUMMARY</b>', summary_head))
     blocks.append(p_table)
-
-    a_data = [
-        [
-            Paragraph('<b>Description</b>', styles['header']),
-            Paragraph('<b>Days</b>', styles['header_r']),
-        ],
-        [
-            Paragraph('Present Days', styles['body']),
-            Paragraph(f"<b>{st.get('present_days', 0)}</b>", styles['body_r']),
-        ],
-        [
-            Paragraph('Holiday Days', styles['body']),
-            Paragraph(f"<b>{len(st.get('holidays') or [])}</b>", styles['body_r']),
-        ],
-    ]
-    a_table = Table(a_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
-    apply_data_table_style(a_table, total_row=False)
-    _compact(a_table)
-    att_block = KeepTogether([
-        Spacer(1, 6),
-        Paragraph('<b>ATTENDANCE SUMMARY</b>', summary_head),
-        a_table,
-    ])
-    # Payment part exactly [Spacer, heading, table] append hua hai uske upar —
-    # attendance usse pehle (work ke baad) aana chahiye.
-    blocks[-3:-3] = [att_block]
     return blocks
 
 

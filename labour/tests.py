@@ -494,12 +494,14 @@ class HyvaStatementTest(TestCase):
         styles = get_pdf_styles(get_registered_font())
         blocks = _summary_flowables(st, self.driver, styles, get_registered_font())
 
-        # Work + Attendance KeepTogether; Payment heading + table flow
-        # (header repeats) taaki aadha page khaali na rahe.
+        # Order: Attendance, Work (KeepTogether), phir Payment flow
+        # (heading + table, header repeats) taaki aadha page khaali na rahe.
         self.assertEqual(len(blocks), 5)
         self.assertTrue(
             all(isinstance(block, KeepTogether) for block in blocks[:2])
         )
+        self.assertIn('ATTENDANCE', blocks[0]._content[1].text)
+        self.assertIn('WORK', blocks[1]._content[1].text)
 
 
 class TractorStatementTest(TestCase):
