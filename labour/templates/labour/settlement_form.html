@@ -67,7 +67,18 @@
                         {{ form.period_end }}
                     </div>
                 </div>
-                <p class="text-[11px] text-slate-500 mt-1.5">Date badalte hi summary usi period ka reload hoga.</p>
+                <button type="button" id="period-apply" onclick="applySettlePeriod()" class="btn glass glass-tint w-full justify-center mt-2">Apply Period</button>
+                <script>
+                function applySettlePeriod() {
+                    var ps = document.getElementById('id_period_start');
+                    var pe = document.getElementById('id_period_end');
+                    if (!ps || !pe || !ps.value || !pe.value) return;
+                    window.location.href = window.location.pathname
+                        + '?period_start=' + encodeURIComponent(ps.value)
+                        + '&period_end=' + encodeURIComponent(pe.value);
+                }
+                </script>
+                <p class="text-[11px] text-slate-400 mt-1.5">Apply dabao — summary usi period ka reload hoga.</p>
             {% endif %}
             <div>
                 <label class="label">Note (optional)</label>
