@@ -3549,12 +3549,20 @@ def _summary_flowables(st, labour, styles, font_name):
         textColor=BRAND_DARK,
     )
     blocks = []
+
+    def _compact(table):
+        table.setStyle(TableStyle([
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        return table
+
     # Tractor ke liye Work Summary nahi — sirf Payment Summary.
     if st.get('trip_groups') and labour.category != 'TRACTOR':
         cat_rows, grand_trips, grand_amount = _category_summary(st)
         w_data = [
             [
-                Paragraph('<b>Category</b>', styles['header']),
+                Paragraph('<b>Description</b>', styles['header']),
                 Paragraph('<b>Total Trips</b>', styles['header_r']),
                 Paragraph('<b>Total Amount</b>', styles['header_r']),
             ]
@@ -3572,8 +3580,9 @@ def _summary_flowables(st, labour, styles, font_name):
         ])
         w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 40 * mm, 56 * mm])
         apply_data_table_style(w_table, total_row=True)
+        _compact(w_table)
         blocks.append(KeepTogether([
-            Spacer(1, 12),
+            Spacer(1, 6),
             Paragraph('<b>WORK SUMMARY</b>', summary_head),
             w_table,
         ]))
@@ -3608,11 +3617,12 @@ def _summary_flowables(st, labour, styles, font_name):
             ])
     p_table = Table(p_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
     apply_data_table_style(p_table, total_row=False)
-    blocks.append(KeepTogether([
-        Spacer(1, 12),
-        Paragraph('<b>PAYMENT SUMMARY</b>', summary_head),
-        p_table,
-    ]))
+    _compact(p_table)
+    # Payment table flows across pages (header repeats) taaki aadha page
+    # khaali na rahe — chhote Work/Attendance boxes upar KeepTogether me.
+    blocks.append(Spacer(1, 6))
+    blocks.append(Paragraph('<b>PAYMENT SUMMARY</b>', summary_head))
+    blocks.append(p_table)
 
     a_data = [
         [
@@ -3630,11 +3640,15 @@ def _summary_flowables(st, labour, styles, font_name):
     ]
     a_table = Table(a_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
     apply_data_table_style(a_table, total_row=False)
-    blocks.insert(-1, KeepTogether([
-        Spacer(1, 12),
+    _compact(a_table)
+    att_block = KeepTogether([
+        Spacer(1, 6),
         Paragraph('<b>ATTENDANCE SUMMARY</b>', summary_head),
         a_table,
-    ]))
+    ])
+    # Payment part exactly [Spacer, heading, table] append hua hai uske upar —
+    # attendance usse pehle (work ke baad) aana chahiye.
+    blocks[-3:-3] = [att_block]
     return blocks
 
 

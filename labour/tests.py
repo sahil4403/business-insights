@@ -494,10 +494,11 @@ class HyvaStatementTest(TestCase):
         styles = get_pdf_styles(get_registered_font())
         blocks = _summary_flowables(st, self.driver, styles, get_registered_font())
 
-        # Work + Attendance + Payment blocks, sab page-split se protected.
-        self.assertEqual(len(blocks), 3)
+        # Work + Attendance KeepTogether; Payment heading + table flow
+        # (header repeats) taaki aadha page khaali na rahe.
+        self.assertEqual(len(blocks), 5)
         self.assertTrue(
-            all(isinstance(block, KeepTogether) for block in blocks)
+            all(isinstance(block, KeepTogether) for block in blocks[:2])
         )
 
 
