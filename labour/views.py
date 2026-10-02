@@ -707,6 +707,7 @@ def labour_detail(request, labour_id):
         'payment': payment,
         'latest_settlement_id': latest_settlement.id if latest_settlement else None,
         'final_amount': final_amount,
+        'final_amount_abs': abs(final_amount),
         'settlements': settlements,
         'pending_settlements': pending_settlements,
         'driver_payments': driver_qs,

@@ -516,7 +516,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
             <div class="summary-card" style="background: #fef3c7; border-color: #fde68a;">
                 <div class="lbl" style="color: #92400e;">Final Amount</div>
                 {% if final_amount < 0 %}
-                    <div class="val num neg">Outstanding ₹{{ final_amount|stringformat:'r'|cut:'-'|floatformat:2 }}</div>
+                    <div class="val num neg">Outstanding ₹{{ final_amount_abs|floatformat:2 }}</div>
                     <div class="text-[10px] text-red-500 font-semibold mt-0.5">Labour still owes owner</div>
                 {% elif final_amount == 0 %}
                     <div class="val num pos">₹0.00</div>
