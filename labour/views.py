@@ -2248,6 +2248,11 @@ def _labour_statement_for_period(labour, period_start, period_end):
     payment = total_salary - advance_total
     final_amount = payment - ob.amount
 
+    # Present days = trip ya bhatta/extra wala din (advance-only din nahi).
+    present_days = len({
+        r['date'] for r in rows if r['trips_amount'] or r['extra_amount']
+    })
+
     settlements = list(LabourSettlement.objects.filter(
         labour=labour,
         settlement_date__gte=period_start,
@@ -2290,6 +2295,7 @@ def _labour_statement_for_period(labour, period_start, period_end):
         'total_salary': total_salary,
         'payment': payment,
         'final_amount': final_amount,
+        'present_days': present_days,
         'settlements': settlements,
         'holidays': holidays,
         'holiday_count': len(holidays),
@@ -3206,6 +3212,8 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                     ws.cell(row=head_row, column=1, value=hyva_rates).font = _F(bold=True)
                     head_row += 1
             headers = ['Date', 'Description', 'Trips', 'Rate', 'Trip ₹', 'Extra ₹', 'Advance ₹', 'Total ₹']
+            if labour.category in ('HYVA_DRIVER', 'JCB_OPERATOR'):
+                headers[5] = 'Bhatta ₹'
             for col, h in enumerate(headers, start=1):
                 cell = ws.cell(row=head_row, column=col, value=h)
                 cell.fill = header_fill
@@ -3244,7 +3252,7 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                     d = row['date']
                     grand = row['extra_amount'] - row['advance_amount']
                     ws.cell(row=rr, column=1, value=d.strftime('%d-%b-%Y'))
-                    ws.cell(row=rr, column=2, value='Bhatta' if labour.category == 'HYVA_DRIVER' else 'Extra / Advance')
+                    ws.cell(row=rr, column=2, value='Bhatta' if labour.category in ('HYVA_DRIVER', 'JCB_OPERATOR') else 'Extra / Advance')
                     ws.cell(row=rr, column=6, value=float(row['extra_amount'])).number_format = '#,##0'
                     ws.cell(row=rr, column=7, value=float(row['advance_amount'])).number_format = '#,##0'
                     ws.cell(row=rr, column=8, value=float(grand)).font = _F(bold=True)
@@ -3292,8 +3300,13 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                 cell.fill = header_fill
                 cell.font = header_font
             rr += 1
-            extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
+            extra_label = 'Total Bhatta' if labour.category in ('HYVA_DRIVER', 'JCB_OPERATOR') else 'Total Extra'
             for label, value in _payment_summary_rows(st, extra_label):
+                if label is None:
+                    ws.cell(row=rr, column=1).fill = total_fill
+                    ws.cell(row=rr, column=2).fill = total_fill
+                    rr += 1
+                    continue
                 if label is None:
                     rr += 1
                     continue
@@ -3564,7 +3577,7 @@ def _summary_flowables(st, labour, styles, font_name):
             w_table,
         ]))
 
-    extra_label = 'Total Bhatta' if labour.category == 'HYVA_DRIVER' else 'Total Extra'
+    extra_label = 'Total Bhatta' if labour.category in ('HYVA_DRIVER', 'JCB_OPERATOR') else 'Total Extra'
     p_data = [
         [
             Paragraph('<b>Description</b>', styles['header']),
@@ -3598,6 +3611,28 @@ def _summary_flowables(st, labour, styles, font_name):
         Spacer(1, 12),
         Paragraph('<b>PAYMENT SUMMARY</b>', summary_head),
         p_table,
+    ]))
+
+    a_data = [
+        [
+            Paragraph('<b>Description</b>', styles['header']),
+            Paragraph('<b>Days</b>', styles['header_r']),
+        ],
+        [
+            Paragraph('Present Days', styles['body']),
+            Paragraph(f"<b>{st.get('present_days', 0)}</b>", styles['body_r']),
+        ],
+        [
+            Paragraph('Holiday Days', styles['body']),
+            Paragraph(f"<b>{len(st.get('holidays') or [])}</b>", styles['body_r']),
+        ],
+    ]
+    a_table = Table(a_data, repeatRows=1, colWidths=[100 * mm, 76 * mm])
+    apply_data_table_style(a_table, total_row=False)
+    blocks.insert(-1, KeepTogether([
+        Spacer(1, 12),
+        Paragraph('<b>ATTENDANCE SUMMARY</b>', summary_head),
+        a_table,
     ]))
     return blocks
 
@@ -3846,7 +3881,7 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
         else:
             # Single table: trips + extra/bhatta + advance — date-ascending,
             # trip aur extra rows apni date-position par (interleaved).
-            extra_col_label = 'Bhatta (₹)' if labour.category == 'HYVA_DRIVER' else 'Extra (₹)'
+            extra_col_label = 'Bhatta (₹)' if labour.category in ('HYVA_DRIVER', 'JCB_OPERATOR') else 'Extra (₹)'
             extra_by_date = {row['date']: row['extra_amount'] for row in st['rows']}
             advance_by_date = {row['date']: row['advance_amount'] for row in st['rows']}
 
@@ -3890,7 +3925,7 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                 elif kind == 'extra':
                     row = item
                     d = row['date']
-                    desc = 'Bhatta' if labour.category == 'HYVA_DRIVER' else 'Extra'
+                    desc = 'Bhatta' if labour.category in ('HYVA_DRIVER', 'JCB_OPERATOR') else 'Extra'
                     grand = row['extra_amount'] - row['advance_amount']
                     entries_data.append([
                         Paragraph(d.strftime('%d-%b-%Y'), styles['body']),
@@ -3923,10 +3958,10 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
             colWidths=entries_widths,
         )
         apply_data_table_style(entries_table, total_row=True)
-        if not is_mistri and labour.category == 'HYVA_DRIVER':
-            hyva_pairs = _hyva_rate_pairs(st)
-            if hyva_pairs:
-                elements.append(_rate_info_box(hyva_pairs, font_name))
+        if not is_mistri and labour.category in ('HYVA_DRIVER', 'JCB_OPERATOR'):
+            rate_pairs = _hyva_rate_pairs(st)
+            if rate_pairs:
+                elements.append(_rate_info_box(rate_pairs, font_name))
                 elements.append(Spacer(1, 4))
         elements.append(entries_table)
 

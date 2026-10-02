@@ -494,8 +494,8 @@ class HyvaStatementTest(TestCase):
         styles = get_pdf_styles(get_registered_font())
         blocks = _summary_flowables(st, self.driver, styles, get_registered_font())
 
-        # Work + Payment blocks, dono page-split se protected.
-        self.assertEqual(len(blocks), 2)
+        # Work + Attendance + Payment blocks, sab page-split se protected.
+        self.assertEqual(len(blocks), 3)
         self.assertTrue(
             all(isinstance(block, KeepTogether) for block in blocks)
         )
@@ -944,3 +944,18 @@ class StatementDayTotalsTest(TestCase):
         hol = next(r for r in rows if r[0] == '11-Sep-2026')
         self.assertTrue(str(hol[1]).startswith('Holiday'))
         self.assertEqual(hol[7], 0)
+
+    def test_statement_present_and_holiday_counts(self):
+        from .views import _labour_statement_for_period
+
+        st = _labour_statement_for_period(
+            self.labour, date(2026, 9, 1), date(2026, 9, 14),
+        )
+        # 10-Sep trips+extra = present; 11-Sep sirf holiday = present nahi.
+        self.assertEqual(st['present_days'], 1)
+        self.assertEqual(st['holiday_count'], 1)
+
+    def test_excel_bhatta_header_for_jcb(self):
+        rows = self._excel_rows()
+        flat = [' | '.join(str(v) for v in r if v) for r in rows]
+        self.assertTrue(any('Bhatta' in line for line in flat))
