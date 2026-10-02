@@ -3590,22 +3590,19 @@ def _summary_flowables(st, labour, styles, font_name):
         w_data = [
             [
                 Paragraph('<b>Description</b>', styles['header']),
-                Paragraph('<b>Total Trips</b>', styles['header_r']),
-                Paragraph('<b>Total Amount</b>', styles['header_r']),
+                Paragraph('<b>Amount</b>', styles['header_r']),
             ]
         ]
         for label, trips, amount in cat_rows:
             w_data.append([
-                Paragraph(label, styles['body']),
-                Paragraph(str(trips), styles['body_r']),
+                Paragraph(f"{label} · {trips} trips", styles['body']),
                 Paragraph(f"₹{amount:,.2f}", styles['body_r']),
             ])
         w_data.append([
-            Paragraph('<b>Grand Total</b>', styles['body']),
-            Paragraph(f"<b>{grand_trips}</b>", styles['body_r']),
+            Paragraph(f"<b>Grand Total · {grand_trips} trips</b>", styles['body']),
             Paragraph(f"<b>₹{grand_amount:,.2f}</b>", styles['body_r']),
         ])
-        w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 20 * mm, 30 * mm])
+        w_table = Table(w_data, repeatRows=1, colWidths=[80 * mm, 50 * mm])
         apply_data_table_style(w_table, total_row=True)
         _compact(w_table)
         blocks.append(KeepTogether([
