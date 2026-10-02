@@ -355,9 +355,12 @@ class LabourSettlementForm(forms.ModelForm):
     def __init__(self, *args, labour=None, **kwargs):
         super().__init__(*args, **kwargs)
         today = timezone.localdate()
+        given = kwargs.get('initial') or {}
         self.fields['settlement_date'].initial = today
-        self.fields['period_start'].initial = today.replace(day=1)
-        self.fields['period_end'].initial = today
+        if 'period_start' not in given:
+            self.fields['period_start'].initial = today.replace(day=1)
+        if 'period_end' not in given:
+            self.fields['period_end'].initial = today
 
 
 class LabourRoziForm(forms.ModelForm):

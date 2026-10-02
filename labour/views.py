@@ -2135,6 +2135,16 @@ def settlement_create(request, labour_id):
     ob = _ensure_old_balance(labour)
     today = timezone.localdate()
 
+    # GET: compute live preview based on GET params or default period
+    period_start = _parse_date(
+        request.GET.get('period_start') or request.POST.get('period_start'),
+        today.replace(day=1),
+    )
+    period_end = _parse_date(
+        request.GET.get('period_end') or request.POST.get('period_end'),
+        today,
+    )
+
     if request.method == 'POST':
         form = LabourSettlementForm(request.POST)
         if form.is_valid():
@@ -2152,17 +2162,12 @@ def settlement_create(request, labour_id):
             )
             return redirect('labour:detail', labour_id=labour.id)
     else:
-        form = LabourSettlementForm()
-
-    # GET: compute live preview based on GET params or default period
-    period_start = _parse_date(
-        request.GET.get('period_start') or request.POST.get('period_start'),
-        today.replace(day=1),
-    )
-    period_end = _parse_date(
-        request.GET.get('period_end') or request.POST.get('period_end'),
-        today,
-    )
+        # Preview wala period hi form me bhi dikhe — warna Save purani
+        # default dates bhej deta hai aur galat hisaab save hota hai.
+        form = LabourSettlementForm(initial={
+            'period_start': period_start,
+            'period_end': period_end,
+        })
 
     # Recompute a preview object (not saved)
     preview = LabourSettlement(
