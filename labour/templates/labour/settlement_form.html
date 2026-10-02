@@ -72,7 +72,9 @@
                 function applySettlePeriod() {
                     var ps = document.getElementById('id_period_start');
                     var pe = document.getElementById('id_period_end');
-                    if (!ps || !pe || !ps.value || !pe.value) return;
+                    if (!ps || !pe) return;
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(ps.value)) return;
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(pe.value)) return;
                     window.location.href = window.location.pathname
                         + '?period_start=' + encodeURIComponent(ps.value)
                         + '&period_end=' + encodeURIComponent(pe.value);
@@ -174,14 +176,21 @@
     update();
 
     // Period date badalte hi same page us period ke summary ke saath reload.
-    var psInput = document.getElementById('id_period_start');
-    var peInput = document.getElementById('id_period_end');
+    // Poori YYYY-MM-DD date aane par hi (aadhi typing/mobile spinner par nahi).
+    var _periodTimer = null;
     function reloadForPeriod() {
-        if (!psInput || !peInput || !psInput.value || !peInput.value) return;
-        var url = window.location.pathname
-            + '?period_start=' + encodeURIComponent(psInput.value)
-            + '&period_end=' + encodeURIComponent(peInput.value);
-        window.location.href = url;
+        if (_periodTimer) clearTimeout(_periodTimer);
+        _periodTimer = setTimeout(function () {
+            var ps = document.getElementById('id_period_start');
+            var pe = document.getElementById('id_period_end');
+            if (!ps || !pe) return;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(ps.value)) return;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(pe.value)) return;
+            var url = window.location.pathname
+                + '?period_start=' + encodeURIComponent(ps.value)
+                + '&period_end=' + encodeURIComponent(pe.value);
+            window.location.href = url;
+        }, 600);
     }
     if (psInput) psInput.addEventListener('change', reloadForPeriod);
     if (peInput) peInput.addEventListener('change', reloadForPeriod);
