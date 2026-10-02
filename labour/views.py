@@ -2055,6 +2055,29 @@ def driver_payment_create(request, labour_id=None):
     })
 
 
+@login_required(login_url='/login/')
+def driver_payment_edit(request, payment_id):
+    pay = get_object_or_404(LabourDriverPayment, pk=payment_id)
+    op_lab = getattr(request, 'operator_labour', None) if getattr(request, 'is_operator', False) else None
+    if op_lab is not None and pay.labour_id != op_lab.id:
+        messages.info(request, 'Sirf apni entry edit kar sakte ho.')
+        return redirect(f'/labour/{op_lab.id}/')
+    if request.method == 'POST':
+        form = LabourDriverPaymentForm(request.POST, instance=pay, labour=pay.labour)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Driver payment updated to ₹{pay.amount}.')
+            return redirect('labour:detail', labour_id=pay.labour.id)
+    else:
+        form = LabourDriverPaymentForm(instance=pay, labour=pay.labour)
+
+    return render(request, 'labour/driver_payment_form.html', {
+        'form': form,
+        'page_title': 'Edit Driver Payment',
+        'labour': pay.labour,
+    })
+
+
 # ----------------------------------------------------------------------------
 # Settlement
 # ----------------------------------------------------------------------------

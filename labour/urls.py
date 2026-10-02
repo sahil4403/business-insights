@@ -41,6 +41,7 @@ urlpatterns = [
     path('advances/quick/', views.advance_multi, name='advance_multi'),
     path('driver-payment/add/', views.driver_payment_create, name='driver_add'),
     path('driver-payment/add/<int:labour_id>/', views.driver_payment_create, name='driver_add_for'),
+    path('driver-payment/edit/<int:payment_id>/', views.driver_payment_edit, name='driver_edit'),
     path('<int:labour_id>/settle/', views.settlement_create, name='settle'),
     path('settlements/<int:settlement_id>/edit/', views.settlement_edit, name='settlement_edit'),
     path('settlements/<int:settlement_id>/revert/', views.settlement_revert, name='settlement_revert'),
