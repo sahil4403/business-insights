@@ -91,7 +91,8 @@ class QueryCountPerfTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertLess(queries, 22, f'{queries} queries for 6 trip groups')
+        # +1 vs pehle: SESSION_SAVE_EVERY_REQUEST session write (sliding expiry).
+        self.assertLess(queries, 23, f'{queries} queries for 6 trip groups')
 
     def test_payment_report_query_count_stable(self):
         response, queries = self._get(reverse('core:payment_report'))
