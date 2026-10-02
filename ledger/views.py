@@ -853,8 +853,12 @@ def customer_statement_pdf(request, customer_id):
 
         transaction['balance'] = running_balance
 
-    # Display newest-first (har row ka balance point-in-time sahi rehta hai).
-    transactions.reverse()
+    # Page wali order follow karo (?order=old → oldest-first, default newest).
+    pdf_order = (request.GET.get('order') or 'new').lower()
+    if pdf_order not in ('new', 'old'):
+        pdf_order = 'new'
+    if pdf_order == 'new':
+        transactions.reverse()
 
     total_sales = sum(
         transaction['debit']

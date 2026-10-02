@@ -58,17 +58,17 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?preview=true&{{ qs_dates }}{% if selected_material_param %}&material={{ selected_material_param }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}" target="_blank" class="btn btn-ghost">
+            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?preview=true&{{ qs_dates }}{% if selected_material_param %}&material={{ selected_material_param }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}&order={{ order }}" target="_blank" class="btn btn-ghost">
                 Preview
             </a>
             <button type="button"
-               data-pdf="{% url 'ledger:customer_statement_pdf' customer.id %}?{{ qs_dates }}{% if selected_material_param %}&material={{ selected_material_param }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
+               data-pdf="{% url 'ledger:customer_statement_pdf' customer.id %}?{{ qs_dates }}{% if selected_material_param %}&material={{ selected_material_param }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}&order={{ order }}"
                onclick="return whatsappSharePdf(this.dataset.pdf, 'Statement_{{ customer.name|slugify }}_{{ customer.customer_code }}.pdf', '{{ whatsapp_text|escapejs }}');"
                class="btn btn-primary">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
                 Share
             </button>
-            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?{{ qs_dates }}{% if selected_material_param %}&material={{ selected_material_param }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}"
+            <a href="{% url 'ledger:customer_statement_pdf' customer.id %}?{{ qs_dates }}{% if selected_material_param %}&material={{ selected_material_param }}{% endif %}{% if selected_vtype_id %}&vehicle_type={{ selected_vtype_id }}{% endif %}&order={{ order }}"
                download="Statement_{{ customer.name|slugify }}_{{ customer.customer_code }}.pdf"
                onclick="return downloadStatementPdf(this.href, 'Statement_{{ customer.name|slugify }}_{{ customer.customer_code }}.pdf');" class="btn btn-primary">
                 Download PDF
