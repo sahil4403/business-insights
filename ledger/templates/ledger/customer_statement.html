@@ -563,7 +563,7 @@
 
             <div>
                 <label class="label" for="modal_opening_balance">Last Outstanding Amount / Opening Balance (₹) *</label>
-                <input type="number" step="0.01" min="0" name="opening_balance" id="modal_opening_balance" value="{{ customer.opening_balance }}" placeholder="Enter opening balance" required class="input">
+                <input type="number" step="0.01" name="opening_balance" id="modal_opening_balance" value="{{ customer.opening_balance }}" placeholder="e.g. 5000, ya -2000 (humko dena ho to)" required class="input">
                 <div class="text-xs text-slate-500 mt-1.5">
                     💡 This is the customer's starting balance. All future trips and payments will adjust from this amount. Admin only.
                 </div>

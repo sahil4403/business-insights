@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Kuch atak gaya (403){% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <div class="app-surface p-6 md:p-8 text-center" data-animate>
+        <div class="text-4xl mb-3">🔒</div>
+        <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 mb-2">Page submit nahi hua</h1>
+        <p class="text-sm text-slate-500 mb-4">
+            Browser ne login cookie bheji nahi — isliye server ne mana kar diya.
+            Darne ki baat nahi, 1 minute me thik hoga:
+        </p>
+        <div class="text-left text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 space-y-2">
+            <div><b>1.</b> Brave lion icon → is site ke liye <b>Cookies = Allow</b> karo.</div>
+            <div><b>2.</b> Private/Incognito window <b>mat</b> use karo.</div>
+            <div><b>3.</b> Neeche button se <b>dobara login</b> karo.</div>
+        </div>
+        <a href="/login/" class="btn btn-primary w-full justify-center">🔑 Dobara Login Karo</a>
+    </div>
+</div>
+{% endblock %}

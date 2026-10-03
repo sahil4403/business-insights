@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -66,3 +67,12 @@ class StatementPaginationTest(TestCase):
         dates = [t['date'].isoformat() for t in r.context['transactions']]
         self.assertTrue(all(a <= b for a, b in zip(dates, dates[1:])))
         self.assertIn('value="old" selected', r.content.decode())
+
+    def test_negative_opening_balance_allowed(self):
+        self.user.is_superuser = True
+        self.user.save()
+        url = reverse('ledger:update_customer_opening_balance', args=[self.customer.pk])
+        response = self.client.post(url, {'opening_balance': '-2000'})
+        self.assertEqual(response.status_code, 302)
+        self.customer.refresh_from_db()
+        self.assertEqual(self.customer.opening_balance, Decimal('-2000'))

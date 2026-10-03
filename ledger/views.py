@@ -1329,8 +1329,7 @@ def update_customer_opening_balance(request, customer_id):
         raw_balance = request.POST.get('opening_balance', '').strip()
         try:
             balance = Decimal(raw_balance)
-            if balance < 0:
-                balance = Decimal('0')
+            # Negative allowed: humko customer/vendor ko dena ho to.
             old_balance = customer.opening_balance
             customer.opening_balance = balance
             customer.save()

@@ -29,6 +29,17 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+# Safety net: apne saare hosts HTTPS origins me khud jud jayen taaki env
+# miss hone par bhi same-site POST (login waghera) 403 na ho.
+for _host in ALLOWED_HOSTS:
+    _host = (_host or '').strip().lstrip('.')
+    if _host and _host not in ('*', 'localhost', '127.0.0.1'):
+        _origin = f'https://{_host}'
+        if _origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_origin)
+
+# Cryptic Django 403 ki jagah Hinglish help page (cookie allow karo, dobara login).
+CSRF_FAILURE_VIEW = 'authentication.views.csrf_failure_hinglish'
 
 
 # Application definition

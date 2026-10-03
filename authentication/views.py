@@ -193,3 +193,14 @@ def staff_manage(request):
         'active_sessions': Session.objects.count(),
     }
     return render(request, 'authentication/staff_manage.html', context)
+
+
+def csrf_failure_hinglish(request, reason=''):
+    """Django ke cryptic 403 ki jagah samajh aane wala page.
+
+    Aksar wajah: browser ne cookie block ki (Brave Shields / private mode),
+    ya session expire. User ko exact step milta hai.
+    """
+    from django.shortcuts import render
+
+    return render(request, '403_csrf.html', {'reason': reason}, status=403)
