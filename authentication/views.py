@@ -4,11 +4,19 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.views import View
 
+import logging as _logging
+
 from core.rate_limit import (
     login_rate_limit_check,
     record_login_failure,
     clear_login_rate_limit,
 )
+
+_auth_log = _logging.getLogger('auth_audit')
+
+
+def _client_ip(request):
+    return request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR', '')
 
 
 class UserLoginView(LoginView):
@@ -28,20 +36,31 @@ class UserLoginView(LoginView):
 
         if request.user.is_authenticated:
             clear_login_rate_limit(request, 'user_login')
+            _auth_log.info(
+                'LOGIN OK | user=%s | ip=%s', request.user.username, _client_ip(request)
+            )
         else:
             record_login_failure(request, 'user_login')
+            _auth_log.info(
+                'LOGIN FAIL | username=%s | ip=%s',
+                (request.POST.get('username') or '').strip(), _client_ip(request),
+            )
 
         return response
 
 
 class UserLogoutView(View):
-    def get(self, request, *args, **kwargs):
+    def _out(self, request):
+        username = request.user.username if request.user.is_authenticated else '-'
+        _auth_log.info('LOGOUT | user=%s | ip=%s', username, _client_ip(request))
         logout(request)
         return redirect('/login/')
 
+    def get(self, request, *args, **kwargs):
+        return self._out(request)
+
     def post(self, request, *args, **kwargs):
-        logout(request)
-        return redirect('/login/')
+        return self._out(request)
 
 
 # ============================================================

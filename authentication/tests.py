@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 
 
@@ -10,3 +11,33 @@ class CsrfFailurePageTest(TestCase):
         response = client.post('/login/', {'username': 'x', 'password': 'y'})
         self.assertEqual(response.status_code, 403)
         self.assertContains(response, 'Dobara Login Karo', status_code=403)
+
+
+class PdfSessionFlowTest(TestCase):
+    """Login -> Labour -> Statement PDF -> back to app: session survives.
+
+    Manual logout still works.
+    """
+
+    def test_pdf_flow_keeps_session_and_logout_works(self):
+        from labour.models import Labour
+
+        get_user_model().objects.create_user(username='pdf-flow', password='pw-12345')
+        client = Client()
+        response = client.post('/login/', {'username': 'pdf-flow', 'password': 'pw-12345'})
+        self.assertEqual(response.status_code, 302)
+        key = client.session.session_key
+        self.assertIn('_auth_user_id', client.session)
+
+        labour = Labour.objects.create(name='PDF Flow Labour')
+        response = client.get(f'/labour/{labour.pk}/statement/', {'export': 'pdf'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(client.session.session_key, key)
+        self.assertIn('_auth_user_id', client.session)
+
+        response = client.get('/labour/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('_auth_user_id', client.session)
+
+        client.post('/login/logout/')
+        self.assertNotIn('_auth_user_id', client.session)
