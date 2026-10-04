@@ -80,6 +80,12 @@ class Labour(models.Model):
                   "no advances/payments are tracked for it."
     )
 
+    is_one_day = models.BooleanField(
+        default=False,
+        help_text="One-day driver via Trips quick-add. Hidden from Labour "
+                  "section (lists, counts, pickers); lives only in Trips."
+    )
+
     base_daily_rate = models.DecimalField(
         max_digits=10,
         decimal_places=2,

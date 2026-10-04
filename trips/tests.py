@@ -557,3 +557,15 @@ class QuickDriverCreateTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Trip.objects.filter(customer=self.customer).count(), 0)
+
+    def test_quick_driver_flagged_and_reusable(self):
+        self._base_post(new_driver_name='Flag Check', new_driver_count='2')
+        drv = Labour.objects.get(name='Flag Check')
+        self.assertTrue(drv.is_one_day)
+        # Dobara use: picker me dikhe (Trips), duplicate na bane.
+        before = Labour.objects.filter(name__iexact='flag check').count()
+        self._base_post(new_driver_name='flag CHECK')
+        self.assertEqual(Labour.objects.filter(name__iexact='flag check').count(), before)
+        from trips.forms import TripForm
+        form = TripForm()
+        self.assertIn(drv, form.fields['drivers'].queryset)

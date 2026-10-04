@@ -192,6 +192,11 @@ class TripForm(forms.ModelForm):
 
         # VENDOR_SUPPLY: vendor ka apna driver hamare DB mein nahi hota — customer ke
         # naam par "<Customer> Driver" Labour banaya jata hai. Use bhi allow karo.
+        # One-day drivers (Trips quick-add wale) bhi picker me dikho taaki
+        # dobara use ho sakein — Labour section se bahar, sirf Trips me.
+        _driver_q = _driver_q | Q(
+            is_one_day=True, is_active=True, status='ACTIVE'
+        )
         _cust_id = str(self.data.get('customer') or '').strip() if self.is_bound else ''
         _vendor_driver_name = str(self.data.get('vendor_driver_name') or '').strip() if self.is_bound else ''
         if (self.data.get('transaction_type') == 'VENDOR_SUPPLY' if self.is_bound else False) and _cust_id:

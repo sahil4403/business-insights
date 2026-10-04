@@ -536,6 +536,7 @@ def _ensure_quick_driver(data):
             'is_active': True,
             'status': 'ACTIVE',
             'is_driver': True,
+            'is_one_day': True,
         },
     )
     return driver_name, labour.pk, created

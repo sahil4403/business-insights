@@ -964,3 +964,48 @@ class StatementDayTotalsTest(TestCase):
         rows = self._excel_rows()
         flat = [' | '.join(str(v) for v in r if v) for r in rows]
         self.assertTrue(any('Bhatta' in line for line in flat))
+
+
+class OneDayDriverHiddenTest(TestCase):
+    """Quick-add one-day drivers Labour section me kahin nahi dikhte."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='oneday-hidden-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.temp = Labour.objects.create(
+            name='Temp One Day', category='HYVA_DRIVER',
+            is_active=True, status='ACTIVE', is_driver=True, is_one_day=True,
+        )
+
+    def test_hidden_from_list_category_and_forms(self):
+        from labour.forms import LabourTripGroupForm, LabourHyvaTripForm
+
+        self.assertNotContains(
+            self.client.get(reverse('labour:list')), 'Temp One Day'
+        )
+        self.assertNotContains(
+            self.client.get(
+                reverse('labour:category_detail', args=['HYVA_DRIVER'])
+            ),
+            'Temp One Day',
+        )
+        self.assertNotIn(
+            self.temp, LabourTripGroupForm(category='HYVA_DRIVER').fields['labourers'].queryset
+        )
+        self.assertNotIn(self.temp, LabourHyvaTripForm().fields['labourers'].queryset)
+
+
+class AdvanceMultiNoCategoryTest(TestCase):
+    def test_quick_advance_without_category(self):
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username='adv-multi-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(user)
+        response = self.client.get(reverse('labour:advance_multi'))
+        self.assertEqual(response.status_code, 200)
