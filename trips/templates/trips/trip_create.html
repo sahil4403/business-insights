@@ -818,6 +818,15 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             }
         });
+        var newDrvName = document.querySelector('input[name="new_driver_name"]');
+        var newDrvCount = document.querySelector('input[name="new_driver_count"]');
+        if (newDrvName && newDrvName.value.trim() && newDrvCount) {
+            var newVal = parseFloat(newDrvCount.value) || 0;
+            if (newVal > 0) {
+                totalDriverTrips += newVal;
+                hasDriverAllocation = true;
+            }
+        }
         if (hasDriverAllocation) {
             quantityInput.value = totalDriverTrips;
             quantityInput.style.backgroundColor = "#ecfdf5";
@@ -876,6 +885,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Initialize sum calculation on load
         syncDriverTripCountSum();
+        var ndn = document.querySelector('input[name="new_driver_name"]');
+        var ndc = document.querySelector('input[name="new_driver_count"]');
+        if (ndn) ndn.addEventListener('input', syncDriverTripCountSum);
+        if (ndc) ndc.addEventListener('input', syncDriverTripCountSum);
     }
 
     // SUBMIT VALIDATION — required fields, scroll + highlight
@@ -934,6 +947,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 const driverCheckboxes = document.querySelectorAll(".driver-checkbox");
                 let hasDriver = false;
                 driverCheckboxes.forEach(cb => { if (cb.checked) hasDriver = true; });
+                var newDrvForCheck = document.querySelector('input[name="new_driver_name"]');
+                if (!hasDriver && newDrvForCheck && newDrvForCheck.value.trim()) hasDriver = true;
                 if (!hasDriver) {
                     const target = driverCheckboxes[0] || document.querySelector("#driver_allocation_box");
                     if (target) {
