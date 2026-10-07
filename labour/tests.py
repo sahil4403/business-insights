@@ -97,6 +97,10 @@ class MistriStatementTest(TestCase):
         self.assertEqual(_labour_type_label(driver), 'Hyva Driver')
 
     def test_pdf_export_works_for_mistri(self):
+        from io import BytesIO
+
+        from pypdf import PdfReader
+
         response = self.client.get(
             reverse('labour:statement_export', args=[self.mistri.id]),
             {'from_date': '2026-09-01', 'to_date': '2026-09-14'},
@@ -104,6 +108,13 @@ class MistriStatementTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/pdf')
+        text = '\n'.join(
+            (page.extract_text() or '') for page in PdfReader(BytesIO(response.content)).pages
+        )
+        self.assertIn('LABOUR SUMMARY', text)
+        self.assertIn('Half Day', text)
+        self.assertIn('Full Day', text)
+        self.assertIn('One & Half Day', text)
 
     def test_excel_export_shows_day_type_rows_for_mistri(self):
         response = self.client.get(
@@ -519,6 +530,22 @@ class HyvaStatementTest(TestCase):
         self.assertIn('ATTENDANCE', blocks[1]._content[1].text)
         self.assertIn('WORK', blocks[2]._content[1].text)
 
+    def test_pdf_has_no_labour_summary_for_hyva(self):
+        from io import BytesIO
+
+        from pypdf import PdfReader
+
+        response = self.client.get(
+            reverse('labour:statement_export', args=[self.driver.pk]),
+            {'from_date': '2026-09-01', 'to_date': '2026-09-14'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        text = '\n'.join(
+            (page.extract_text() or '') for page in PdfReader(BytesIO(response.content)).pages
+        )
+        self.assertNotIn('LABOUR SUMMARY', text)
+
 
 class TractorStatementTest(TestCase):
     def setUp(self):
@@ -624,6 +651,23 @@ class TractorStatementTest(TestCase):
         )
         total_row = next(row for row in rows if 'TOTAL' in row)
         self.assertEqual(total_row[header.index('Total ₹')], 2500)
+
+    def test_pdf_has_no_labour_summary_for_tractor(self):
+        from io import BytesIO
+
+        from pypdf import PdfReader
+
+        response = self.client.get(
+            reverse('labour:statement_export', args=[self.labour.id]),
+            {'from_date': '2026-09-01', 'to_date': '2026-09-14'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        text = '\n'.join(
+            (page.extract_text() or '') for page in PdfReader(BytesIO(response.content)).pages
+        )
+        self.assertNotIn('LABOUR SUMMARY', text)
 
 
 class HyvaBhattaOnlyTest(TestCase):
@@ -978,6 +1022,22 @@ class StatementDayTotalsTest(TestCase):
         rows = self._excel_rows()
         flat = [' | '.join(str(v) for v in r if v) for r in rows]
         self.assertTrue(any('Bhatta' in line for line in flat))
+
+    def test_pdf_has_no_labour_summary_for_jcb(self):
+        from io import BytesIO
+
+        from pypdf import PdfReader
+
+        response = self.client.get(
+            reverse('labour:statement_export', args=[self.labour.pk]),
+            {'from_date': '2026-09-01', 'to_date': '2026-09-14'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        text = '\n'.join(
+            (page.extract_text() or '') for page in PdfReader(BytesIO(response.content)).pages
+        )
+        self.assertNotIn('LABOUR SUMMARY', text)
 
 
 class OneDayDriverHiddenTest(TestCase):

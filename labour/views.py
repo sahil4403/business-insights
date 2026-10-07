@@ -3632,33 +3632,6 @@ def _summary_flowables(st, labour, styles, font_name):
         a_table,
     ]))
 
-    # LABOUR SUMMARY — day-type counts (Mistri/Tractor ke rozi records par).
-    if labour.category in ('MISTRI', 'TRACTOR'):
-        _day_labels = [
-            ('Half Day', (st.get('rozi_day_counts') or {}).get('HALF', 0)),
-            ('Full Day', (st.get('rozi_day_counts') or {}).get('FULL', 0)),
-            ('One & Half Day', (st.get('rozi_day_counts') or {}).get('ONE_HALF', 0)),
-        ]
-        ls_data = [
-            [
-                Paragraph('<b>Work Type</b>', styles['header']),
-                Paragraph('<b>Total</b>', styles['header_r']),
-            ]
-        ]
-        for label, count in _day_labels:
-            ls_data.append([
-                Paragraph(label, styles['body']),
-                Paragraph(f'<b>{count} Days</b>', styles['body_r']),
-            ])
-        ls_table = Table(ls_data, repeatRows=1, colWidths=[80 * mm, 50 * mm], hAlign='CENTER')
-        apply_data_table_style(ls_table, total_row=False)
-        _compact(ls_table)
-        blocks.append(KeepTogether([
-            Spacer(1, 12),
-            Paragraph('<b>LABOUR SUMMARY</b>', summary_head),
-            ls_table,
-        ]))
-
     # Tractor ke liye Work Summary nahi — sirf Payment Summary.
     if st.get('trip_groups') and labour.category != 'TRACTOR':
         cat_rows, grand_trips, grand_amount = _category_summary(st)
@@ -4052,6 +4025,39 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                 elements.append(_rate_info_box(rate_pairs, font_name))
                 elements.append(Spacer(1, 4))
         elements.append(entries_table)
+
+        # ---------- 3a. LABOUR SUMMARY (Mistri ONLY — Tractor/Hyva/JCB me nahi) ----------
+        if is_mistri:
+            _ls_head = ParagraphStyle(
+                'SumHeadLS', parent=getSampleStyleSheet()['Normal'],
+                fontName=font_name, fontSize=9.5, leading=12,
+                textColor=BRAND_DARK, alignment=1,
+            )
+            _ls_counts = st.get('rozi_day_counts') or {}
+            _ls_data = [
+                [
+                    Paragraph('<b>Work Type</b>', styles['header']),
+                    Paragraph('<b>Total</b>', styles['header_r']),
+                ]
+            ]
+            for _lbl, _code in (('Half Day', 'HALF'), ('Full Day', 'FULL'), ('One & Half Day', 'ONE_HALF')):
+                _ls_data.append([
+                    Paragraph(_lbl, styles['body']),
+                    Paragraph(f"<b>{_ls_counts.get(_code, 0)} Days</b>", styles['body_r']),
+                ])
+            _ls_table = Table(_ls_data, repeatRows=1, colWidths=[80 * mm, 50 * mm], hAlign='CENTER')
+            apply_data_table_style(_ls_table, total_row=False)
+            _ls_table.setStyle(TableStyle([
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(KeepTogether([
+                Spacer(1, 12),
+                Paragraph('<b>LABOUR SUMMARY</b>', _ls_head),
+                _ls_table,
+            ]))
 
         # ---------- 3b. WORK + PAYMENT SUMMARY: stacked, split-proof ----------
         if not is_mistri:
