@@ -2313,6 +2313,8 @@ def _labour_statement_for_period(labour, period_start, period_end):
     # Half Day with rate instead of a generic "Extra" line).
     rozi_by_date = {}
     rozi_total = Decimal('0')
+    # Day-type wise rozi counts (Labour Summary box: Half/Full/One&Half)
+    rozi_day_counts = {'HALF': 0, 'FULL': 0, 'ONE_HALF': 0}
     for rz in LabourRozi.objects.filter(
         labour=labour, date__gte=period_start, date__lte=period_end
     ).order_by('-date', '-id'):
@@ -2325,6 +2327,8 @@ def _labour_statement_for_period(labour, period_start, period_end):
             'amount': rz.amount,
         })
         rozi_total += rz.amount
+        if rz.day_type in rozi_day_counts:
+            rozi_day_counts[rz.day_type] += 1
 
     return {
         'labour': labour,
@@ -2332,6 +2336,7 @@ def _labour_statement_for_period(labour, period_start, period_end):
         'rows': rows,
         'rozi_by_date': rozi_by_date,
         'rozi_total': rozi_total,
+        'rozi_day_counts': rozi_day_counts,
         'trip_total': trip_total,
         'extra_total': extra_total,
         'driver_total': driver_total,
@@ -3619,13 +3624,40 @@ def _summary_flowables(st, labour, styles, font_name):
     a_table = Table(a_data, repeatRows=1, colWidths=[80 * mm, 50 * mm], hAlign='CENTER')
     apply_data_table_style(a_table, total_row=False)
     _compact(a_table)
-    # Summaries hamesha naye page se — teeno tables same width/first-col.
+    # Summaries hamesha naye page se — tables same width/first-col.
     blocks.append(PageBreak())
     blocks.append(KeepTogether([
         Spacer(1, 12),
         Paragraph('<b>ATTENDANCE SUMMARY</b>', summary_head),
         a_table,
     ]))
+
+    # LABOUR SUMMARY — day-type counts (Mistri/Tractor ke rozi records par).
+    if labour.category in ('MISTRI', 'TRACTOR'):
+        _day_labels = [
+            ('Half Day', (st.get('rozi_day_counts') or {}).get('HALF', 0)),
+            ('Full Day', (st.get('rozi_day_counts') or {}).get('FULL', 0)),
+            ('One & Half Day', (st.get('rozi_day_counts') or {}).get('ONE_HALF', 0)),
+        ]
+        ls_data = [
+            [
+                Paragraph('<b>Work Type</b>', styles['header']),
+                Paragraph('<b>Total</b>', styles['header_r']),
+            ]
+        ]
+        for label, count in _day_labels:
+            ls_data.append([
+                Paragraph(label, styles['body']),
+                Paragraph(f'<b>{count} Days</b>', styles['body_r']),
+            ])
+        ls_table = Table(ls_data, repeatRows=1, colWidths=[80 * mm, 50 * mm], hAlign='CENTER')
+        apply_data_table_style(ls_table, total_row=False)
+        _compact(ls_table)
+        blocks.append(KeepTogether([
+            Spacer(1, 12),
+            Paragraph('<b>LABOUR SUMMARY</b>', summary_head),
+            ls_table,
+        ]))
 
     # Tractor ke liye Work Summary nahi — sirf Payment Summary.
     if st.get('trip_groups') and labour.category != 'TRACTOR':

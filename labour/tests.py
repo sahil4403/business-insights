@@ -62,6 +62,20 @@ class MistriStatementTest(TestCase):
 
         self.assertEqual(st['rozi_total'], Decimal('1200'))
 
+    def test_labour_summary_counts_present(self):
+        # Mistri rozi day-type counts statement me jane chahiye (PDF box).
+        st = _labour_statement_for_period(
+            self.mistri, date(2026, 9, 1), date(2026, 9, 14),
+        )
+        self.assertEqual(st['rozi_day_counts']['FULL'], 1)
+        self.assertEqual(st['rozi_day_counts']['HALF'], 1)
+        self.assertEqual(st['rozi_day_counts']['ONE_HALF'], 0)
+        response = self.client.get(
+            reverse('labour:statement_export', args=[self.mistri.id]),
+            {'from_date': '2026-09-01', 'to_date': '2026-09-14', 'export': 'pdf'},
+        )
+        self.assertEqual(response.status_code, 200)
+
     def test_type_label_shows_mistri_roles(self):
         self.assertEqual(_labour_type_label(self.mistri), 'Mistri')
         helper = Labour.objects.create(
