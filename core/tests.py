@@ -249,12 +249,12 @@ class QuickAddCustomerTest(TestCase):
 
 
 class DesktopNavNoOverflowTest(TestCase):
-    """Top navbar me horizontal scrollbar/overflow line nahi honi chahiye.
+    """Top navbar original design + bina visible scrollbar line ke.
 
-    Root cause tha: 10 nowrap links (~1060px) + brand header container
-    (max 1232px) me fit nahi hote the -> overflow-x-auto ka scrollbar
-    permanent grey line banke dikhta tha. Fix: <1400px icon-only links,
-    >=1400px full labels, container max-w-[1400px], koi overflow-x-auto nahi.
+    Original layout (full text labels, subtitle, max-w-7xl) intact rehta hai.
+    Grey line sirf isliye gayab hai kyunki links row par scoped .nav-scroll
+    hai (visible scrollbar bar hidden, scroll function barkarar) — page/body
+    overflow ko touch nahi karta. Koi icons-only mode nahi.
     """
 
     def setUp(self):
@@ -274,15 +274,24 @@ class DesktopNavNoOverflowTest(TestCase):
         end = html_text.find('</nav>', start)
         return html_text[start:end]
 
-    def test_desktop_nav_has_no_horizontal_scroller(self):
-        self.assertNotIn('overflow-x-auto', self._nav_html())
-
-    def test_all_nav_labels_present_and_responsive(self):
+    def test_desktop_nav_original_layout_intact(self):
         nav = self._nav_html()
+        # Original container/brand/subtitle wapas
+        self.assertIn('max-w-7xl mx-auto px-6 h-16', nav)
+        self.assertIn('Shri Raj Construction', nav)
+        self.assertIn('Building Materials Supplier', nav)
+        # Full text labels plain (koi icons-only hidden span nahi)
         for label in ('Home', 'Customers', 'Trips', 'Labour', 'Payments',
                       'Vehicles', 'Expenses', 'Admin', 'Staff', 'Logout'):
             with self.subTest(label=label):
                 self.assertIn(label, nav)
-        # Labels badi screen par text, chhoti par icon-only (title se usable)
-        self.assertIn('min-[1400px]:inline', nav)
-        self.assertIn('title="Home"', nav)
+        self.assertNotIn('min-[1400px]:inline', nav)
+
+    def test_nav_links_row_hides_scrollbar_bar_only(self):
+        nav = self._nav_html()
+        # Scroll function barkarar (narrow screens), sirf bar hidden
+        self.assertIn('overflow-x-auto nav-scroll', nav)
+        response = self.client.get(reverse('core:dashboard'))
+        page = response.content.decode()
+        self.assertIn('.nav-scroll::-webkit-scrollbar', page)
+        self.assertIn('scrollbar-width: none', page)

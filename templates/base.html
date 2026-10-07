@@ -132,6 +132,13 @@
         .lq-bar.app-hidden { transform: translateX(-50%) translateY(160%); opacity: 0; pointer-events: none; }
         .app-tabs { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.25rem 0.125rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .app-tabs::-webkit-scrollbar { display: none; }
+        /* Desktop top-nav links row: overflow-x:auto rehta hai (narrow screen
+           par touch/trackpad/keyboard scroll kaam kare), par uska visible
+           scrollbar bar (nav ke neeche grey line) nahi dikhta. Sirf isi
+           element par scoped hai — page/body overflow ko touch nahi karta,
+           layout pixel-identical rehta hai. Same pattern as .app-tabs. */
+        .nav-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+        .nav-scroll::-webkit-scrollbar { display: none; }
         .input { width: 100%; height: 3rem; padding: 0 0.75rem; border-radius: 0.75rem; border: 1px solid #cbd5e1; background: #fff; font-size: 0.875rem; color: #0f172a; transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; box-sizing: border-box; }
         .input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
         .input::placeholder { color: #94a3b8; }
@@ -356,33 +363,33 @@
 
     <!-- DESKTOP TOP NAV -->
     <nav class="lq-nav hidden md:block sticky top-0 z-30">
-        <div class="mx-auto w-full max-w-[1400px] px-4 min-[1400px]:px-6 h-16 flex items-center justify-between gap-4">
-            <a href="{% url 'core:dashboard' %}" class="flex shrink-0 items-center gap-3 no-underline group">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+            <a href="{% url 'core:dashboard' %}" class="flex items-center gap-3 no-underline group">
                 <span class="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white flex items-center justify-center shadow-md transition-transform group-hover:scale-105">
                     <svg class="icon-md" aria-hidden="true"><use href="#i-logo"/></svg>
                 </span>
                 <span class="leading-tight">
-                    <span class="block font-extrabold text-[15px] text-slate-900 tracking-tight whitespace-nowrap">Shri Raj Construction</span>
-                    <span class="hidden min-[1400px]:block text-[11px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">& Building Materials Supplier</span>
+                    <span class="block font-extrabold text-[15px] text-slate-900 tracking-tight">Shri Raj Construction</span>
+                    <span class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">& Building Materials Supplier</span>
                 </span>
             </a>
-            <div class="flex min-w-0 flex-1 items-center justify-end gap-1">
+            <div class="flex items-center gap-1 overflow-x-auto nav-scroll">
                 {% if not request.is_operator %}
-                <a href="{% url 'core:dashboard' %}" data-navlink title="Home" class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-home"/></svg><span class="hidden min-[1400px]:inline">Home</span></a>
-                <a href="{% url 'core:customer_report' %}" data-navlink title="Customers" class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg><span class="hidden min-[1400px]:inline">Customers</span></a>
-                <a href="{% url 'trips:list' %}" data-navlink title="Trips" class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-truck"/></svg><span class="hidden min-[1400px]:inline">Trips</span></a>
-                <a href="{% url 'labour:list' %}" data-navlink title="Labour" class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-hard-hat"/></svg><span class="hidden min-[1400px]:inline">Labour</span></a>
-                <a href="{% url 'core:payment_report' %}" data-navlink title="Payments" class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-wallet"/></svg><span class="hidden min-[1400px]:inline">Payments</span></a>
-                <a href="{% url 'core:vehicle_report' %}" data-navlink title="Vehicles" class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-truck"/></svg><span class="hidden min-[1400px]:inline">Vehicles</span></a>
-                <a href="{% url 'expenses:list' %}" data-navlink title="Expenses" class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-receipt"/></svg><span class="hidden min-[1400px]:inline">Expenses</span></a>
-                <a href="{% url 'core:admin_reauth' %}" target="_blank" title="Admin" class="nav-link text-slate-400"><svg class="icon-sm" aria-hidden="true"><use href="#i-settings"/></svg><span class="hidden min-[1400px]:inline">Admin</span></a>
+                <a href="{% url 'core:dashboard' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-home"/></svg>Home</a>
+                <a href="{% url 'core:customer_report' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Customers</a>
+                <a href="{% url 'trips:list' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-truck"/></svg>Trips</a>
+                <a href="{% url 'labour:list' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-hard-hat"/></svg>Labour</a>
+                <a href="{% url 'core:payment_report' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-wallet"/></svg>Payments</a>
+                <a href="{% url 'core:vehicle_report' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-truck"/></svg>Vehicles</a>
+                <a href="{% url 'expenses:list' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-receipt"/></svg>Expenses</a>
+                <a href="{% url 'core:admin_reauth' %}" target="_blank" class="nav-link text-slate-400"><svg class="icon-sm" aria-hidden="true"><use href="#i-settings"/></svg>Admin</a>
                 {% if user.is_superuser %}
-                <a href="/staff/" data-navlink title="Staff" class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg><span class="hidden min-[1400px]:inline">Staff</span></a>
+                <a href="/staff/" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Staff</a>
                 {% endif %}
                 {% else %}
-                <a href="{% url 'labour:detail' request.operator_labour.id %}" data-navlink title="My Page" class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-hard-hat"/></svg><span class="hidden min-[1400px]:inline">My Page</span></a>
+                <a href="{% url 'labour:detail' request.operator_labour.id %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-hard-hat"/></svg>My Page</a>
                 {% endif %}
-                <form method="post" action="{% url 'authentication:logout' %}" class="m-0 shrink-0 p-0">{% csrf_token %}<button type="submit" title="Logout" class="nav-link !text-red-600 hover:!bg-red-50 w-full text-left bg-transparent cursor-pointer" style="font:inherit;border:0;"><svg class="icon-sm" aria-hidden="true"><use href="#i-logout"/></svg><span class="hidden min-[1400px]:inline">Logout</span></button></form>
+                <form method="post" action="{% url 'authentication:logout' %}" class="m-0 p-0">{% csrf_token %}<button type="submit" class="nav-link !text-red-600 hover:!bg-red-50 w-full text-left bg-transparent cursor-pointer" style="font:inherit;border:0;"><svg class="icon-sm" aria-hidden="true"><use href="#i-logout"/></svg>Logout</button></form>
             </div>
         </div>
     </nav>
