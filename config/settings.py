@@ -226,6 +226,15 @@ LOGOUT_REDIRECT_URL = '/login/'
 # Sessions: expiry slides forward on every request (2 weeks from LAST
 # activity, not from login) taaki active users randomly logout na hon.
 SESSION_SAVE_EVERY_REQUEST = True
+# Neeche wali values Django defaults ke barabar hain — explicitly likhi hain
+# taaki "2 weeks sliding persistent login" ki guarantee code me dikhe aur
+# future Django default change se tootey nahi. Behavior change ZERO hai.
+# (Verified live: cookie me Expires + Max-Age=1209600 aata hai, DB expiry =
+# login + 14 days. PDF download session key rotate nahi karta.)
+SESSION_COOKIE_AGE = 1209600  # 2 weeks (seconds)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # browser/app background-close par cookie bana rahe
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 # ---- Media (vehicle document uploads) ----
 MEDIA_URL = '/media/'

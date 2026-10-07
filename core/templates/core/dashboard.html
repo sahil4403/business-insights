@@ -106,9 +106,9 @@
             <a href="{% url 'core:admin_reauth' %}" target="_blank" class="h-10 w-10 rounded-xl bg-slate-800 text-white flex items-center justify-center transition active:scale-[0.95]" title="Admin" aria-label="Admin">
                 <svg class="icon-md" aria-hidden="true"><use href="#i-settings"/></svg>
             </a>
-            <a href="{% url 'authentication:logout' %}" class="h-10 w-10 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center transition active:scale-[0.95]" title="Logout" aria-label="Logout">
+            <form method="post" action="{% url 'authentication:logout' %}" style="display:contents;">{% csrf_token %}<button type="submit" class="h-10 w-10 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center transition active:scale-[0.95]" style="cursor:pointer;" title="Logout" aria-label="Logout">
                 <svg class="icon-md" aria-hidden="true"><use href="#i-logout"/></svg>
-            </a>
+            </button></form>
         </div>
     </div>
 </div>

@@ -29,7 +29,7 @@
         </div>
         <div class="md:hidden flex items-center gap-2 shrink-0">
             <a href="{% url 'core:admin_reauth' %}" target="_blank" class="h-10 w-10 rounded-xl bg-slate-800 text-white flex items-center justify-center text-base transition active:scale-[0.98]" title="Admin">⚙️</a>
-            <a href="{% url 'authentication:logout' %}" class="h-10 w-10 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center text-base transition active:scale-[0.98]" title="Logout">🚪</a>
+            <form method="post" action="{% url 'authentication:logout' %}" style="display:contents;">{% csrf_token %}<button type="submit" class="h-10 w-10 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center text-base transition active:scale-[0.98]" style="cursor:pointer;" title="Logout">🚪</button></form>
         </div>
     </div>
 </div>

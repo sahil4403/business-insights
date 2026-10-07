@@ -57,7 +57,10 @@ class UserLogoutView(View):
         return redirect('/login/')
 
     def get(self, request, *args, **kwargs):
-        return self._out(request)
+        # GET kabhi logout NA kare — browser prefetch / prerender / link-preview
+        # / antivirus scanner GET hit karke session uda dete the ("automatic
+        # logout"). Sirf harmless redirect; session untouched rehta hai.
+        return redirect('/login/')
 
     def post(self, request, *args, **kwargs):
         return self._out(request)

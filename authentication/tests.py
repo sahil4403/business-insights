@@ -41,3 +41,39 @@ class PdfSessionFlowTest(TestCase):
 
         client.post('/login/logout/')
         self.assertNotIn('_auth_user_id', client.session)
+
+
+class LogoutPrefetchSafetyTest(TestCase):
+    """GET /login/logout/ kabhi session NA udaye.
+
+    Root cause of "PDF ke baad automatic logout": logout GET par tha aur har
+    page me GET logout link thi — browser prefetch / prerender / link-preview
+    / scanner GET hit karke session uda deta tha. Sirf POST logout karta hai.
+    """
+
+    def test_get_logout_keeps_session_post_logs_out(self):
+        from labour.models import Labour
+
+        get_user_model().objects.create_user(username='logout-safe', password='pw-12345')
+        client = Client()
+        client.post('/login/', {'username': 'logout-safe', 'password': 'pw-12345'})
+        self.assertIn('_auth_user_id', client.session)
+        key = client.session.session_key
+
+        # Prefetch simulation: GET logout -> session BACHNI chahiye
+        response = client.get('/login/logout/')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(client.session.session_key, key)
+        self.assertIn('_auth_user_id', client.session)
+
+        # Wapas app par — logged in rehna chahiye (PDF-return flow jaisa)
+        labour = Labour.objects.create(name='Logout Safe Labour')
+        response = client.get(f'/labour/{labour.pk}/statement/', {'export': 'pdf'})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('_auth_user_id', client.session)
+        response = client.get('/labour/')
+        self.assertEqual(response.status_code, 200)
+
+        # Asli logout (POST) ab bhi kaam karta hai
+        client.post('/login/logout/')
+        self.assertNotIn('_auth_user_id', client.session)
