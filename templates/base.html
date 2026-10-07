@@ -127,6 +127,9 @@
         .app-fab:active { transform: scale(0.95); }
         .app-fab:hover { box-shadow: 0 10px 30px rgba(22,102,90,0.45); }
         @media (min-width: 768px) { .app-fab { position: static; height: 2.75rem; box-shadow: none; } }
+        /* Bottom nav auto-hide while scrolling down (mobile), like the FAB */
+        .lq-bar { transition: transform 0.25s ease, opacity 0.25s ease; }
+        .lq-bar.app-hidden { transform: translateX(-50%) translateY(160%); opacity: 0; pointer-events: none; }
         .app-tabs { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.25rem 0.125rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .app-tabs::-webkit-scrollbar { display: none; }
         .input { width: 100%; height: 3rem; padding: 0 0.75rem; border-radius: 0.75rem; border: 1px solid #cbd5e1; background: #fff; font-size: 0.875rem; color: #0f172a; transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; box-sizing: border-box; }
@@ -702,6 +705,19 @@
                 if (y > fabLastY + 6 && y > 140) fabEl.classList.add('app-hidden');
                 else if (y < fabLastY - 6) fabEl.classList.remove('app-hidden');
                 fabLastY = y;
+            }, { passive: true });
+        }
+
+        // Bottom nav: auto-hide while scrolling down, return on scroll up (mobile)
+        const lqBar = document.querySelector('.lq-bar');
+        if (lqBar) {
+            let lqLastY = window.scrollY;
+            window.addEventListener('scroll', function () {
+                if (window.innerWidth >= 768) { lqBar.classList.remove('app-hidden'); return; }
+                const y = window.scrollY;
+                if (y > lqLastY + 6 && y > 140) lqBar.classList.add('app-hidden');
+                else if (y < lqLastY - 6) lqBar.classList.remove('app-hidden');
+                lqLastY = y;
             }, { passive: true });
         }
     </script>
