@@ -68,6 +68,20 @@ def _ensure_old_balance(labour):
     return ob
 
 
+def _safe_back_url(request, fallback):
+    """Detail/Form Back button ke liye category-aware parent URL.
+
+    `?from=` sirf tabhi maana jata hai jab wo isi app ka path ho
+    (/labour/ se start) — bahar ki URL (open redirect) ya doosre section
+    ki URL reject karke fallback milta hai. Fallback = relevant category
+    list, kabhi hardcoded main list nahi.
+    """
+    raw = (request.GET.get('from') or '').strip()
+    if raw.startswith('/labour/'):
+        return raw
+    return fallback
+
+
 def _per_labour_trip_share(labour, period_start, period_end):
     """
     Return total trip-share for this labour between period_start..period_end.
@@ -492,28 +506,41 @@ def labour_create(request):
         form = LabourForm(initial={'category': preselect} if preselect else None)
 
     button_label = dict(Labour.CATEGORY_CHOICES).get(preselect, 'Labour') if preselect else 'Labour'
+    if preselect:
+        create_back_url = reverse('labour:category_detail', args=[preselect])
+    else:
+        create_back_url = reverse('labour:list')
     return render(request, 'labour/labour_form.html', {
         'form': form,
         'page_title': f'Add {button_label}',
         'preselect_category': preselect,
+        'back_url': create_back_url,
     })
 
 
 @login_required(login_url='/login/')
 def labour_edit(request, labour_id):
     labour = get_object_or_404(Labour, pk=labour_id)
+    detail_url = reverse('labour:detail', args=[labour.id])
+    # Edit jis detail se khula, save ke baad wahi context barkarar rahe.
+    from_param = _safe_back_url(request, '')
     if request.method == 'POST':
         form = LabourForm(request.POST, instance=labour)
         if form.is_valid():
             obj = form.save()
             messages.success(request, f'Labour "{obj.name}" updated.')
-            return redirect('labour:detail', labour_id=obj.id)
+            redirect_url = reverse('labour:detail', args=[obj.id])
+            if from_param:
+                redirect_url = f'{redirect_url}?from={from_param}'
+            return redirect(redirect_url)
     else:
         form = LabourForm(instance=labour)
 
     return render(request, 'labour/labour_form.html', {
         'form': form,
         'page_title': f'Edit {labour.name}',
+        # Form ka Back/Cancel detail par (jahan se Edit khula), list par nahi.
+        'back_url': detail_url,
     })
 
 
@@ -718,6 +745,13 @@ def labour_detail(request, labour_id):
         'rows_by_month': rows_by_month,
         'holiday_count': holiday_count,
         'today': today,
+        # Category-aware Back: jis parent list se detail khula (?from=) wahi,
+        # warna apni category list. Kabhi hardcoded main list nahi.
+        'back_url': _safe_back_url(
+            request,
+            reverse('labour:category_detail', args=[labour.category]),
+        ),
+        'back_label': labour.get_category_display(),
     }
     return render(request, 'labour/labour_detail.html', context)
 

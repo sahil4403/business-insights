@@ -4,7 +4,7 @@
 
 {% block scrolltopbar %}
 <div class="flex items-center gap-2 px-3 py-2">
-    <a href="{% url 'labour:list' %}"
+    <a href="{{ back_url|default:'/labour/' }}"
        class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
     <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ page_title }}</span>
 </div>
@@ -53,7 +53,7 @@
 </div>
 
         <div class="flex gap-2 pt-2">
-            <a href="{% url 'labour:list' %}" class="btn btn-ghost flex-1">Cancel</a>
+            <a href="{{ back_url|default:'/labour/' }}" class="btn btn-ghost flex-1">Cancel</a>
             <button type="submit" class="btn btn-primary flex-1">Save</button>
         </div>
     </form>

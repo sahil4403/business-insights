@@ -1083,3 +1083,102 @@ class AdvanceMultiNoCategoryTest(TestCase):
         self.client.force_login(user)
         response = self.client.get(reverse('labour:advance_multi'))
         self.assertEqual(response.status_code, 200)
+
+
+class LabourBackNavigationTest(TestCase):
+    """Detail Back button category-aware hona chahiye — hardcoded /labour/ nahi.
+
+    Flows: Labour -> category list -> detail -> Back = SAME category list.
+    Direct URL (bina from) -> fallback apni category list (main list nahi).
+    Bahar ki URLs (open redirect) reject honi chahiye.
+    """
+
+    CATS = ['TRACTOR', 'HYVA_DRIVER', 'JCB_OPERATOR', 'MISTRI']
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='back-nav-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.labours = {}
+        for cat in self.CATS:
+            self.labours[cat] = Labour.objects.create(
+                name=f'Back Nav {cat}',
+                category=cat,
+                is_active=True,
+                status='ACTIVE',
+            )
+
+    def test_detail_falls_back_to_own_category_list(self):
+        for cat in self.CATS:
+            with self.subTest(category=cat):
+                response = self.client.get(
+                    reverse('labour:detail', args=[self.labours[cat].id])
+                )
+                self.assertEqual(response.status_code, 200)
+                expected = reverse('labour:category_detail', args=[cat])
+                self.assertEqual(response.context['back_url'], expected)
+                # Kabhi bhi main list fallback NA ho
+                self.assertNotEqual(
+                    response.context['back_url'], reverse('labour:list')
+                )
+
+    def test_detail_preserves_from_parent_list(self):
+        labour = self.labours['HYVA_DRIVER']
+        parent = reverse('labour:category_detail', args=['HYVA_DRIVER'])
+        response = self.client.get(
+            reverse('labour:detail', args=[labour.id]), {'from': parent}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['back_url'], parent)
+
+    def test_detail_rejects_outside_from(self):
+        labour = self.labours['TRACTOR']
+        for bad in ('https://evil.example/x', '//evil.example', '/staff/', '/login/', '/'):
+            with self.subTest(bad=bad):
+                response = self.client.get(
+                    reverse('labour:detail', args=[labour.id]), {'from': bad}
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    response.context['back_url'],
+                    reverse('labour:category_detail', args=['TRACTOR']),
+                )
+
+    def test_category_list_links_carry_from(self):
+        response = self.client.get(
+            reverse('labour:category_detail', args=['MISTRI'])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'from=')
+
+    def test_edit_keeps_back_context(self):
+        labour = self.labours['JCB_OPERATOR']
+        parent = reverse('labour:category_detail', args=['JCB_OPERATOR'])
+        # Edit page kholo (from ke saath) -> form ka Back detail par jaye
+        response = self.client.get(
+            reverse('labour:edit', args=[labour.id]), {'from': parent}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context['back_url'],
+            reverse('labour:detail', args=[labour.id]),
+        )
+        # Save ke baad detail par from barkarar rahe
+        response = self.client.post(
+            reverse('labour:edit', args=[labour.id]) + f'?from={parent}',
+            {
+                'name': labour.name,
+                'category': 'JCB_OPERATOR',
+                'sub_category': '',
+                'mobile': '',
+                'joining_date': '',
+                'status': 'ACTIVE',
+                'description': '',
+                'base_daily_rate': '500',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('from=', response['Location'])

@@ -103,7 +103,7 @@
 {% if cards %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5" data-animate>
     {% for c in cards %}
-        <a href="{% url 'labour:detail' c.obj.id %}" class="labour-card">
+        <a href="{% url 'labour:detail' c.obj.id %}?from={{ request.get_full_path|urlencode }}" class="labour-card">
             <div class="avatar">{{ c.obj.name|make_list|first|upper }}</div>
             <div class="min-w-0 flex-1">
                 <div class="name truncate">{{ c.obj.name }}</div>

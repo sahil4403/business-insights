@@ -89,7 +89,7 @@
 
 {% block scrolltopbar %}
 <div class="flex items-center gap-2 px-3 py-2">
-    <a href="{% url 'labour:list' %}"
+    <a href="{{ back_url }}"
        class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
     <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ labour.name }}</span>
     <a href="{% url 'labour:settle' labour.id %}" class="shrink-0 h-9 px-3 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center gap-1">Settle</a>
@@ -101,8 +101,8 @@
 <div class="mb-4 md:mb-6">
     <div class="flex items-center justify-between gap-3">
         <div class="min-w-0">
-            <a href="{% url 'labour:list' %}"
-               class="hidden md:inline-flex items-center gap-1.5 mb-2 text-[13px] font-bold text-slate-500 hover:text-brand-600 no-underline">← Back to Labour</a>
+            <a href="{{ back_url }}"
+               class="hidden md:inline-flex items-center gap-1.5 mb-2 text-[13px] font-bold text-slate-500 hover:text-brand-600 no-underline">← Back to {{ back_label }}</a>
             <h1 class="text-xl md:text-3xl font-extrabold text-slate-900 truncate">{{ labour.name }}</h1>
             <p class="text-sm text-slate-500 mt-1">
                 {% if labour.is_driver and not labour.is_vendor %}🚗 Driver &nbsp;·&nbsp;{% endif %}
@@ -111,7 +111,7 @@
         </div>
         <div class="flex items-center gap-2 shrink-0">
             {% if not request.is_operator %}
-            <a href="{% url 'labour:edit' labour.id %}"
+            <a href="{% url 'labour:edit' labour.id %}?from={{ back_url|urlencode }}"
                class="h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold inline-flex items-center gap-1 hover:bg-slate-50 no-underline">✏️ Edit</a>
             {% if not labour.user_id %}
             <form method="post" action="{% url 'labour:remove' labour.id %}"
