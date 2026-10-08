@@ -41,7 +41,12 @@
 }
 
 /* ---------- 1. BACKDROP + BODY ---------- */
-[data-theme="dark"] html::before {
+/* NOTE: data-theme html par khud lagta hai, isliye `html[data-theme=...]::before`
+   (descendant selector `[data-theme] html::before` root par kabhi match nahi hota). */
+html[data-theme="dark"] {
+    background: #0b141f !important;
+}
+html[data-theme="dark"]::before {
     background:
         radial-gradient(620px 420px at 88% -5%, rgba(42, 179, 155, .22), transparent 62%),
         radial-gradient(720px 520px at -12% 28%, rgba(96, 165, 250, .16), transparent 62%),
@@ -141,6 +146,16 @@
     color: var(--d-text) !important;
 }
 [data-theme="dark"] .export-sheet .export-opt { color: #dbe5ef !important; border-color: rgba(255, 255, 255, .06) !important; }
+/* Labour toolbar dropdown (own <style>: white menu + slate links) */
+[data-theme="dark"] .exp-dd-menu { background: rgba(17, 28, 44, .95) !important; border-color: var(--d-border) !important; }
+[data-theme="dark"] .exp-dd-menu a { color: #dbe5ef !important; }
+[data-theme="dark"] .exp-dd-menu a:hover { background: rgba(255, 255, 255, .07) !important; }
+[data-theme="dark"] .exp-dd-menu .exp-dd-title { color: var(--d-faint) !important; border-color: var(--d-border-soft) !important; }
+/* Category quick-switch tabs (own <style>: white pills + slate text) */
+[data-theme="dark"] .cat-tab { background: var(--d-surface-2) !important; border-color: var(--d-border) !important; color: #c3cfdb !important; }
+[data-theme="dark"] .cat-tab .cnt { background: rgba(255, 255, 255, .08) !important; color: #8fa0b3 !important; }
+[data-theme="dark"] .cat-tab.active { background: #16665a !important; border-color: #16665a !important; color: #fff !important; }
+[data-theme="dark"] .cat-tab.active .cnt { background: rgba(255, 255, 255, .2) !important; color: #fff !important; }
 [data-theme="dark"] .export-sheet .export-sheet-title { color: var(--d-faint) !important; }
 [data-theme="dark"] .export-sheet .export-grabber { background: rgba(255, 255, 255, .22) !important; }
 [data-theme="dark"] .lq-glass-btn {
@@ -160,7 +175,14 @@
 [data-theme="dark"] .summary-card .lbl { color: var(--d-faint) !important; }
 [data-theme="dark"] .summary-card .val { color: var(--d-text) !important; }
 [data-theme="dark"] .due-banner { background: linear-gradient(135deg, rgba(220, 38, 38, .16), rgba(220, 38, 38, .07)) !important; border-color: rgba(248, 113, 113, .3) !important; }
-[data-theme="dark"] .clear-banner { background: linear-gradient(135deg, rgba(5, 150, 105, .16), rgba(5, 150, 105, .07)) !important; border-color: rgba(52, 211, 153, .3) !important; }
+[data-theme="dark"] .due-icon { background: rgba(220, 38, 38, .25) !important; color: #fca5a5 !important; }
+[data-theme="dark"] .due-label { color: #f87171 !important; }
+[data-theme="dark"] .due-amount { color: #f87171 !important; }
+[data-theme="dark"] .due-updated { color: #b56a6a !important; }
+[data-theme="dark"] .clear-icon { background: rgba(5, 150, 105, .22) !important; color: #6ee7b7 !important; }
+[data-theme="dark"] .clear-label { color: #34d399 !important; }
+[data-theme="dark"] .clear-amount { color: #34d399 !important; }
+[data-theme="dark"] .clear-updated { color: #5f8a7d !important; }
 [data-theme="dark"] .labour-card,
 [data-theme="dark"] .cat-hero,
 [data-theme="dark"] .cat-tile {
@@ -171,6 +193,16 @@
 [data-theme="dark"] .labour-card .name,
 [data-theme="dark"] .cat-hero h1 { color: var(--d-text) !important; }
 [data-theme="dark"] .labour-card .meta { color: var(--d-muted) !important; }
+/* Per-page hardcoded #0f172a text (light-only <style> blocks) */
+[data-theme="dark"] .stat-card .vl,
+[data-theme="dark"] .rv,
+[data-theme="dark"] .roz-row .pname,
+[data-theme="dark"] .adv-row .pname,
+[data-theme="dark"] .calc-card .val,
+[data-theme="dark"] .cat-tile .tile-name,
+[data-theme="dark"] .labour-pill .pname,
+[data-theme="dark"] .customer-search-input,
+[data-theme="dark"] .date-input { color: var(--d-text) !important; }
 [data-theme="dark"] .date-cell { background: rgba(255, 255, 255, .05) !important; border-color: var(--d-border) !important; }
 
 /* ---------- 8. TAILWIND UTILITY REMAP (dark scope only) ---------- */
@@ -199,9 +231,14 @@
 [data-theme="dark"] .text-amber-600, [data-theme="dark"] .text-amber-700, [data-theme="dark"] .text-yellow-700 { color: #fbbf24 !important; }
 [data-theme="dark"] .text-orange-700, [data-theme="dark"] .text-orange-800 { color: #fdba74 !important; }
 [data-theme="dark"] .text-sky-700, [data-theme="dark"] .text-blue-700 { color: #7dd3fc !important; }
-[data-theme="dark"] .text-brand-600, [data-theme="dark"] .text-brand-700 { color: #5eead4 !important; }
+[data-theme="dark"] .text-brand-600, [data-theme="dark"] .text-brand-700, [data-theme="dark"] .text-brand-500 { color: #5eead4 !important; }
 [data-theme="dark"] .border-red-200 { border-color: rgba(248, 113, 113, .3) !important; }
 [data-theme="dark"] .border-brand-100, [data-theme="dark"] .border-brand-200 { border-color: rgba(94, 234, 212, .25) !important; }
+/* Arbitrary-hex utilities used in templates (closed set, grep-verified) */
+[data-theme="dark"] .bg-\[\#f8fafc\], [data-theme="dark"] .bg-\[\#f5f7fa\] { background-color: var(--d-surface-solid) !important; }
+[data-theme="dark"] .bg-\[\#eef7f5\] { background-color: rgba(22, 102, 90, .22) !important; }
+[data-theme="dark"] .text-\[\#115248\] { color: #5eead4 !important; }
+[data-theme="dark"] .border-\[\#eef1f6\], [data-theme="dark"] .border-\[\#f1f5f9\], [data-theme="dark"] .divide-\[\#f1f5f9\] > :not([hidden]) ~ :not([hidden]) { border-color: var(--d-border) !important; }
 /* hovers keep working on dark */
 [data-theme="dark"] .hover\:bg-slate-50:hover { background-color: rgba(255, 255, 255, .05) !important; }
 [data-theme="dark"] .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, .07) !important; }
