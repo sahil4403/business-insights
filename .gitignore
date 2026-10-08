@@ -25,5 +25,11 @@ check2.pdf
 staticfiles/
 Cd_ED/
 
+# User uploads (vehicle docs contain PII — never commit)
+media/
+
+# IDE
+.idea/
+
 # Node
 node_modules/

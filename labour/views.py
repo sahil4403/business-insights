@@ -3073,6 +3073,7 @@ def _resolve_period(request, today):
     return period_start, period_end
 
 
+@login_required(login_url='/login/')
 def daily_activity(request):
     """Daily Activity page + Excel/CSV exports (month-wise or date range)."""
     today = timezone.localdate()

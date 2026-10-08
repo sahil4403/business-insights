@@ -3,7 +3,7 @@ from decimal import Decimal
 from io import BytesIO
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 from openpyxl import load_workbook
@@ -1182,3 +1182,22 @@ class LabourBackNavigationTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertIn('from=', response['Location'])
+
+
+class DailyActivityAuthTest(TestCase):
+    """daily_activity me login_required hona chahiye (anon 500 deta tha)."""
+
+    def test_anonymous_redirects_to_login(self):
+        response = Client().get(reverse('labour:daily_activity'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login/', response['Location'])
+
+    def test_authenticated_ok(self):
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username='daily-auth-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(user)
+        response = self.client.get(reverse('labour:daily_activity'))
+        self.assertEqual(response.status_code, 200)

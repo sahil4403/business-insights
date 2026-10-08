@@ -1,6 +1,7 @@
 /* ============================================================
-   SIMPLE THEME — glass effects removed for smooth performance
-   All backdrop-filter blur removed, solid backgrounds only.
+   LIQUID GLASS THEME — frosted translucent panels (backdrop-filter
+   blur is used throughout; keep the blur budget in mind on low-end
+   phones when adding new glass surfaces).
    ============================================================ */
 
 /* ---------- 1. AMBIENT BACKGROUND ---------- */
