@@ -78,6 +78,27 @@ html[data-theme="dark"]::before {
     border: 1px solid rgba(255, 255, 255, .14) !important;
     color: #fff !important;
 }
+[data-theme="dark"] .card { background: var(--d-surface) !important; border-color: var(--d-border) !important; box-shadow: var(--d-shadow) !important; }
+/* BUG1: labour picker pills + load-line rows (own <style>: light bg) */
+[data-theme="dark"] .labour-pill { background: rgba(255, 255, 255, .05) !important; border-color: var(--d-border) !important; }
+[data-theme="dark"] .labour-pill:hover { background: rgba(255, 255, 255, .09) !important; border-color: rgba(255, 255, 255, .2) !important; }
+[data-theme="dark"] .labour-pill.checked { background: rgba(22, 102, 90, .4) !important; border-color: #2ab39b !important; }
+[data-theme="dark"] .labour-pill .pname { color: var(--d-text) !important; }
+[data-theme="dark"] .trip-row { background: rgba(255, 255, 255, .04) !important; border-color: var(--d-border) !important; }
+[data-theme="dark"] .trip-row .load-sel,
+[data-theme="dark"] .trip-row .trip-count { background: var(--d-input) !important; border-color: rgba(255, 255, 255, .14) !important; color: var(--d-text) !important; }
+/* Trip create/edit form fields (own <style>: white bg + dark text) */
+[data-theme="dark"] #trip-form input:not([type="checkbox"]):not([type="hidden"]),
+[data-theme="dark"] #trip-form select,
+[data-theme="dark"] #trip-form textarea,
+[data-theme="dark"] .customer-search-input,
+[data-theme="dark"] .driver-count-input,
+[data-theme="dark"] .date-input { background: var(--d-input) !important; border-color: rgba(255, 255, 255, .14) !important; color: var(--d-text) !important; }
+/* BUG2/4: sticky white bars (filter footer, bulk-save footers) — opaque, sticky needs solid */
+[data-theme="dark"] #filter-details[open] .filter-actions,
+[data-theme="dark"] .sticky-save { background: #131f30 !important; border-top-color: var(--d-border) !important; box-shadow: 0 -8px 20px -8px rgba(0, 0, 0, .6) !important; }
+/* BUG3: mint icon circles/badges -> deep teal glass (light text) */
+[data-theme="dark"] .bg-\[\#d5ebe6\] { background-color: rgba(22, 102, 90, .4) !important; }
 
 /* ---------- 3. NAV / TABBAR / BARS ---------- */
 [data-theme="dark"] .lq-nav {
