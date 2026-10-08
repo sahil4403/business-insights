@@ -122,7 +122,9 @@
 <div class="py-14 text-center rounded-2xl" style="background:rgba(255,255,255,.62);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border:1px solid rgba(255,255,255,.78);box-shadow:0 8px 26px -14px rgba(15,23,42,.28),inset 0 1px 0 rgba(255,255,255,.9);">
     <div class="text-4xl mb-3">👷</div>
     <p class="text-slate-500 text-sm">No labour in {{ category_label }} yet.</p>
+    {% if not request.is_viewer %}
     <a href="{% url 'labour:create' %}" class="btn btn-primary mt-4 inline-flex">＋ Add {{ category_label }}</a>
+    {% endif %}
 </div>
 {% endif %}
 

@@ -126,6 +126,7 @@
             </form>
             {% endif %}
             {% endif %}
+            {% if not request.is_viewer %}
             <details class="relative">
                 <summary class="h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold inline-flex items-center gap-1 hover:bg-slate-50 cursor-pointer list-none [&::-webkit-details-marker]:hidden">🏷️ <span class="hidden sm:inline">Outstanding</span></summary>
                 <div class="absolute right-0 top-11 z-40 w-64 max-w-[calc(100vw-1.5rem)] app-surface rounded-xl border border-slate-200 shadow-lg p-3">
@@ -140,6 +141,7 @@
                     </form>
                 </div>
             </details>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -594,7 +596,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                     <div class="text-[11px] text-slate-400">New old balance: <span class="num font-bold">₹{{ s.final_old_balance|floatformat:0 }}</span></div>
                 </div>
             </div>
-            {% if s.id == latest_settlement_id and not request.is_operator %}
+            {% if s.id == latest_settlement_id and not request.is_operator and not request.is_viewer %}
                 <div class="mt-2 flex gap-2">
                     <a href="{% url 'labour:settlement_edit' s.id %}" class="qa glass flex-1 justify-center">✏️ Edit</a>
                     <form method="post" action="{% url 'labour:settlement_revert' s.id %}" class="flex-1"

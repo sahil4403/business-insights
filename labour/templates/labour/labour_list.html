@@ -179,7 +179,7 @@
             <div class="tile-name">{{ cat.label }}</div>
             <div class="tile-count">{{ cat.count }} labour{% if cat.count != 1 %}s{% endif %}</div>
         </div>
-        {% if cat.add_url %}
+        {% if cat.add_url and not request.is_viewer %}
         <div class="tile-add-wrap">
             <a href="{% url cat.add_url %}{% if cat.add_query %}?{{ cat.add_query }}{% endif %}" class="tile-add{% if cat.code == 'TRACTOR' or cat.code == 'HYVA_DRIVER' or cat.code == 'JCB_OPERATOR' or cat.code == 'MISTRI' %} is-trip{% endif %}">
                 ＋ {{ cat.add_label }}

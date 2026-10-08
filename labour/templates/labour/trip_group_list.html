@@ -14,10 +14,12 @@
 <div class="max-w-2xl mx-auto">
     <div class="flex items-center justify-between gap-3 mb-4" data-animate>
         <div class="min-w-0">
-            <h1 class="text-xl md:text-3xl font-extrabold text-slate-900">{{ page_title }}</h1>
-            <p class="text-sm text-slate-500 mt-1">Tap Edit to fix a wrong entry — sabke hisse apne aap recalculate honge</p>
+        <h1 class="text-xl md:text-3xl font-extrabold text-slate-900">{{ page_title }}</h1>
+        <p class="text-sm text-slate-500 mt-1">Tap Edit to fix a wrong entry — sabke hisse apne aap recalculate honge</p>
         </div>
+        {% if not request.is_viewer %}
         <a href="{% url add_url %}" class="btn btn-primary shrink-0">{{ add_label }}</a>
+        {% endif %}
     </div>
     {% if years %}
         <div class="flex flex-col gap-8" data-reveal>
@@ -127,6 +129,7 @@
                                                     </div>
 
                                                     <!-- Actions (Visible on hover on Desktop, always on mobile) -->
+                                                    {% if not request.is_viewer %}
                                                     <div class="flex items-center gap-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                                         {% if r.group.load_type %}
                                                         {% if r.group.fill_type == 'JCB' %}
@@ -149,6 +152,7 @@
                                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Del
                                                             </button>
                                                         </form>
+                                                    {% endif %}
                                                     </div>
                                                 </div>
                                             </div>
@@ -170,7 +174,9 @@
         <div class="app-surface p-10 text-center">
             <div class="text-4xl mb-3">{% if category == 'HYVA_DRIVER' %}🚛{% elif category == 'JCB_OPERATOR' %}🏗️{% else %}🚜{% endif %}</div>
             <p class="text-slate-500 text-sm">No trip entries yet.</p>
+            {% if not request.is_viewer %}
             <a href="{% url add_url %}" class="btn btn-primary mt-4 inline-flex">{{ add_label }}</a>
+            {% endif %}
         </div>
     {% endif %}
 </div>

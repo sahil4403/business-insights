@@ -29,9 +29,11 @@
     </div>
 
     <!-- MOBILE FAB -->
+    {% if not request.is_viewer %}
     <a href="{% url 'expenses:create' %}" class="app-fab md:hidden">
         <span>＋</span> Add Expense
     </a>
+    {% endif %}
 
     <!-- FILTERS -->
     <details id="filter-details" class="app-surface mb-4 md:mb-6 overflow-hidden">

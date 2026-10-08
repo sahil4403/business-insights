@@ -138,19 +138,44 @@ class ViewerRoleTest(TestCase):
         )
 
     def test_viewer_writes_blocked_403(self):
+        lid = self.labour.pk
         post_urls = [
             '/trips/add/', '/trips/create/',
+            '/trips/999/edit/', '/trips/999/delete/',
+            '/trips/999/payment/add/', '/trips/999/link-customer/',
+            '/trips/payment/999/edit/', '/trips/payment/999/delete/',
             '/reports/payments/add/',
             '/customers/quick-add/',
-            '/labour/add/', '/labour/trips/add/',
-            '/labour/hyva/trips/add/', '/labour/jcb/trips/add/',
-            '/labour/extras/add/', '/labour/advances/add/',
-            '/labour/rozi/add/', '/labour/rozi/quick/',
-            '/labour/advances/quick/',
+            '/labour/add/', f'/labour/{lid}/edit/',
+            f'/labour/{lid}/remove/',
+            '/labour/trips/add/', '/labour/trips/edit/999/',
+            '/labour/trips/delete/999/',
+            '/labour/hyva/trips/add/', '/labour/hyva/trips/edit/999/',
+            '/labour/jcb/trips/add/', '/labour/jcb/trips/edit/999/',
+            '/labour/extras/add/', f'/labour/extras/add/{lid}/',
+            '/labour/extras/edit/999/', '/labour/extras/delete/999/',
+            '/labour/advances/add/', f'/labour/advances/add/{lid}/',
+            '/labour/advances/edit/999/', '/labour/advances/delete/999/',
+            f'/labour/holidays/add/{lid}/', '/labour/holidays/delete/999/',
+            '/labour/rozi/add/', f'/labour/rozi/add/{lid}/',
+            '/labour/rozi/edit/999/', '/labour/rozi/delete/999/',
+            '/labour/rozi/quick/', '/labour/advances/quick/',
             '/labour/driver-payment/add/',
-            f'/labour/{self.labour.pk}/settle/',
-            f'/labour/{self.labour.pk}/outstanding/set/',
-            '/expenses/add/', '/staff/',
+            f'/labour/driver-payment/add/{lid}/',
+            '/labour/driver-payment/edit/999/',
+            '/labour/driver-payment/delete/999/',
+            f'/labour/{lid}/settle/',
+            f'/labour/{lid}/outstanding/set/',
+            '/labour/settlements/999/edit/',
+            '/labour/settlements/999/revert/',
+            '/ledger/customer/999/record-payment/',
+            '/ledger/customer/payment-group/xyz/edit/',
+            '/ledger/customer/payment-group/xyz/delete/',
+            '/ledger/customer/999/update-opening-balance/',
+            '/expenses/add/', '/expenses/999/edit/',
+            '/expenses/999/delete/',
+            '/vehicles/999/documents/',
+            '/staff/',
         ]
         for url in post_urls:
             with self.subTest(url=url):
@@ -179,6 +204,12 @@ class ViewerRoleTest(TestCase):
         self.assertNotIn('/labour/extras/add/', detail)
         self.assertNotIn('/labour/advances/add/', detail)
         self.assertNotIn('Add Rozi', detail)
+        self.assertNotIn('settlement_revert', detail)
+        trips_page = self.vclient.get('/labour/trips/').content.decode()
+        self.assertNotIn('trip_delete', trips_page)
+        self.assertNotIn('/hyva/trips/add/', trips_page)
+        exp_dash = self.vclient.get('/expenses/dashboard/').content.decode()
+        self.assertNotIn('/expenses/add/', exp_dash)
 
     def test_admin_unchanged(self):
         filtered = {'from_date': '2026-01-01', 'to_date': '2026-12-31'}
