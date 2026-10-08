@@ -138,12 +138,18 @@
                 <a href="{% url 'labour:book' %}?export=excel">Book Excel</a>
             </div>
         </details>
+        {% if not request.is_viewer %}
         <a href="{% url 'labour:advance_multi' %}" class="btn btn-ghost">⚡ Quick Advances</a>
         <a href="{% url 'labour:rozi_multi' %}" class="btn btn-ghost">👷 Quick Rozi</a>
+        {% endif %}
         <a href="{% url 'labour:summary' %}" class="btn btn-ghost">🧾 Summary</a>
         <a href="{% url 'labour:daily_activity' %}" class="btn btn-ghost">📊 Daily Activity</a>
+        {% if not request.is_viewer %}
         <a href="{% url 'labour:driver_add' %}" class="btn btn-ghost">🚗 Driver Payment</a>
+        {% endif %}
+        {% if not request.is_viewer %}
         <a href="{% url 'labour:create' %}" class="btn btn-ghost">＋ Add Labour</a>
+        {% endif %}
         <a href="{% url 'labour:trips' %}" class="btn btn-ghost">🛠 Trip Entries</a>
     </div>
 </div>
@@ -153,8 +159,10 @@
     <div class="flex gap-2 pb-1" style="min-width:max-content;">
         <a href="{% url 'labour:summary' %}" class="mob-shortcut" style="background:#16665a;color:#fff;">🧾 Summary</a>
         <a href="{% url 'labour:trips' %}" class="mob-shortcut">🛠 Trips</a>
+        {% if not request.is_viewer %}
         <a href="{% url 'labour:rozi_multi' %}" class="mob-shortcut">👷 Quick Rozi</a>
         <a href="{% url 'labour:advance_multi' %}" class="mob-shortcut">⚡ Quick Advance</a>
+        {% endif %}
         <a href="{% url 'labour:daily_activity' %}" class="mob-shortcut">📊 Daily Activity</a>
     </div>
 </div>

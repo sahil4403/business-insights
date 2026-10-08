@@ -79,9 +79,11 @@
     </div>
 </div>
 <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-3" data-animate>
+    {% if not request.is_viewer %}
     <a href="{% url 'labour:create' %}?category={{ category_code }}"
        class="btn btn-ghost w-full sm:w-auto !h-10 shrink-0 justify-center">＋ {{ category_label }}</a>
-    {% if add_url %}
+    {% endif %}
+    {% if not request.is_viewer and add_url %}
     <a href="{% url add_url %}{% if add_query %}?{{ add_query }}{% endif %}"
        class="btn btn-primary w-full sm:w-auto !h-10 shrink-0 justify-center">{{ add_label }}</a>
     {% endif %}

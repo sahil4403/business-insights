@@ -25,6 +25,7 @@
 </div>
 
 <!-- ADD / EDIT FORM -->
+{% if not request.is_viewer %}
 <div class="app-surface p-4 md:p-6 mb-4" data-animate>
     <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">
         {% if editing %}✏️ Edit: {{ editing.get_doc_type_display }}{% else %}➕ Naya Document Add Karo{% endif %}
@@ -70,6 +71,7 @@
         </div>
     </form>
 </div>
+{% endif %}
 
 <!-- DOCUMENTS LIST -->
 <div class="app-surface p-4 md:p-6" data-reveal>

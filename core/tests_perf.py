@@ -92,8 +92,9 @@ class QueryCountPerfTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         # +1 vs pehle: SESSION_SAVE_EVERY_REQUEST session write (sliding expiry).
-        # Count run-to-run 22-24 hilta hai, isliye 25.
-        self.assertLess(queries, 25, f'{queries} queries for 6 trip groups')
+        # +1 aur: ViewerReadOnlyMiddleware ka viewer group check (indexed EXISTS).
+        # Count run-to-run 22-24 hilta hai, isliye 26.
+        self.assertLess(queries, 26, f'{queries} queries for 6 trip groups')
 
     def test_payment_report_query_count_stable(self):
         response, queries = self._get(reverse('core:payment_report'))
@@ -123,7 +124,8 @@ class QueryCountPerfTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertLess(queries, 20, f'{queries} statement queries')
+        # +1: ViewerReadOnlyMiddleware ka viewer group check (indexed EXISTS).
+        self.assertLess(queries, 21, f'{queries} statement queries')
 
     def test_trip_list_query_count_stable(self):
         response, queries = self._get(reverse('trips:list'))

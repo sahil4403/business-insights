@@ -146,7 +146,9 @@
             <h3 class="font-bold text-slate-900 text-base">
                 Trip Records <span class="text-xs font-medium text-slate-400">(Filtered Results)</span>
             </h3>
+            {% if not request.is_viewer %}
             <a href="{% url 'trips:create' %}" class="btn btn-primary whitespace-nowrap inline-flex" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}window.location.href=this.href;return false;"><svg class="icon-sm" aria-hidden="true"><use href="#i-plus"/></svg>Add New Trip</a>
+            {% endif %}
         </div>
         {% if trips_truncated %}
         <div class="px-4 md:px-5 py-2.5 bg-amber-50 border-b border-amber-100 text-[12px] font-semibold text-amber-800 flex items-center justify-between gap-2">
@@ -348,9 +350,11 @@
 </div>
 
 <!-- FAB: ADD NEW TRIP (mobile) -->
+{% if not request.is_viewer %}
 <a href="{% url 'trips:create' %}" class="app-fab md:hidden no-underline" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}window.location.href=this.href;return false;">
     <svg class="icon-md" aria-hidden="true"><use href="#i-plus"/></svg> New Trip
 </a>
+{% endif %}
 
 {% endblock %}
 

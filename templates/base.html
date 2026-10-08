@@ -382,7 +382,9 @@
                 <a href="{% url 'core:payment_report' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-wallet"/></svg>Payments</a>
                 <a href="{% url 'core:vehicle_report' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-truck"/></svg>Vehicles</a>
                 <a href="{% url 'expenses:list' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-receipt"/></svg>Expenses</a>
+                {% if not request.is_viewer %}
                 <a href="{% url 'core:admin_reauth' %}" target="_blank" class="nav-link text-slate-400"><svg class="icon-sm" aria-hidden="true"><use href="#i-settings"/></svg>Admin</a>
+                {% endif %}
                 {% if user.is_superuser %}
                 <a href="/staff/" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Staff</a>
                 {% endif %}

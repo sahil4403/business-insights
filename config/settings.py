@@ -74,6 +74,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "core.middleware.StrictAdminSecurityMiddleware",
     "core.middleware.OperatorAccessMiddleware",
+    "core.middleware.ViewerReadOnlyMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.backup.AutoBackupMiddleware",

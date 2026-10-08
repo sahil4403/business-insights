@@ -1,4 +1,39 @@
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
+
+
+class ViewerReadOnlyMiddleware:
+    """
+    Read-only (viewer) role enforcement — BACKEND, not just UI.
+
+    Viewer (authentication.permissions.is_viewer) ka koi bhi unsafe request
+    (POST/PUT/PATCH/DELETE) yahin 403 hota hai — chahe button dabaye ya
+    API/URL directly hit kare. Sirf auth ke liye zaroori POST exempt hain
+    (login/logout), taaki viewer login/logout kar sake. GET/HEAD/OPTIONS
+    (view, search, details, share, PDF/Excel/CSV export) sab allowed.
+    Templates me request.is_viewer se write buttons hide hote hain.
+    Admins (existing users, superusers) isse bilkul unaffected hain.
+    """
+    SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
+    # In paths par viewer ka POST allowed hai (login/logout khud + JS error beacon).
+    EXEMPT_PREFIXES = ('/login/', '/__jserr__/')
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        request.is_viewer = False
+
+        user = getattr(request, 'user', None)
+        if user and user.is_authenticated:
+            from authentication.permissions import is_viewer
+            if is_viewer(user):
+                request.is_viewer = True
+                if (request.method not in self.SAFE_METHODS
+                        and not request.path.startswith(self.EXEMPT_PREFIXES)):
+                    raise PermissionDenied('Viewer role is read-only.')
+
+        return self.get_response(request)
 
 
 class OperatorAccessMiddleware:

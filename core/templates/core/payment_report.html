@@ -29,8 +29,10 @@
     </div>
     <div class="flex items-center gap-2">
         <!-- Mobile: Add Payment (safe position — header ke andar) -->
+        {% if not request.is_viewer %}
         <a href="{% url 'core:payment_report_add' %}?next={% url 'core:payment_report' %}"
            class="md:hidden app-chip active h-9 px-3.5 no-underline whitespace-nowrap">＋ Add Payment</a>
+        {% endif %}
         <!-- Mobile export bottom sheet -->
         <details class="export-menu relative md:hidden">
             <summary class="app-chip bg-white border border-slate-200 h-9">Export ▾</summary>
@@ -57,8 +59,10 @@
                class="btn btn-ghost h-9 px-3.5 text-xs">Preview PDF</a>
             <a href="?export=pdf{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if selected_payment_method %}&payment_method={{ selected_payment_method }}{% endif %}"
                download="Payment_Report.pdf" class="btn btn-ghost h-9 px-3.5 text-xs">Download PDF</a>
+            {% if not request.is_viewer %}
             <a href="{% url 'core:payment_report_add' %}?next={% url 'core:payment_report' %}"
                class="btn btn-primary h-9 px-4 text-xs">＋ Add Payment</a>
+            {% endif %}
         </div>
     </div>
 </div>
