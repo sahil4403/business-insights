@@ -295,3 +295,69 @@ class DesktopNavNoOverflowTest(TestCase):
         page = response.content.decode()
         self.assertIn('.nav-scroll::-webkit-scrollbar', page)
         self.assertIn('scrollbar-width: none', page)
+
+
+class DarkModeToggleTest(TestCase):
+    """Dark glass toggle: markup + persistence wiring maujood hona chahiye.
+
+    Theme pure frontend hai (localStorage + data-theme) — koi permission
+    ya backend logic change nahi. Light mode default rehta hai.
+    """
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='theme-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+
+    def test_dark_css_and_prerender_script_present(self):
+        html = self.client.get(reverse('core:dashboard')).content.decode()
+        self.assertEqual(
+            self.client.get(reverse('core:dashboard')).status_code, 200
+        )
+        # dark-glass.css load hoti hai (light mode par uske rules inert hain)
+        self.assertIn('css/dark-glass.css', html)
+        # First-paint se pehle theme lagane wali script + default light
+        self.assertIn('sr-theme', html)
+        self.assertIn("setAttribute('data-theme'", html)
+
+    def test_toggle_buttons_on_home(self):
+        html = self.client.get(reverse('core:dashboard')).content.decode()
+        # Desktop topnav + Home mobile icon row — dono jagah toggle
+        self.assertEqual(html.count('__toggleTheme()'), 2)
+        self.assertIn('theme-icon-moon', html)
+        self.assertIn('theme-icon-sun', html)
+        self.assertIn('Toggle dark mode', html)
+
+    def test_theme_persistence_helpers_present(self):
+        html = self.client.get(reverse('core:dashboard')).content.decode()
+        self.assertIn('__applyTheme', html)
+        self.assertIn("localStorage.setItem('sr-theme'", html)
+        self.assertIn('localStorage.getItem', html)
+
+    def test_standalone_pages_follow_theme(self):
+        from customers.models import Customer
+        from master_data.models import CustomerType
+
+        ct, _ = CustomerType.objects.get_or_create(
+            code='THEME-TEST', defaults={'name': 'Theme Test'}
+        )
+        Customer.objects.create(
+            customer_code='THEME-1', name='Theme Customer',
+            customer_type=ct, is_active=True,
+        )
+        for url in (reverse('core:customer_report'),):
+            with self.subTest(url=url):
+                html = self.client.get(url).content.decode()
+                self.assertIn('css/dark-glass.css', html)
+                self.assertIn('sr-theme', html)
+                self.assertIn('__toggleTheme()', html)
+        # Login page anonymous dekhta hai (logged-in redirect hota hai)
+        from django.test import Client
+
+        html = Client().get('/login/').content.decode()
+        self.assertIn('css/dark-glass.css', html)
+        self.assertIn('sr-theme', html)
+        self.assertIn('__toggleTheme()', html)

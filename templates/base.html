@@ -6,11 +6,23 @@
     <meta name="theme-color" content="#16665a">
     <title>{% block title %}Shri Raj Construction & Building Materials Supplier{% endblock %}</title>
     {% load static %}
+    <script>
+    /* Theme pre-render: first paint se PEHLE saved theme lagao (light-flash nahi).
+       Default: light (current Liquid Glass look). Per-device localStorage. */
+    try {
+        var __srTheme = localStorage.getItem('sr-theme');
+        if (__srTheme !== 'dark' && __srTheme !== 'light') { __srTheme = 'light'; }
+        document.documentElement.setAttribute('data-theme', __srTheme);
+    } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@500;600;700&display=swap">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=20260826glass3">
+    <link rel="stylesheet" href="{% static 'css/dark-glass.css' %}?v=20261008dark1">
     <style>
         /* NATIVE-APP FEEL */
         @media (prefers-reduced-motion: no-preference) {
@@ -385,6 +397,10 @@
                 {% if not request.is_viewer %}
                 <a href="{% url 'core:admin_reauth' %}" target="_blank" class="nav-link text-slate-400"><svg class="icon-sm" aria-hidden="true"><use href="#i-settings"/></svg>Admin</a>
                 {% endif %}
+                <button type="button" onclick="__toggleTheme()" title="Dark mode on/off" aria-label="Toggle dark mode" class="nav-link theme-toggle-btn" style="background:transparent;border:0;cursor:pointer;font:inherit;">
+                    <svg class="icon-sm theme-icon-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    <svg class="icon-sm theme-icon-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                </button>
                 {% if user.is_superuser %}
                 <a href="/staff/" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Staff</a>
                 {% endif %}
@@ -769,6 +785,27 @@
             // Expose to other scripts (e.g., cat-tile handler) jo direct
             // window.location.href se navigate karte hain.
             window.__showPageLoader = start;
+            // DARK MODE: choice localStorage me (per-device), refresh /
+            // navigation / re-login par barkarar. Default light.
+            window.__applyTheme = function (t) {
+                if (t !== 'dark' && t !== 'light') { t = 'light'; }
+                document.documentElement.setAttribute('data-theme', t);
+                try { localStorage.setItem('sr-theme', t); } catch (e) {}
+                var m = document.querySelector('meta[name="theme-color"]');
+                if (m) { m.setAttribute('content', t === 'dark' ? '#0b141f' : '#16665a'); }
+            };
+            window.__toggleTheme = function () {
+                window.__applyTheme(
+                    document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+                );
+            };
+            // Pre-render script ne data-theme pehle hi lagaya; yahan sirf
+            // theme-color meta sync karo (back/forward cache se wapas par bhi).
+            (function () {
+                var t = document.documentElement.getAttribute('data-theme') || 'light';
+                var m = document.querySelector('meta[name="theme-color"]');
+                if (m) { m.setAttribute('content', t === 'dark' ? '#0b141f' : '#16665a'); }
+            })();
             // Agar pichle page se navigation abhi aaya hai aur min-visible time
             // baaki hai, to destination page par bhi loader dikhao. Slow
             // network par bhi loader dikhe — isliye "recent" window 5s rakha.

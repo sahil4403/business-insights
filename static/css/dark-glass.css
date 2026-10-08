@@ -1,0 +1,230 @@
+/* ============================================================
+   DARK LIQUID GLASS THEME — [data-theme="dark"] scoped.
+   Light mode (default) is untouched: every rule below lives inside
+   `@media screen` + `[data-theme="dark"]`, so print/PDF output and
+   light mode render byte-identical to before.
+   Dark = same glass language: deep-navy backdrop, translucent dark
+   panels, same backdrop-filter blur amounts (no extra blur layers),
+   1px low-opacity light borders + soft shadows + inner highlight.
+   Theme vars: single switch point (:root / [data-theme="dark"]).
+   ============================================================ */
+
+/* ---------- Theme toggle icons (both modes) ---------- */
+.theme-icon-sun { display: none; }
+.theme-icon-moon { display: inline-flex; }
+[data-theme="dark"] .theme-icon-sun { display: inline-flex; }
+[data-theme="dark"] .theme-icon-moon { display: none; }
+.theme-toggle-btn svg { transition: transform .35s ease, opacity .25s ease; }
+.theme-toggle-btn:active svg { transform: rotate(40deg) scale(.88); }
+
+@media screen {
+
+:root {
+    --d-bg0: #0b141f;
+    --d-bg1: #101e30;
+    --d-surface: rgba(17, 28, 44, .72);
+    --d-surface-solid: #131f30;
+    --d-surface-2: rgba(255, 255, 255, .05);
+    --d-text: #e8eef5;
+    --d-muted: #93a3b8;
+    --d-faint: #64748b;
+    --d-border: rgba(255, 255, 255, .09);
+    --d-border-soft: rgba(255, 255, 255, .06);
+    --d-input: rgba(255, 255, 255, .05);
+    --d-shadow: 0 8px 32px rgba(0, 0, 0, .45);
+    --d-inner: inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+[data-theme="dark"] {
+    color-scheme: dark;
+    color: var(--d-text);
+}
+
+/* ---------- 1. BACKDROP + BODY ---------- */
+[data-theme="dark"] html::before {
+    background:
+        radial-gradient(620px 420px at 88% -5%, rgba(42, 179, 155, .22), transparent 62%),
+        radial-gradient(720px 520px at -12% 28%, rgba(96, 165, 250, .16), transparent 62%),
+        radial-gradient(560px 480px at 50% 115%, rgba(139, 92, 246, .12), transparent 60%),
+        linear-gradient(180deg, #0b141f 0%, #0e1826 55%, #0b1220 100%) !important;
+}
+[data-theme="dark"] body {
+    background: transparent !important;
+    color: var(--d-text) !important;
+}
+
+/* ---------- 2. GLASS SURFACES (same blur, dark tint) ---------- */
+[data-theme="dark"] .app-surface,
+[data-theme="dark"] .export-sheet,
+[data-theme="dark"] .card,
+[data-theme="dark"] .app-stat,
+[data-theme="dark"] .lq-glass-panel,
+[data-theme="dark"] .lq-dropdown,
+[data-theme="dark"] .glass-panel,
+[data-theme="dark"] .glass {
+    background: var(--d-surface) !important;
+    border: 1px solid var(--d-border) !important;
+    border-top: 1px solid rgba(255, 255, 255, .12) !important;
+    box-shadow: var(--d-shadow), var(--d-inner) !important;
+    color: var(--d-text) !important;
+}
+[data-theme="dark"] .glass-tint {
+    background: linear-gradient(135deg, rgba(22, 102, 90, .55), rgba(13, 66, 58, .55)) !important;
+    border: 1px solid rgba(255, 255, 255, .14) !important;
+    color: #fff !important;
+}
+
+/* ---------- 3. NAV / TABBAR / BARS ---------- */
+[data-theme="dark"] .lq-nav {
+    background: rgba(10, 18, 30, .8) !important;
+    border-bottom: 1px solid var(--d-border) !important;
+    box-shadow: 0 6px 24px -12px rgba(0, 0, 0, .6), var(--d-inner) !important;
+}
+[data-theme="dark"] #scroll-topbar {
+    background: rgba(10, 18, 30, .92) !important;
+    border-bottom: 1px solid var(--d-border) !important;
+}
+[data-theme="dark"] .nav-link { color: #c3cfdb !important; }
+[data-theme="dark"] .nav-link:hover { background: rgba(255, 255, 255, .07) !important; color: #fff !important; }
+[data-theme="dark"] .nav-link.active { background: rgba(22, 102, 90, .35) !important; color: #5eead4 !important; }
+[data-theme="dark"] .lq-bar {
+    background: rgba(13, 22, 36, .82) !important;
+    border: 1px solid var(--d-border) !important;
+}
+[data-theme="dark"] .lq-link { color: #8fa0b3 !important; }
+[data-theme="dark"] .lq-link.lq-hover { color: #e8eef5 !important; }
+[data-theme="dark"] .lq-link.active { color: #5eead4 !important; }
+[data-theme="dark"] .lq-blob {
+    background: linear-gradient(180deg, rgba(42, 179, 155, .35), rgba(42, 179, 155, .08)) !important;
+}
+[data-theme="dark"] .lq-action { filter: saturate(.9) brightness(.92); }
+
+/* ---------- 4. CHIPS / BUTTONS / INPUTS ---------- */
+[data-theme="dark"] .app-chip {
+    background: var(--d-surface-2) !important;
+    border: 1px solid var(--d-border) !important;
+    color: #c3cfdb !important;
+}
+[data-theme="dark"] .app-chip.active {
+    background: #16665a !important;
+    border-color: #16665a !important;
+    color: #fff !important;
+}
+[data-theme="dark"] .btn-ghost {
+    background: var(--d-surface-2) !important;
+    border-color: var(--d-border) !important;
+    color: #dbe5ef !important;
+}
+[data-theme="dark"] .btn-secondary {
+    background: rgba(255, 255, 255, .09) !important;
+    color: #e8eef5 !important;
+}
+[data-theme="dark"] .input {
+    background: var(--d-input) !important;
+    border-color: rgba(255, 255, 255, .14) !important;
+    color: var(--d-text) !important;
+}
+[data-theme="dark"] .input::placeholder { color: #7d8fa3 !important; }
+[data-theme="dark"] .label { color: var(--d-muted) !important; }
+[data-theme="dark"] select.input option { background: #131f30; color: #e8eef5; }
+
+/* ---------- 5. TABLES / ROWS / STATS ---------- */
+[data-theme="dark"] thead { background: #141f2e !important; }
+[data-theme="dark"] .app-row { border-color: var(--d-border-soft) !important; }
+[data-theme="dark"] .app-stat .lbl { color: var(--d-faint) !important; }
+[data-theme="dark"] .app-stat .val { color: var(--d-text) !important; }
+
+/* ---------- 6. TOASTS / SHEETS / MODALS / DROPDOWNS ---------- */
+[data-theme="dark"] .toast {
+    background: rgba(17, 28, 44, .92) !important;
+    border-color: var(--d-border) !important;
+    color: var(--d-text) !important;
+}
+[data-theme="dark"] .export-sheet .export-opt { color: #dbe5ef !important; border-color: rgba(255, 255, 255, .06) !important; }
+[data-theme="dark"] .export-sheet .export-sheet-title { color: var(--d-faint) !important; }
+[data-theme="dark"] .export-sheet .export-grabber { background: rgba(255, 255, 255, .22) !important; }
+[data-theme="dark"] .lq-glass-btn {
+    background: rgba(255, 255, 255, .07) !important;
+    border: 1px solid var(--d-border) !important;
+    color: #dbe5ef !important;
+}
+[data-theme="dark"] .lq-dropdown-item { color: #dbe5ef !important; }
+[data-theme="dark"] #page-loader-overlay,
+[data-theme="dark"] #nav-overlay,
+[data-theme="dark"] #page-loader-overlay {
+    background: rgba(2, 6, 12, .55) !important;
+}
+
+/* ---------- 7. PAGE <style> PASTELS (dark readable) ---------- */
+[data-theme="dark"] .summary-card { background: var(--d-surface-2) !important; border-color: var(--d-border) !important; }
+[data-theme="dark"] .summary-card .lbl { color: var(--d-faint) !important; }
+[data-theme="dark"] .summary-card .val { color: var(--d-text) !important; }
+[data-theme="dark"] .due-banner { background: linear-gradient(135deg, rgba(220, 38, 38, .16), rgba(220, 38, 38, .07)) !important; border-color: rgba(248, 113, 113, .3) !important; }
+[data-theme="dark"] .clear-banner { background: linear-gradient(135deg, rgba(5, 150, 105, .16), rgba(5, 150, 105, .07)) !important; border-color: rgba(52, 211, 153, .3) !important; }
+[data-theme="dark"] .labour-card,
+[data-theme="dark"] .cat-hero,
+[data-theme="dark"] .cat-tile {
+    background: var(--d-surface) !important;
+    border-color: var(--d-border) !important;
+    color: var(--d-text) !important;
+}
+[data-theme="dark"] .labour-card .name,
+[data-theme="dark"] .cat-hero h1 { color: var(--d-text) !important; }
+[data-theme="dark"] .labour-card .meta { color: var(--d-muted) !important; }
+[data-theme="dark"] .date-cell { background: rgba(255, 255, 255, .05) !important; border-color: var(--d-border) !important; }
+
+/* ---------- 8. TAILWIND UTILITY REMAP (dark scope only) ---------- */
+[data-theme="dark"] .bg-white { background-color: var(--d-surface-solid) !important; }
+[data-theme="dark"] .bg-slate-50 { background-color: rgba(255, 255, 255, .03) !important; }
+[data-theme="dark"] .bg-slate-100 { background-color: rgba(255, 255, 255, .05) !important; }
+[data-theme="dark"] .bg-slate-200 { background-color: rgba(255, 255, 255, .09) !important; }
+[data-theme="dark"] .bg-slate-800 { background-color: #2b3a4f !important; }
+[data-theme="dark"] .text-slate-900, [data-theme="dark"] .text-slate-800 { color: var(--d-text) !important; }
+[data-theme="dark"] .text-slate-700, [data-theme="dark"] .text-slate-600 { color: #c3cfdb !important; }
+[data-theme="dark"] .text-slate-500 { color: #8fa0b3 !important; }
+[data-theme="dark"] .text-slate-400 { color: #6b7d90 !important; }
+[data-theme="dark"] .border-slate-100, [data-theme="dark"] .border-slate-200, [data-theme="dark"] .border-slate-300 { border-color: var(--d-border) !important; }
+[data-theme="dark"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+[data-theme="dark"] .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--d-border-soft) !important; }
+/* status colors: pastel fills go translucent, text stays vivid */
+[data-theme="dark"] .bg-red-50, [data-theme="dark"] .bg-red-100 { background-color: rgba(220, 38, 38, .14) !important; }
+[data-theme="dark"] .bg-emerald-50, [data-theme="dark"] .bg-green-50 { background-color: rgba(5, 150, 105, .14) !important; }
+[data-theme="dark"] .bg-amber-50, [data-theme="dark"] .bg-yellow-50 { background-color: rgba(217, 119, 6, .15) !important; }
+[data-theme="dark"] .bg-orange-50 { background-color: rgba(234, 88, 12, .14) !important; }
+[data-theme="dark"] .bg-sky-50, [data-theme="dark"] .bg-blue-50 { background-color: rgba(37, 99, 235, .16) !important; }
+[data-theme="dark"] .bg-brand-50 { background-color: rgba(22, 102, 90, .22) !important; }
+[data-theme="dark"] .bg-brand-100 { background-color: rgba(22, 102, 90, .3) !important; }
+[data-theme="dark"] .text-red-600, [data-theme="dark"] .text-red-700 { color: #f87171 !important; }
+[data-theme="dark"] .text-emerald-600, [data-theme="dark"] .text-emerald-700, [data-theme="dark"] .text-green-700 { color: #34d399 !important; }
+[data-theme="dark"] .text-amber-600, [data-theme="dark"] .text-amber-700, [data-theme="dark"] .text-yellow-700 { color: #fbbf24 !important; }
+[data-theme="dark"] .text-orange-700, [data-theme="dark"] .text-orange-800 { color: #fdba74 !important; }
+[data-theme="dark"] .text-sky-700, [data-theme="dark"] .text-blue-700 { color: #7dd3fc !important; }
+[data-theme="dark"] .text-brand-600, [data-theme="dark"] .text-brand-700 { color: #5eead4 !important; }
+[data-theme="dark"] .border-red-200 { border-color: rgba(248, 113, 113, .3) !important; }
+[data-theme="dark"] .border-brand-100, [data-theme="dark"] .border-brand-200 { border-color: rgba(94, 234, 212, .25) !important; }
+/* hovers keep working on dark */
+[data-theme="dark"] .hover\:bg-slate-50:hover { background-color: rgba(255, 255, 255, .05) !important; }
+[data-theme="dark"] .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, .07) !important; }
+[data-theme="dark"] .hover\:bg-slate-200:hover { background-color: rgba(255, 255, 255, .1) !important; }
+[data-theme="dark"] .hover\:bg-red-50:hover, [data-theme="dark"] .hover\:bg-red-100:hover { background-color: rgba(220, 38, 38, .2) !important; }
+[data-theme="dark"] .hover\:bg-brand-50:hover { background-color: rgba(22, 102, 90, .3) !important; }
+[data-theme="dark"] .active\:bg-slate-50:active { background-color: rgba(255, 255, 255, .07) !important; }
+/* scrollbars */
+[data-theme="dark"] ::-webkit-scrollbar-track { background: #0e1826 !important; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #33475e !important; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #46617d !important; }
+
+/* ---------- 9. Cheap theme transition (no blur/layout animation) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+    [data-theme="dark"] body,
+    [data-theme="dark"] .app-surface,
+    [data-theme="dark"] .app-chip,
+    [data-theme="dark"] .btn,
+    [data-theme="dark"] .nav-link,
+    [data-theme="dark"] .input,
+    [data-theme="dark"] .toast {
+        transition: background-color .25s ease, border-color .25s ease, color .25s ease;
+    }
+}
+
+} /* end @media screen — print/PDF output stays light */
