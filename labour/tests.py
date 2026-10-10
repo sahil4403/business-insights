@@ -1347,6 +1347,29 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(row['tractor_lines'][0]['location'], '')
         self.assertEqual(row['tractor_lines'][0]['drivers'], [])
 
+    def test_rozi_tables_include_trip_earnings(self):
+        from labour.models import LabourTripGroup
+
+        gaju = Labour.objects.create(
+            name='Gaju', category='HYVA_DRIVER',
+            is_active=True, status='ACTIVE',
+        )
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='WHITE_HYVA',
+        )
+        g.labourers.set([gaju])
+        LabourAdvance.objects.create(
+            labour=gaju, date=self.day, amount=Decimal('300'),
+        )
+        row = self._day_row()
+        tables = row['rozi_tables']
+        sprows = [(r['name'], r['rozi'], r['advance'])
+                  for r in tables['hyva_jcb']]
+        # WHITE_HYVA rate auto 200 hota hai: 2 trips x 200 = 400 kamai
+        # + 300 advance; Gaju missing nahi
+        self.assertEqual(sprows, [('Gaju', Decimal('400'), Decimal('300'))])
+
     def test_rozi_tables_by_category(self):
         LabourRozi.objects.create(
             labour=self.raju, date=self.day, day_type='FULL',

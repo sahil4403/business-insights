@@ -3018,6 +3018,16 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         ]
 
         # ---- ROZI TABLES (category groups) ----
+        # Rozi column = rozi/extra records + us din ki trip-group kamai ka
+        # hissa (Hyva/Tractor ki kamai trips se aati hai). Trip wala labour
+        # (jaise Gaju) rozi record na hone par bhi dikhna chahiye.
+        trip_earn = defaultdict(lambda: Decimal('0'))
+        for g in groups:
+            members = list(g.labourers.all())
+            if members:
+                share = g.total_amount / len(members)
+                for lab in members:
+                    trip_earn[lab.id] += share
         per_labour = {}
         for e in row.get('day_extras', []):
             lid = getattr(e, 'labour_id', None)
@@ -3029,6 +3039,9 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             if lid:
                 per_labour.setdefault(lid, {'rozi': Decimal('0'), 'advance': Decimal('0')})
                 per_labour[lid]['advance'] += a.amount or Decimal('0')
+        for lid, share in trip_earn.items():
+            per_labour.setdefault(lid, {'rozi': Decimal('0'), 'advance': Decimal('0')})
+            per_labour[lid]['rozi'] += share
         names = {}
         if per_labour:
             names = dict(
