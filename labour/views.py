@@ -3077,8 +3077,11 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         trac = [t for t in recs
                 if 'tractor' in _vehicle_label(t).lower()]
         pool = trac
+        # "Stock" destination internal kaam hai — use location mat mano.
         loc_counter = Counter(
-            t.destination.strip() for t in pool if (t.destination or '').strip()
+            t.destination.strip() for t in pool
+            if (t.destination or '').strip()
+            and (t.destination or '').strip().lower() != 'stock'
         )
         location = loc_counter.most_common(1)[0][0] if loc_counter else ''
         rel = [t for t in pool if (t.destination or '').strip() == location] if location else []
