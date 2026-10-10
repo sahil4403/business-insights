@@ -2931,20 +2931,42 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         groups = [g for g in labour_groups if g.date == d]
         recs = day_trips_map.get(d, [])
 
-        # ---- LOADING (operator-wise) ----
+        # ---- LOADING (sirf JCB operator) + HYVA (hyva drivers) ----
+        # Pure tractor groups (load khaali) yahan nahi — wo tractor me.
         loadings = defaultdict(lambda: {'count': 0})
+        hyva_loadings = defaultdict(lambda: {'count': 0})
+
+        def _bucket_for(members, has_load):
+            cats = {getattr(m, 'category', '') for m in members}
+            if not has_load:
+                return None
+            if 'JCB_OPERATOR' in cats:
+                return loadings
+            if 'HYVA_DRIVER' in cats:
+                return hyva_loadings
+            return loadings
+
         for g in groups:
             label = g.load_label or f"Tractor ({g.fill_type})"
-            for lab in g.labourers.all():
+            members = list(g.labourers.all())
+            bucket = _bucket_for(members, bool(g.load_type))
+            if bucket is None:
+                continue
+            for lab in members:
                 key = (lab.id, label)
-                loadings[key]['count'] += g.trip_count
-                loadings[key]['worker'] = lab.name
-                loadings[key]['label'] = label
-        row['loadings'] = sorted(
-            ({'worker': v['worker'], 'label': v['label'], 'count': v['count']}
-             for v in loadings.values()),
-            key=lambda x: (x['worker'], x['label']),
-        )
+                bucket[key]['count'] += g.trip_count
+                bucket[key]['worker'] = lab.name
+                bucket[key]['label'] = label
+
+        def _sorted(bucket):
+            return sorted(
+                ({'worker': v['worker'], 'label': v['label'], 'count': v['count']}
+                 for v in bucket.values()),
+                key=lambda x: (x['worker'], x['label']),
+            )
+
+        row['loadings'] = _sorted(loadings)
+        row['hyva_loadings'] = _sorted(hyva_loadings)
 
         # ---- TRIPS (material + destination grouped) ----
         buckets = {}
@@ -3173,6 +3195,14 @@ def _daily_activity_excel(data, filename='daily_activity.xlsx'):
                 ws.cell(row=r, column=1, value=ld['count'])
                 ws.cell(row=r, column=2, value=ld['label'])
                 ws.cell(row=r, column=3, value=ld['worker'])
+        if row.get('hyva_loadings'):
+            r += 1
+            ws.cell(row=r, column=1, value='Hyva Loading').font = bold
+            for ld in row['hyva_loadings']:
+                r += 1
+                ws.cell(row=r, column=1, value=ld['count'])
+                ws.cell(row=r, column=2, value=ld['label'])
+                ws.cell(row=r, column=3, value=ld['worker'])
         if row.get('trip_lines'):
             r += 1
             ws.cell(row=r, column=1, value='Trips').font = bold
@@ -3308,6 +3338,8 @@ def _daily_activity_csv(data, filename='daily_activity.csv'):
         writer.writerow([row['date'].strftime('%d-%b-%Y')])
         for ld in row.get('loadings', []):
             writer.writerow(['Loading', ld['count'], ld['label'], ld['worker']])
+        for ld in row.get('hyva_loadings', []):
+            writer.writerow(['Hyva Loading', ld['count'], ld['label'], ld['worker']])
         for tl in row.get('trip_lines', []):
             parts = [f"{c} {n}" if c else n for n, c in tl['drivers']]
             parts.extend(tl['plain_drivers'])

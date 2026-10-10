@@ -222,6 +222,14 @@
                                 {% endfor %}
                             </div>
                             {% endif %}
+                            {% if row.hyva_loadings %}
+                            <div class="dd-block">
+                                <div class="dd-title">Hyva Loading ({{ row.hyva_loadings|length }})</div>
+                                {% for ld in row.hyva_loadings %}
+                                <div class="dd-item"><span class="t">{{ ld.count }} {{ ld.label }} | {{ ld.worker }}</span></div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                             {% if row.trip_lines %}
                             <div class="dd-block">
                                 <div class="dd-title">Trips ({{ row.trip_lines|length }})</div>
@@ -285,7 +293,7 @@
                                 {% endfor %}
                             </div>
                             {% endif %}
-                            {% if not row.loadings and not row.trip_lines and not row.tractor_lines and not row.rozi_tables.mistri and not row.rozi_tables.tractor and not row.rozi_tables.hyva_jcb and not row.day_settlements %}
+                            {% if not row.loadings and not row.hyva_loadings and not row.trip_lines and not row.tractor_lines and not row.rozi_tables.mistri and not row.rozi_tables.tractor and not row.rozi_tables.hyva_jcb and not row.day_settlements %}
                             <div class="dd-block"><div class="dd-item"><span class="t text-slate-400">No detailed entries</span></div></div>
                             {% endif %}
                         </div>

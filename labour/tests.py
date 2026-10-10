@@ -1246,16 +1246,37 @@ class DailyActivityDetailTest(TestCase):
     def test_loadings_grouped_by_operator_and_label(self):
         from labour.models import LabourTripGroup
 
+        jcb = Labour.objects.create(
+            name='JCB Op', category='JCB_OPERATOR',
+            is_active=True, status='ACTIVE',
+        )
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=3, rate_per_trip=Decimal('200'),
+            fill_type='HAND', load_type='WHITE_HYVA',
+        )
+        g.labourers.set([jcb])
+        row = self._day_row()
+        # JCB operator ka loading LOADING me
+        self.assertEqual(len(row['loadings']), 1)
+        self.assertEqual(row['loadings'][0]['worker'], 'JCB Op')
+        self.assertEqual(row['loadings'][0]['count'], 3)
+        self.assertIn('White Sand', row['loadings'][0]['label'])
+        self.assertEqual(row['hyva_loadings'], [])
+
+    def test_hyva_loadings_separate_heading(self):
+        from labour.models import LabourTripGroup
+
         g = LabourTripGroup.objects.create(
             date=self.day, trip_count=3, rate_per_trip=Decimal('200'),
             fill_type='HAND', load_type='WHITE_HYVA',
         )
         g.labourers.set([self.santosh])
         row = self._day_row()
-        self.assertEqual(len(row['loadings']), 1)
-        self.assertEqual(row['loadings'][0]['worker'], 'Santosh')
-        self.assertEqual(row['loadings'][0]['count'], 3)
-        self.assertIn('White Sand', row['loadings'][0]['label'])
+        # Hyva driver ka load LOADING me nahi, HYVA heading me
+        self.assertEqual(row['loadings'], [])
+        self.assertEqual(len(row['hyva_loadings']), 1)
+        self.assertEqual(row['hyva_loadings'][0]['worker'], 'Santosh')
+        self.assertEqual(row['hyva_loadings'][0]['count'], 3)
 
     def test_trip_lines_group_and_combine_drivers(self):
         from master_data.models import Material
@@ -1339,12 +1360,13 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(by_fill['JCB']['count'], 2)
         self.assertEqual(by_fill['HAND']['location'], 'Pune')
         self.assertEqual(by_fill['HAND']['drivers'], [('Driver1', 2)])
-        # Loading me teeno groups (operator-wise); tractor me sirf pure trips
+        # Loading me sirf load wale groups; pure tractor trips bahar.
+        # g3 me JCB/Hyva member nahi (Kishan tractor hai) → fallback loadings.
         self.assertEqual(
             [(l['count'], l['label']) for l in row['loadings']],
-            [(5, 'Tractor (HAND)'), (2, 'Tractor (JCB)'),
-             (7, 'White Sand Hyva')],
+            [(7, 'White Sand Hyva')],
         )
+        self.assertEqual(row['hyva_loadings'], [])
 
     def test_tractor_blank_without_trips(self):
         from labour.models import LabourTripGroup
@@ -1470,7 +1492,7 @@ class DailyActivityPageRenderTest(TestCase):
                 if export == 'csv':
                     text = response.content.decode()
                     self.assertIn('DAY DETAIL', text)
-                    self.assertIn('Tractor (HAND)', text)
+                    self.assertIn('Tractor HAND', text)
                 else:
                     self.assertIn(
                         'vnd.openxmlformats-officedocument',
