@@ -1314,9 +1314,15 @@ class DailyActivityDetailTest(TestCase):
         g1.labourers.set([self.kishan])
         g2 = LabourTripGroup.objects.create(
             date=self.day, trip_count=2, rate_per_trip=Decimal('200'),
-            fill_type='JCB', load_type='WHITE_HYVA',
+            fill_type='JCB', load_type='',
         )
         g2.labourers.set([self.kishan])
+        # Loading wala group tractor me NA gina jaye (double-count fix)
+        g3 = LabourTripGroup.objects.create(
+            date=self.day, trip_count=7, rate_per_trip=Decimal('200'),
+            fill_type='JCB', load_type='WHITE_HYVA',
+        )
+        g3.labourers.set([self.kishan])
         fly, _ = Material.objects.get_or_create(
             code='FLY-TEST2', defaults={'name': 'Fly Ash', 'unit': 'TRIP'}
         )
@@ -1333,6 +1339,12 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(by_fill['JCB']['count'], 2)
         self.assertEqual(by_fill['HAND']['location'], 'Pune')
         self.assertEqual(by_fill['HAND']['drivers'], [('Driver1', 2)])
+        # Loading me teeno groups (operator-wise); tractor me sirf pure trips
+        self.assertEqual(
+            [(l['count'], l['label']) for l in row['loadings']],
+            [(5, 'Tractor (HAND)'), (2, 'Tractor (JCB)'),
+             (7, 'White Sand Hyva')],
+        )
 
     def test_tractor_blank_without_trips(self):
         from labour.models import LabourTripGroup

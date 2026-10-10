@@ -3009,7 +3009,10 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             tdrivers = [(n, None) for n in seen]
         fill_counts = Counter()
         for g in groups:
-            if g.fill_type in ('HAND', 'JCB'):
+            # Sirf pure tractor trips: load_type wale groups LOADING hain,
+            # wo upar loadings me dikhte hain — yahan dobara ginna
+            # double-counting hogi.
+            if g.fill_type in ('HAND', 'JCB') and not g.load_type:
                 fill_counts[g.fill_type] += g.trip_count
         row['tractor_lines'] = [
             {'fill': f, 'count': fill_counts[f],
