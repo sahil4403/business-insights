@@ -91,11 +91,14 @@
             <p class="text-sm text-slate-500 mt-1">
                 Welcome back! Let's manage today's transport logistics operations.
             </p>
+            <div class="mt-2 flex items-center gap-2 flex-wrap">
             {% if is_admin_user %}
-                <span class="app-chip active-soft mt-2 !h-7 !px-2.5 text-[11px]"><svg class="icon-sm" aria-hidden="true"><use href="#i-shield"/></svg>Admin Mode</span>
+                <span class="app-chip active-soft !h-7 !px-2.5 text-[11px]"><svg class="icon-sm" aria-hidden="true"><use href="#i-shield"/></svg>Admin Mode</span>
             {% else %}
-                <span class="app-chip mt-2 !h-7 !px-2.5 text-[11px] bg-sky-50 !text-sky-700"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Staff Mode</span>
+                <span class="app-chip !h-7 !px-2.5 text-[11px] bg-sky-50 !text-sky-700"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Staff Mode</span>
             {% endif %}
+                <a href="{% url 'labour:daily_activity' %}" class="app-chip !h-7 !px-2.5 text-[11px] no-underline">📊 Daily Activity</a>
+            </div>
         </div>
         <div class="md:hidden flex items-center gap-2 shrink-0">
             <button type="button" onclick="__toggleTheme()" title="Dark mode on/off" aria-label="Toggle dark mode" class="theme-toggle-btn h-10 w-10 rounded-xl bg-slate-800 text-white flex items-center justify-center transition active:scale-[0.95]" style="cursor:pointer;border:0;">
