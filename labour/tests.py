@@ -1369,8 +1369,9 @@ class DailyActivityDetailTest(TestCase):
 
     def test_tractor_lines_location_from_trips(self):
         from labour.models import LabourTripGroup
-        from master_data.models import Material
+        from master_data.models import Material, VehicleType
         from trips.models import Trip
+        from vehicles.models import Vehicle
 
         g1 = LabourTripGroup.objects.create(
             date=self.day, trip_count=5, rate_per_trip=Decimal('450'),
@@ -1391,10 +1392,17 @@ class DailyActivityDetailTest(TestCase):
         fly, _ = Material.objects.get_or_create(
             code='FLY-TEST2', defaults={'name': 'Fly Ash', 'unit': 'TRIP'}
         )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-TEST', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-TEST-01', vehicle_type=vtype,
+            registration_number='MH-TEST-TRAC',
+        )
         t = Trip.objects.create(
             trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
             total_amount=Decimal('100'), material=fly, destination='Pune',
-            trip_status='COMPLETED',
+            vehicle=vehicle, trip_status='COMPLETED',
             driver_trip_counts={str(self.d1.pk): 2},
         )
         t.drivers.set([self.d1])
@@ -1411,6 +1419,33 @@ class DailyActivityDetailTest(TestCase):
             [(7, 'White Sand Hyva')],
         )
         self.assertEqual(row['hyva_loadings'], [])
+
+    def test_tractor_never_uses_hyva_trips(self):
+        # Oct 9 bug: tractor line me Hyva trip ki location/driver aa gayi thi.
+        # Ab tractor-vehicle trip na ho to blank — koi fallback nahi.
+        from labour.models import LabourTripGroup
+        from master_data.models import Material
+        from trips.models import Trip
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=5, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-HYVA-ONLY', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='MIDC',
+            trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 1},
+        )
+        t.drivers.set([self.d1])
+        row = self._day_row()
+        self.assertEqual(len(row['tractor_lines']), 1)
+        self.assertEqual(row['tractor_lines'][0]['location'], '')
+        self.assertEqual(row['tractor_lines'][0]['drivers'], [])
 
     def test_tractor_blank_without_trips(self):
         from labour.models import LabourTripGroup

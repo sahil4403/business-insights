@@ -3030,9 +3030,13 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         row['trip_materials'] = trip_materials
 
         # ---- TRACTOR (HAND/JCB fill lines + matched location/drivers) ----
+        # STRICT rule: location/drivers SIRF same-date tractor-vehicle trips
+        # se aate hain. Hyva trips se uthana galat attribution tha (Oct 9:
+        # tractor line me Hyva driver ka naam) — dobara na ho isliye koi
+        # fallback nahi: match na mile to location blank, driver blank.
         trac = [t for t in recs
                 if 'tractor' in _vehicle_label(t).lower()]
-        pool = trac or recs
+        pool = trac
         loc_counter = Counter(
             t.destination.strip() for t in pool if (t.destination or '').strip()
         )
