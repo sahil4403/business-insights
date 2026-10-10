@@ -39,7 +39,9 @@
     .day-chev { transition: transform .15s ease; color: #94a3b8; font-size: 12px; }
     .day-row.open .day-chev { transform: rotate(90deg); }
     .day-detail { display: none; background: #f8fafc; border-top: 1px dashed #e2e8f0; }
-    .day-row.open + .day-detail { display: block; }
+    /* table-row (block nahi): warna TR table layout se bahar ho jata hai
+       aur detail cell poori width nahi leta — right me khaali jagah dikhti */
+    .day-row.open + .day-detail { display: table-row; }
     .dd-block { padding: 0.5rem 0.75rem; }
     /* Day detail masonry: lambe-chhote blocks gap ke bina bharein */
     .day-cols { columns: 1; }
