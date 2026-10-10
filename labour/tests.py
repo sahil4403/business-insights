@@ -1298,6 +1298,30 @@ class DailyActivityDetailTest(TestCase):
             [('Gaju2', 2)],
         )
 
+    def test_hyva_materials_grouped_driverwise(self):
+        from labour.models import LabourTripGroup
+
+        g1 = LabourTripGroup.objects.create(
+            date=self.day, trip_count=3, rate_per_trip=Decimal('200'),
+            fill_type='HAND', load_type='FLYASH_HYVA',
+        )
+        g1.labourers.set([self.d1])
+        g2 = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('200'),
+            fill_type='HAND', load_type='FLYASH_HYVA',
+        )
+        g2.labourers.set([self.d2])
+        row = self._day_row()
+        self.assertEqual(len(row['hyva_materials']), 1)
+        hm = row['hyva_materials'][0]
+        self.assertEqual(hm['label'], 'Fly Ash Hyva')
+        self.assertEqual(hm['total'], 5)
+        # Zyada trips wala driver pehle, pura hissa ek saath
+        self.assertEqual(
+            [(d['name'], d['total']) for d in hm['drivers']],
+            [('Driver1', 3), ('Driver2', 2)],
+        )
+
     def test_hyva_loadings_separate_heading(self):
         from labour.models import LabourTripGroup
 
@@ -1318,7 +1342,8 @@ class DailyActivityDetailTest(TestCase):
             {'from_date': '2026-10-09', 'to_date': '2026-10-09'},
         ).content.decode()
         self.assertNotIn('Hyva Loading (', html)
-        self.assertIn('3 White Sand Hyva | Santosh', html)
+        self.assertIn('White Sand Hyva (3)', html)
+        self.assertIn('Santosh', html)
 
     def test_trip_materials_driverwise(self):
         from master_data.models import CustomerType, Material
@@ -1581,7 +1606,8 @@ class DailyActivityPageRenderTest(TestCase):
         html = response.content.decode()
         # Hyva-operator nahi → Trips block me Hyva line
         self.assertIn('>Trips<', html)
-        self.assertIn('3 White Sand Hyva | Santosh', html)
+        self.assertIn('White Sand Hyva (3)', html)
+        self.assertIn('Santosh', html)
         self.assertIn('White Sand', html)
         self.assertIn('Rozi — Mistri', html)
         self.assertIn('Raju', html)

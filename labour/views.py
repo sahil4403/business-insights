@@ -3050,6 +3050,24 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             if not dup:
                 kept.append(ld)
         row['hyva_loadings'] = kept
+        # Hyva lines bhi material-wise group (Trips jaisa): har material me
+        # sirf usi ke trips, har driver ka pura hissa ek saath.
+        by_label = defaultdict(list)
+        for ld in kept:
+            by_label[ld['label']].append(ld)
+        hyva_materials = []
+        for label in sorted(by_label):
+            drivers = sorted(
+                ({'name': ld['worker'], 'total': ld['count']}
+                 for ld in by_label[label]),
+                key=lambda x: (-x['total'], x['name']),
+            )
+            hyva_materials.append({
+                'label': label,
+                'total': sum(d['total'] for d in drivers),
+                'drivers': drivers,
+            })
+        row['hyva_materials'] = hyva_materials
 
         # ---- TRACTOR (HAND/JCB fill lines + matched location/drivers) ----
         # STRICT rule: location/drivers SIRF same-date tractor-vehicle trips
