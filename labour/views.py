@@ -6,7 +6,7 @@ All views require login. Mobile-first styling. Date filters use the same
 "from / to" pattern as the rest of the app.
 """
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date
 from decimal import Decimal
 import re
@@ -2720,14 +2720,14 @@ def _labour_summary_pdf(data):
 def _daily_activity_data(period_start, period_end):
     """Aggregate all daily transactions in [period_start, period_end]."""
     if period_start is None and period_end is None:
-        trips = list(LabourTripGroup.objects.all())
+        trips = list(LabourTripGroup.objects.prefetch_related('labourers').all())
         extras = list(LabourExtraPayment.objects.all())
         rozis = list(LabourRozi.objects.all())
         advances = list(LabourAdvance.objects.all())
         driver_pmts = list(LabourDriverPayment.objects.all())
         settlements = list(LabourSettlement.objects.all())
     else:
-        trips = list(LabourTripGroup.objects.filter(date__range=(period_start, period_end)))
+        trips = list(LabourTripGroup.objects.prefetch_related('labourers').filter(date__range=(period_start, period_end)))
         extras = list(LabourExtraPayment.objects.filter(date__range=(period_start, period_end)))
         rozis = list(LabourRozi.objects.filter(date__range=(period_start, period_end)))
         advances = list(LabourAdvance.objects.filter(date__range=(period_start, period_end)))
@@ -2815,7 +2815,7 @@ def _daily_activity_data(period_start, period_end):
         for d in days
     ]
 
-    return {
+    result = {
         'period_start': period_start,
         'period_end': period_end,
         'trips': trips,
@@ -2841,6 +2841,218 @@ def _daily_activity_data(period_start, period_end):
             _period_label(period_start, period_end)
         ),
     }
+    _attach_daily_detail_sections(result, trips, period_start, period_end)
+    return result
+
+
+def _attach_daily_detail_sections(data, labour_groups, period_start, period_end):
+    """Per-day Loading / Trips / Tractor / Rozi-table sections jod do.
+
+    - Loading: LabourTripGroup entries (operator + load label + count).
+    - Trips: Trips-module records, same date (cancelled excluded),
+      material + destination se grouped, driver counts combined.
+    - Tractor: HAND/JCB fill lines; location/drivers same-date Trips se
+      matched (pehle tractor-vehicle trips, warna us din ke trips me sabse
+      common destination; kuch na mile to blank — matlab stock ka kaam).
+    - Rozi tables: Mistri / Tractor Labour / Hyva+JCB groups me
+      Sr No | Name | Rozi | Advance.
+    Totals/math bilkul nahi badalte — sirf presentation ke liye naye keys.
+    """
+    from trips.models import Trip
+
+    if period_start is None and period_end is None:
+        trip_qs = Trip.objects.all()
+    else:
+        trip_qs = Trip.objects.filter(trip_date__range=(period_start, period_end))
+    trip_qs = (
+        trip_qs.exclude(trip_status='CANCELLED')
+        .select_related('material', 'vehicle__vehicle_type')
+        .prefetch_related('drivers')
+        .order_by('trip_date', 'id')
+    )
+    day_trips_map = defaultdict(list)
+    for t in trip_qs:
+        day_trips_map[t.trip_date].append(t)
+    day_list = data['day_list']
+    data['has_trip_records'] = bool(day_trips_map)
+    # Din jinme sirf Trips-module records hain (labour entry nahi) —
+    # wo bhi dikhne chahiye (zero labour totals ke saath).
+    have = {row['date'] for row in day_list}
+    for d in sorted(day_trips_map):
+        if d not in have:
+            day_list.append({
+                'date': d, 'trips': Decimal('0'), 'extra': Decimal('0'),
+                'advance': Decimal('0'), 'day_trips': [], 'day_extras': [],
+                'day_advances': [], 'day_settlements': [],
+            })
+    day_list.sort(key=lambda r: r['date'])
+
+    # driver_trip_counts me driver ids hoti hain — naam ek query me lao.
+    wanted_ids = set()
+    for tlist in day_trips_map.values():
+        for t in tlist:
+            for k in (t.driver_trip_counts or {}).keys():
+                try:
+                    wanted_ids.add(int(k))
+                except (TypeError, ValueError):
+                    pass
+    driver_names = {}
+    if wanted_ids:
+        driver_names = dict(
+            Labour.objects.filter(id__in=wanted_ids).values_list('id', 'name')
+        )
+
+    # Rozi/advance ke liye labour category ek query me.
+    labour_ids = set()
+    for row in day_list:
+        for e in list(row.get('day_extras', [])) + list(row.get('day_advances', [])):
+            if getattr(e, 'labour_id', None):
+                labour_ids.add(e.labour_id)
+    labour_cats = {}
+    if labour_ids:
+        labour_cats = dict(
+            Labour.objects.filter(id__in=labour_ids).values_list('id', 'category')
+        )
+
+    def _vehicle_label(t):
+        vt = getattr(getattr(t, 'vehicle', None), 'vehicle_type', None)
+        return (getattr(vt, 'name', '') or '').strip()
+
+    def _driver_parts(counts):
+        """{driver_id: count} -> [(name, count)] (count None = naam only)."""
+        parts = []
+        for did, cnt in counts.items():
+            name = driver_names.get(did, f'#{did}')
+            parts.append((name, cnt))
+        return parts
+
+    for row in day_list:
+        d = row['date']
+        groups = [g for g in labour_groups if g.date == d]
+        recs = day_trips_map.get(d, [])
+
+        # ---- LOADING (operator-wise) ----
+        loadings = defaultdict(lambda: {'count': 0})
+        for g in groups:
+            label = g.load_label or f"Tractor ({g.fill_type})"
+            for lab in g.labourers.all():
+                key = (lab.id, label)
+                loadings[key]['count'] += g.trip_count
+                loadings[key]['worker'] = lab.name
+                loadings[key]['label'] = label
+        row['loadings'] = sorted(
+            ({'worker': v['worker'], 'label': v['label'], 'count': v['count']}
+             for v in loadings.values()),
+            key=lambda x: (x['worker'], x['label']),
+        )
+
+        # ---- TRIPS (material + destination grouped) ----
+        buckets = {}
+        for t in recs:
+            mat = (getattr(t.material, 'name', '') or '').strip() or '—'
+            dest = (t.destination or '').strip()
+            key = (mat, dest)
+            b = buckets.setdefault(key, {
+                'material': mat, 'destination': dest,
+                'vehicles': Counter(), 'trips': 0, 'driver_counts': Counter(),
+                'plain_drivers': [],
+            })
+            b['trips'] += 1
+            vl = _vehicle_label(t)
+            if vl:
+                b['vehicles'][vl] += 1
+            counts = t.driver_trip_counts or {}
+            if counts:
+                for k, v in counts.items():
+                    try:
+                        b['driver_counts'][int(k)] += int(v or 0)
+                    except (TypeError, ValueError):
+                        pass
+            else:
+                for dr in t.drivers.all():
+                    if dr.name not in b['plain_drivers']:
+                        b['plain_drivers'].append(dr.name)
+        trip_lines = []
+        for (mat, dest), b in sorted(buckets.items()):
+            vehicle = b['vehicles'].most_common(1)[0][0] if b['vehicles'] else ''
+            drivers = _driver_parts(b['driver_counts'])
+            trip_lines.append({
+                'material': mat, 'destination': dest, 'vehicle': vehicle,
+                'trips': b['trips'], 'drivers': drivers,
+                'plain_drivers': b['plain_drivers'],
+            })
+        row['trip_lines'] = trip_lines
+
+        # ---- TRACTOR (HAND/JCB fill lines + matched location/drivers) ----
+        trac = [t for t in recs
+                if 'tractor' in _vehicle_label(t).lower()]
+        pool = trac or recs
+        loc_counter = Counter(
+            t.destination.strip() for t in pool if (t.destination or '').strip()
+        )
+        location = loc_counter.most_common(1)[0][0] if loc_counter else ''
+        rel = [t for t in pool if (t.destination or '').strip() == location] if location else []
+        dcounts = Counter()
+        for t in rel:
+            for k, v in (t.driver_trip_counts or {}).items():
+                try:
+                    dcounts[int(k)] += int(v or 0)
+                except (TypeError, ValueError):
+                    pass
+        tdrivers = _driver_parts(dcounts)
+        if not tdrivers:
+            seen = []
+            for t in rel:
+                for dr in t.drivers.all():
+                    if dr.name not in seen:
+                        seen.append(dr.name)
+            tdrivers = [(n, None) for n in seen]
+        fill_counts = Counter()
+        for g in groups:
+            if g.fill_type in ('HAND', 'JCB'):
+                fill_counts[g.fill_type] += g.trip_count
+        row['tractor_lines'] = [
+            {'fill': f, 'count': fill_counts[f],
+             'location': location, 'drivers': tdrivers}
+            for f in ('JCB', 'HAND') if fill_counts[f]
+        ]
+
+        # ---- ROZI TABLES (category groups) ----
+        per_labour = {}
+        for e in row.get('day_extras', []):
+            lid = getattr(e, 'labour_id', None)
+            if lid:
+                per_labour.setdefault(lid, {'rozi': Decimal('0'), 'advance': Decimal('0')})
+                per_labour[lid]['rozi'] += e.amount or Decimal('0')
+        for a in row.get('day_advances', []):
+            lid = getattr(a, 'labour_id', None)
+            if lid:
+                per_labour.setdefault(lid, {'rozi': Decimal('0'), 'advance': Decimal('0')})
+                per_labour[lid]['advance'] += a.amount or Decimal('0')
+        names = {}
+        if per_labour:
+            names = dict(
+                Labour.objects.filter(id__in=per_labour.keys()).values_list('id', 'name')
+            )
+        tables = {'mistri': [], 'tractor': [], 'hyva_jcb': []}
+        for lid in sorted(per_labour, key=lambda i: names.get(i, '')):
+            vals = per_labour[lid]
+            if not vals['rozi'] and not vals['advance']:
+                continue
+            cat = labour_cats.get(lid, '')
+            if cat == 'MISTRI':
+                bucket = tables['mistri']
+            elif cat == 'TRACTOR':
+                bucket = tables['tractor']
+            else:
+                bucket = tables['hyva_jcb']
+            bucket.append({
+                'sr': len(bucket) + 1,
+                'name': names.get(lid, f'#{lid}'),
+                'rozi': vals['rozi'],
+                'advance': vals['advance'],
+            })
+        row['rozi_tables'] = tables
 
 
 def _period_label(start, end):
@@ -2924,6 +3136,61 @@ def _daily_activity_excel(data, filename='daily_activity.xlsx'):
     ws.cell(row=r, column=1, value='TOTAL').font = bold
     for col, val in [(2, data['grand_trips']), (3, data['grand_extra']), (4, data['grand_advance'])]:
         ws.cell(row=r, column=col, value=float(val)).font = bold
+
+    # --- Day detail: Loading / Trips / Tractor / Rozi tables ---
+    def _drivers_text(drivers, plain):
+        parts = []
+        for name, cnt in drivers:
+            parts.append(f"{cnt} {name}" if cnt else name)
+        parts.extend(plain)
+        return ', '.join(parts)
+
+    for row in data['day_list']:
+        r += 2
+        ws.cell(row=r, column=1,
+                value=f"DAY {row['date'].strftime('%d-%b-%Y')}").font = _F(bold=True, color='2563EB')
+        if row.get('loadings'):
+            r += 1
+            ws.cell(row=r, column=1, value='Loading').font = bold
+            for ld in row['loadings']:
+                r += 1
+                ws.cell(row=r, column=1, value=ld['count'])
+                ws.cell(row=r, column=2, value=ld['label'])
+                ws.cell(row=r, column=3, value=ld['worker'])
+        if row.get('trip_lines'):
+            r += 1
+            ws.cell(row=r, column=1, value='Trips').font = bold
+            for tl in row['trip_lines']:
+                r += 1
+                ws.cell(row=r, column=1, value=tl['trips'])
+                ws.cell(row=r, column=2, value=tl['material'])
+                ws.cell(row=r, column=3, value=tl['vehicle'])
+                ws.cell(row=r, column=4, value=tl['destination'])
+                ws.cell(row=r, column=5,
+                         value=_drivers_text(tl['drivers'], tl['plain_drivers']))
+        if row.get('tractor_lines'):
+            r += 1
+            ws.cell(row=r, column=1, value='Tractor Trips').font = bold
+            for tr in row['tractor_lines']:
+                r += 1
+                ws.cell(row=r, column=1, value=tr['count'])
+                ws.cell(row=r, column=2, value=f"Trips {tr['fill']}")
+                ws.cell(row=r, column=3, value=tr['location'])
+                if tr['location']:
+                    ws.cell(row=r, column=4,
+                             value=_drivers_text(tr['drivers'], []))
+        for title, trows in (('Rozi — Mistri', row['rozi_tables']['mistri']),
+                             ('Rozi — Tractor Labour', row['rozi_tables']['tractor']),
+                             ('Rozi — Hyva & JCB', row['rozi_tables']['hyva_jcb'])):
+            if trows:
+                r += 1
+                ws.cell(row=r, column=1, value=title).font = bold
+                for t in trows:
+                    r += 1
+                    ws.cell(row=r, column=1, value=t['sr'])
+                    ws.cell(row=r, column=2, value=t['name'])
+                    ws.cell(row=r, column=3, value=float(t['rozi']))
+                    ws.cell(row=r, column=4, value=float(t['advance']))
 
     # --- Transactions detail ---
     def detail(table, headers, rows):
@@ -3020,6 +3287,27 @@ def _daily_activity_csv(data, filename='daily_activity.csv'):
         writer.writerow([d.strftime('%d-%b-%Y'), float(row['trips']), float(row['extra']), float(row['advance'])])
     writer.writerow(['TOTAL', float(data['grand_trips']), float(data['grand_extra']), float(data['grand_advance'])])
     writer.writerow([])
+    writer.writerow(['DAY DETAIL (Loading / Trips / Tractor / Rozi)'])
+    for row in data['day_list']:
+        writer.writerow([row['date'].strftime('%d-%b-%Y')])
+        for ld in row.get('loadings', []):
+            writer.writerow(['Loading', ld['count'], ld['label'], ld['worker']])
+        for tl in row.get('trip_lines', []):
+            parts = [f"{c} {n}" if c else n for n, c in tl['drivers']]
+            parts.extend(tl['plain_drivers'])
+            writer.writerow(['Trip', tl['trips'], tl['material'], tl['vehicle'],
+                             tl['destination'], ', '.join(parts)])
+        for tr in row.get('tractor_lines', []):
+            parts = [f"{c} {n}" if c else n for n, c in tr['drivers']]
+            writer.writerow([f"Tractor {tr['fill']}", tr['count'], tr['location'],
+                             ', '.join(parts) if tr['location'] else ''])
+        for title, key in (('Rozi-Mistri', 'mistri'),
+                           ('Rozi-Tractor', 'tractor'),
+                           ('Rozi-HyvaJCB', 'hyva_jcb')):
+            for t in row['rozi_tables'][key]:
+                writer.writerow([title, t['sr'], t['name'],
+                                 float(t['rozi']), float(t['advance'])])
+        writer.writerow([])
     writer.writerow(['TRIPS DETAIL'])
     writer.writerow(['Date', 'Load Type', 'Trips', 'Rate', 'Amount', 'Workers', 'Note'])
     for g in data['trips']:

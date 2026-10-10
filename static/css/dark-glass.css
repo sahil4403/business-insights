@@ -156,6 +156,9 @@ html[data-theme="dark"]::before {
 
 /* ---------- 5. TABLES / ROWS / STATS ---------- */
 [data-theme="dark"] thead { background: #141f2e !important; }
+/* liquid-glass.css sets the TR itself white (beats thead rule) — override it */
+[data-theme="dark"] thead.sticky tr,
+[data-theme="dark"] thead tr.bg-white { background: #141f2e !important; }
 [data-theme="dark"] .app-row { border-color: var(--d-border-soft) !important; }
 [data-theme="dark"] .app-stat .lbl { color: var(--d-faint) !important; }
 [data-theme="dark"] .app-stat .val { color: var(--d-text) !important; }
@@ -167,11 +170,15 @@ html[data-theme="dark"]::before {
     color: var(--d-text) !important;
 }
 [data-theme="dark"] .export-sheet .export-opt { color: #dbe5ef !important; border-color: rgba(255, 255, 255, .06) !important; }
-/* Labour toolbar dropdown (own <style>: white menu + slate links) */
-[data-theme="dark"] .exp-dd-menu { background: rgba(17, 28, 44, .95) !important; border-color: var(--d-border) !important; }
+/* Labour toolbar dropdown (own <style>: white menu + slate links) */[data-theme="dark"] .exp-dd-menu { background: rgba(17, 28, 44, .95) !important; border-color: var(--d-border) !important; }
 [data-theme="dark"] .exp-dd-menu a { color: #dbe5ef !important; }
 [data-theme="dark"] .exp-dd-menu a:hover { background: rgba(255, 255, 255, .07) !important; }
 [data-theme="dark"] .exp-dd-menu .exp-dd-title { color: var(--d-faint) !important; border-color: var(--d-border-soft) !important; }
+/* Daily Activity drill-down (own <style>: light detail bg) */
+[data-theme="dark"] .day-detail { background: transparent !important; border-color: var(--d-border) !important; }
+[data-theme="dark"] .day-row { border-color: var(--d-border-soft) !important; }
+[data-theme="dark"] .dd-item .t { color: #c3cfdb !important; }
+[data-theme="dark"] .dd-block .dd-title { color: var(--d-faint) !important; }
 /* Category quick-switch tabs (own <style>: white pills + slate text) */
 [data-theme="dark"] .cat-tab { background: var(--d-surface-2) !important; border-color: var(--d-border) !important; color: #c3cfdb !important; }
 [data-theme="dark"] .cat-tab .cnt { background: rgba(255, 255, 255, .08) !important; color: #8fa0b3 !important; }
@@ -255,11 +262,18 @@ html[data-theme="dark"]::before {
 [data-theme="dark"] .text-brand-600, [data-theme="dark"] .text-brand-700, [data-theme="dark"] .text-brand-500 { color: #5eead4 !important; }
 [data-theme="dark"] .border-red-200 { border-color: rgba(248, 113, 113, .3) !important; }
 [data-theme="dark"] .border-brand-100, [data-theme="dark"] .border-brand-200 { border-color: rgba(94, 234, 212, .25) !important; }
-/* Arbitrary-hex utilities used in templates (closed set, grep-verified) */
-[data-theme="dark"] .bg-\[\#f8fafc\], [data-theme="dark"] .bg-\[\#f5f7fa\] { background-color: var(--d-surface-solid) !important; }
+/* Arbitrary-hex utilities used in templates (closed set, grep-verified) */[data-theme="dark"] .bg-\[\#f8fafc\], [data-theme="dark"] .bg-\[\#f5f7fa\] { background-color: var(--d-surface-solid) !important; }
 [data-theme="dark"] .bg-\[\#eef7f5\] { background-color: rgba(22, 102, 90, .22) !important; }
 [data-theme="dark"] .text-\[\#115248\] { color: #5eead4 !important; }
 [data-theme="dark"] .border-\[\#eef1f6\], [data-theme="dark"] .border-\[\#f1f5f9\], [data-theme="dark"] .divide-\[\#f1f5f9\] > :not([hidden]) ~ :not([hidden]) { border-color: var(--d-border) !important; }
+/* Opacity-variant utilities (closed set, grep-verified) */
+[data-theme="dark"] .bg-slate-50\/50, [data-theme="dark"] .bg-slate-50\/60 { background-color: rgba(255, 255, 255, .04) !important; }
+[data-theme="dark"] .bg-white\/95, [data-theme="dark"] .bg-white\/80 { background-color: rgba(17, 28, 44, .92) !important; }
+[data-theme="dark"] .bg-red-50\/60 { background-color: rgba(220, 38, 38, .14) !important; }
+[data-theme="dark"] .bg-orange-50\/60 { background-color: rgba(234, 88, 12, .14) !important; }
+[data-theme="dark"] .bg-amber-50\/50 { background-color: rgba(217, 119, 6, .15) !important; }
+[data-theme="dark"] .bg-brand-50\/40 { background-color: rgba(22, 102, 90, .25) !important; }
+[data-theme="dark"] .divide-slate-100\/80 > :not([hidden]) ~ :not([hidden]) { border-color: var(--d-border-soft) !important; }
 /* hovers keep working on dark */
 [data-theme="dark"] .hover\:bg-slate-50:hover { background-color: rgba(255, 255, 255, .05) !important; }
 [data-theme="dark"] .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, .07) !important; }

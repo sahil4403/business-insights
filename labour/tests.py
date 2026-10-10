@@ -1201,3 +1201,243 @@ class DailyActivityAuthTest(TestCase):
         self.client.force_login(user)
         response = self.client.get(reverse('labour:daily_activity'))
         self.assertEqual(response.status_code, 200)
+
+
+class DailyActivityDetailTest(TestCase):
+    """Day drill-down: Loading vs Trips vs Tractor vs Rozi tables."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='daily-detail-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.day = date(2026, 10, 9)
+        self.santosh = Labour.objects.create(
+            name='Santosh', category='HYVA_DRIVER',
+            is_active=True, status='ACTIVE',
+        )
+        self.d1 = Labour.objects.create(
+            name='Driver1', category='HYVA_DRIVER',
+            is_active=True, status='ACTIVE',
+        )
+        self.d2 = Labour.objects.create(
+            name='Driver2', category='HYVA_DRIVER',
+            is_active=True, status='ACTIVE',
+        )
+        self.raju = Labour.objects.create(
+            name='Raju', category='MISTRI', sub_category='MISTRI',
+            is_active=True, status='ACTIVE',
+        )
+        self.kishan = Labour.objects.create(
+            name='Kishan', category='TRACTOR',
+            is_active=True, status='ACTIVE',
+        )
+
+    def _day_row(self, day=None):
+        from .views import _daily_activity_data
+
+        data = _daily_activity_data(self.day, self.day)
+        rows = [r for r in data['day_list'] if r['date'] == (day or self.day)]
+        self.assertEqual(len(rows), 1)
+        return rows[0]
+
+    def test_loadings_grouped_by_operator_and_label(self):
+        from labour.models import LabourTripGroup
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=3, rate_per_trip=Decimal('200'),
+            fill_type='HAND', load_type='WHITE_HYVA',
+        )
+        g.labourers.set([self.santosh])
+        row = self._day_row()
+        self.assertEqual(len(row['loadings']), 1)
+        self.assertEqual(row['loadings'][0]['worker'], 'Santosh')
+        self.assertEqual(row['loadings'][0]['count'], 3)
+        self.assertIn('White Sand', row['loadings'][0]['label'])
+
+    def test_trip_lines_group_and_combine_drivers(self):
+        from master_data.models import Material
+        from trips.models import Trip
+
+        fly, _ = Material.objects.get_or_create(
+            code='FLY-TEST', defaults={'name': 'Fly Ash', 'unit': 'TRIP'}
+        )
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-TEST', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        t1 = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=fly, destination='Pune',
+            trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 3, str(self.d2.pk): 3},
+        )
+        t1.drivers.set([self.d1, self.d2])
+        t2 = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=fly, destination='Pune',
+            trip_status='COMPLETED',
+        )
+        t3 = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='Mumbai',
+            trip_status='COMPLETED',
+        )
+        t4 = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=fly, destination='Pune',
+            trip_status='CANCELLED',
+        )
+        row = self._day_row()
+        by_mat = {(l['material'], l['destination']): l for l in row['trip_lines']}
+        # Same material+destination = ek line, drivers combined
+        pune = by_mat[('Fly Ash', 'Pune')]
+        self.assertEqual(pune['trips'], 2)
+        self.assertEqual(
+            sorted((n, c) for n, c in pune['drivers']),
+            [('Driver1', 3), ('Driver2', 3)],
+        )
+        # Alag destination = alag line; cancelled excluded
+        self.assertIn(('White Sand', 'Mumbai'), by_mat)
+        self.assertEqual(len(row['trip_lines']), 2)
+
+    def test_tractor_lines_location_from_trips(self):
+        from labour.models import LabourTripGroup
+        from master_data.models import Material
+        from trips.models import Trip
+
+        g1 = LabourTripGroup.objects.create(
+            date=self.day, trip_count=5, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g1.labourers.set([self.kishan])
+        g2 = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('200'),
+            fill_type='JCB', load_type='WHITE_HYVA',
+        )
+        g2.labourers.set([self.kishan])
+        fly, _ = Material.objects.get_or_create(
+            code='FLY-TEST2', defaults={'name': 'Fly Ash', 'unit': 'TRIP'}
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=fly, destination='Pune',
+            trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 2},
+        )
+        t.drivers.set([self.d1])
+        row = self._day_row()
+        by_fill = {l['fill']: l for l in row['tractor_lines']}
+        self.assertEqual(by_fill['HAND']['count'], 5)
+        self.assertEqual(by_fill['JCB']['count'], 2)
+        self.assertEqual(by_fill['HAND']['location'], 'Pune')
+        self.assertEqual(by_fill['HAND']['drivers'], [('Driver1', 2)])
+
+    def test_tractor_blank_without_trips(self):
+        from labour.models import LabourTripGroup
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=5, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g.labourers.set([self.kishan])
+        row = self._day_row()
+        self.assertEqual(len(row['tractor_lines']), 1)
+        self.assertEqual(row['tractor_lines'][0]['location'], '')
+        self.assertEqual(row['tractor_lines'][0]['drivers'], [])
+
+    def test_rozi_tables_by_category(self):
+        LabourRozi.objects.create(
+            labour=self.raju, date=self.day, day_type='FULL',
+        )
+        LabourAdvance.objects.create(
+            labour=self.raju, date=self.day, amount=Decimal('1000'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.kishan, date=self.day, amount=Decimal('200'),
+        )
+        row = self._day_row()
+        tables = row['rozi_tables']
+        self.assertEqual(
+            [(r['name'], r['advance']) for r in tables['mistri']],
+            [('Raju', Decimal('1000'))],
+        )
+        self.assertEqual(tables['mistri'][0]['sr'], 1)
+        self.assertEqual(tables['mistri'][0]['rozi'], Decimal('800'))
+        self.assertEqual(
+            [(r['name'], r['rozi']) for r in tables['tractor']],
+            [('Kishan', Decimal('0'))],
+        )
+
+
+class DailyActivityPageRenderTest(TestCase):
+    """Naya drill-down render hota hai; excel/csv me day detail aata hai."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='daily-render-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.day = date(2026, 10, 9)
+        self.op = Labour.objects.create(
+            name='Santosh', category='HYVA_DRIVER',
+            is_active=True, status='ACTIVE',
+        )
+        self.mistri = Labour.objects.create(
+            name='Raju', category='MISTRI', sub_category='MISTRI',
+            is_active=True, status='ACTIVE',
+        )
+
+    def test_page_shows_new_sections(self):
+        from labour.models import LabourTripGroup
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=3, rate_per_trip=Decimal('200'),
+            fill_type='HAND', load_type='WHITE_HYVA',
+        )
+        g.labourers.set([self.op])
+        LabourRozi.objects.create(
+            labour=self.mistri, date=self.day, day_type='FULL',
+        )
+        response = self.client.get(
+            reverse('labour:daily_activity'),
+            {'from_date': '2026-10-09', 'to_date': '2026-10-09'},
+        )
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('Loading (1)', html)
+        self.assertIn('White Sand', html)
+        self.assertIn('Santosh', html)
+        self.assertIn('Rozi — Mistri', html)
+        self.assertIn('Raju', html)
+        # Purana confusing ×count block gaya
+        self.assertNotIn('day_trips', html)
+
+    def test_excel_csv_day_detail(self):
+        from labour.models import LabourTripGroup
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g.labourers.set([self.op])
+        for export in ('excel', 'csv'):
+            with self.subTest(export=export):
+                response = self.client.get(
+                    reverse('labour:daily_activity'),
+                    {'from_date': '2026-10-09', 'to_date': '2026-10-09',
+                     'export': export},
+                )
+                self.assertEqual(response.status_code, 200)
+                if export == 'csv':
+                    text = response.content.decode()
+                    self.assertIn('DAY DETAIL', text)
+                    self.assertIn('Tractor (HAND)', text)
+                else:
+                    self.assertIn(
+                        'vnd.openxmlformats-officedocument',
+                        response['Content-Type'],
+                    )
