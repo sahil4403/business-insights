@@ -1480,6 +1480,40 @@ class DailyActivityDetailTest(TestCase):
         )
         self.assertEqual(row['hyva_loadings'], [])
 
+    def test_trips_exclude_tractor_vehicles(self):
+        # Tractor trip ka detail sirf TRACTOR me; customer completed Trips me.
+        from labour.models import LabourTripGroup
+        from master_data.models import Material, VehicleType
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-TRAC-EX', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-EX', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-EX-01', vehicle_type=vtype,
+            registration_number='MH-EX-TRAC',
+        )
+        Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='Pune',
+            vehicle=vehicle, trip_status='COMPLETED',
+        )
+        row = self._day_row()
+        # Trips section me tractor trip nahi
+        self.assertEqual(row['trip_materials'], [])
+        # Tractor section me location phir bhi matched
+        self.assertEqual(len(row['tractor_lines']), 1)
+        self.assertEqual(row['tractor_lines'][0]['location'], 'Pune')
+
     def test_tractor_ignores_stock_destination(self):
         # "Stock" destination internal kaam hai — location blank rahe.
         from labour.models import LabourTripGroup

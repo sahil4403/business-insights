@@ -2975,8 +2975,13 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         # Har material me sirf usi ke trips; har driver ka pura hisaab
         # ek saath (pehle Driver1 ki saari lines, phir Driver2 ki) taaki
         # confusion na ho. Driver bina count ke = 1 trip mana jata hai.
+        # RULE: tractor-vehicle trips yahan NAHI — unka detail sirf
+        # TRACTOR TRIPS me rehta hai. Customer (completed samet) trips
+        # yahin rehte hain.
         mat_groups = defaultdict(list)
         for t in recs:
+            if 'tractor' in _vehicle_label(t).lower():
+                continue
             mat = (getattr(t.material, 'name', '') or '').strip() or '—'
             mat_groups[mat].append(t)
         trip_materials = []
