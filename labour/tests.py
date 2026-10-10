@@ -1285,7 +1285,7 @@ class DailyActivityDetailTest(TestCase):
         self.assertNotIn('Hyva Loading (', html)
         self.assertIn('3 White Sand Hyva | Santosh', html)
 
-    def test_trip_lines_group_and_combine_drivers(self):
+    def test_trip_materials_driverwise(self):
         from master_data.models import CustomerType, Material
         from customers.models import Customer
         from trips.models import Trip
@@ -1310,34 +1310,41 @@ class DailyActivityDetailTest(TestCase):
             driver_trip_counts={str(self.d1.pk): 3, str(self.d2.pk): 3},
         )
         t1.drivers.set([self.d1, self.d2])
-        t2 = Trip.objects.create(
+        Trip.objects.create(
             trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
             total_amount=Decimal('100'), material=fly, destination='Pune',
             customer=cust, trip_status='COMPLETED',
         )
-        t3 = Trip.objects.create(
+        Trip.objects.create(
             trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
             total_amount=Decimal('100'), material=sand, destination='Mumbai',
             trip_status='COMPLETED',
         )
-        t4 = Trip.objects.create(
+        Trip.objects.create(
             trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
             total_amount=Decimal('100'), material=fly, destination='Pune',
             trip_status='CANCELLED',
         )
         row = self._day_row()
-        by_mat = {(l['material'], l['destination']): l for l in row['trip_lines']}
-        # Same material+destination = ek line, drivers combined
-        pune = by_mat[('Fly Ash', 'Pune')]
-        self.assertEqual(pune['trips'], 2)
-        self.assertEqual(pune['customer'], 'Sharma Construction')
+        by_mat = {m['material']: m for m in row['trip_materials']}
+        # White Sand block me sirf White Sand; Fly Ash me sirf Fly Ash
+        self.assertEqual(sorted(by_mat), ['Fly Ash', 'White Sand'])
+        flym = by_mat['Fly Ash']
+        self.assertEqual(flym['total'], 2)
+        # Har driver ka pura hisaab ek saath, Driver1 pehle
         self.assertEqual(
-            sorted((n, c) for n, c in pune['drivers']),
+            [(d['name'], d['total']) for d in flym['drivers']],
             [('Driver1', 3), ('Driver2', 3)],
         )
-        # Alag destination = alag line; cancelled excluded
-        self.assertIn(('White Sand', 'Mumbai'), by_mat)
-        self.assertEqual(len(row['trip_lines']), 2)
+        d1lines = flym['drivers'][0]['lines']
+        self.assertEqual(len(d1lines), 1)
+        self.assertEqual(d1lines[0]['destination'], 'Pune')
+        self.assertEqual(d1lines[0]['customer'], 'Sharma Construction')
+        self.assertEqual(d1lines[0]['count'], 3)
+        # Cancelled trip count nahi hota
+        self.assertEqual(
+            sum(m['total'] for m in row['trip_materials']), 3
+        )
 
     def test_internal_stock_trips_excluded(self):
         from master_data.models import Material
@@ -1503,7 +1510,7 @@ class DailyActivityPageRenderTest(TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
         # Hyva-operator nahi → Trips block me Hyva line
-        self.assertIn('Trips (0)', html)
+        self.assertIn('>Trips<', html)
         self.assertIn('3 White Sand Hyva | Santosh', html)
         self.assertIn('White Sand', html)
         self.assertIn('Rozi — Mistri', html)

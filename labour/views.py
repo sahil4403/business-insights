@@ -2971,44 +2971,63 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         row['loadings'] = _sorted(loadings)
         row['hyva_loadings'] = _sorted(hyva_loadings)
 
-        # ---- TRIPS (material + destination grouped) ----
-        buckets = {}
+        # ---- TRIPS (material > driver > lines) ----
+        # Har material me sirf usi ke trips; har driver ka pura hisaab
+        # ek saath (pehle Driver1 ki saari lines, phir Driver2 ki) taaki
+        # confusion na ho. Driver bina count ke = 1 trip mana jata hai.
+        mat_groups = defaultdict(list)
         for t in recs:
             mat = (getattr(t.material, 'name', '') or '').strip() or '—'
-            dest = (t.destination or '').strip()
-            cust = (getattr(t.customer, 'name', '') or '').strip()
-            key = (mat, dest, cust)
-            b = buckets.setdefault(key, {
-                'material': mat, 'destination': dest, 'customer': cust,
-                'vehicles': Counter(), 'trips': 0, 'driver_counts': Counter(),
-                'plain_drivers': [],
+            mat_groups[mat].append(t)
+        trip_materials = []
+        for mat in sorted(mat_groups):
+            per_driver = defaultdict(list)
+            unassigned = []
+            for t in mat_groups[mat]:
+                counts = t.driver_trip_counts or {}
+                if counts:
+                    for k, v in counts.items():
+                        try:
+                            did, cnt = int(k), int(v or 0)
+                        except (TypeError, ValueError):
+                            continue
+                        if cnt > 0:
+                            per_driver[did].append((t, cnt))
+                else:
+                    drs = list(t.drivers.all())
+                    if drs:
+                        for dr in drs:
+                            per_driver[dr.id].append((t, None))
+                    else:
+                        unassigned.append(t)
+            drivers = []
+            for did, items in per_driver.items():
+                lines = []
+                for t, cnt in items:
+                    lines.append({
+                        'count': cnt or 1,
+                        'vehicle': _vehicle_label(t),
+                        'destination': (t.destination or '').strip(),
+                        'customer': (getattr(t.customer, 'name', '') or '').strip(),
+                    })
+                lines.sort(key=lambda l: (l['destination'], l['customer']))
+                total = sum(l['count'] for l in lines)
+                drivers.append({
+                    'name': driver_names.get(did, f'#{did}'),
+                    'total': total, 'lines': lines,
+                })
+            drivers.sort(key=lambda x: (-x['total'], x['name']))
+            un_lines = [{
+                'count': 1,
+                'vehicle': _vehicle_label(t),
+                'destination': (t.destination or '').strip(),
+                'customer': (getattr(t.customer, 'name', '') or '').strip(),
+            } for t in unassigned]
+            trip_materials.append({
+                'material': mat, 'total': len(mat_groups[mat]),
+                'drivers': drivers, 'unassigned': un_lines,
             })
-            b['trips'] += 1
-            vl = _vehicle_label(t)
-            if vl:
-                b['vehicles'][vl] += 1
-            counts = t.driver_trip_counts or {}
-            if counts:
-                for k, v in counts.items():
-                    try:
-                        b['driver_counts'][int(k)] += int(v or 0)
-                    except (TypeError, ValueError):
-                        pass
-            else:
-                for dr in t.drivers.all():
-                    if dr.name not in b['plain_drivers']:
-                        b['plain_drivers'].append(dr.name)
-        trip_lines = []
-        for (mat, dest, cust), b in sorted(buckets.items()):
-            vehicle = b['vehicles'].most_common(1)[0][0] if b['vehicles'] else ''
-            drivers = _driver_parts(b['driver_counts'])
-            trip_lines.append({
-                'material': mat, 'destination': dest, 'customer': cust,
-                'vehicle': vehicle,
-                'trips': b['trips'], 'drivers': drivers,
-                'plain_drivers': b['plain_drivers'],
-            })
-        row['trip_lines'] = trip_lines
+        row['trip_materials'] = trip_materials
 
         # ---- TRACTOR (HAND/JCB fill lines + matched location/drivers) ----
         trac = [t for t in recs
@@ -3200,18 +3219,30 @@ def _daily_activity_excel(data, filename='daily_activity.xlsx'):
                 ws.cell(row=r, column=1, value=ld['count'])
                 ws.cell(row=r, column=2, value=ld['label'])
                 ws.cell(row=r, column=3, value=ld['worker'])
-        if row.get('trip_lines') or row.get('hyva_loadings'):
+        if row.get('trip_materials') or row.get('hyva_loadings'):
             r += 1
             ws.cell(row=r, column=1, value='Trips').font = bold
-            for tl in row.get('trip_lines', []):
+            for tm in row.get('trip_materials', []):
                 r += 1
-                ws.cell(row=r, column=1, value=tl['trips'])
-                ws.cell(row=r, column=2, value=tl['material'])
-                ws.cell(row=r, column=3, value=tl['vehicle'])
-                ws.cell(row=r, column=4, value=tl['destination'])
-                ws.cell(row=r, column=5, value=tl['customer'])
-                ws.cell(row=r, column=6,
-                         value=_drivers_text(tl['drivers'], tl['plain_drivers']))
+                ws.cell(row=r, column=1,
+                         value=f"{tm['material']} ({tm['total']})").font = bold
+                for dr in tm['drivers']:
+                    r += 1
+                    ws.cell(row=r, column=1, value=f"{dr['name']} ({dr['total']})").font = bold
+                    for ln in dr['lines']:
+                        r += 1
+                        ws.cell(row=r, column=1, value=ln['count'])
+                        ws.cell(row=r, column=2, value=tm['material'])
+                        ws.cell(row=r, column=3, value=ln['vehicle'])
+                        ws.cell(row=r, column=4, value=ln['destination'])
+                        ws.cell(row=r, column=5, value=ln['customer'])
+                for ln in tm.get('unassigned', []):
+                    r += 1
+                    ws.cell(row=r, column=1, value=ln['count'])
+                    ws.cell(row=r, column=2, value=tm['material'])
+                    ws.cell(row=r, column=3, value=ln['vehicle'])
+                    ws.cell(row=r, column=4, value=ln['destination'])
+                    ws.cell(row=r, column=5, value=ln['customer'])
             for ld in row.get('hyva_loadings', []):
                 r += 1
                 ws.cell(row=r, column=1, value=ld['count'])
@@ -3341,11 +3372,18 @@ def _daily_activity_csv(data, filename='daily_activity.csv'):
         writer.writerow([row['date'].strftime('%d-%b-%Y')])
         for ld in row.get('loadings', []):
             writer.writerow(['Loading', ld['count'], ld['label'], ld['worker']])
-        for tl in row.get('trip_lines', []):
-            parts = [f"{c} {n}" if c else n for n, c in tl['drivers']]
-            parts.extend(tl['plain_drivers'])
-            writer.writerow(['Trip', tl['trips'], tl['material'], tl['vehicle'],
-                             tl['destination'], tl['customer'], ', '.join(parts)])
+        for tm in row.get('trip_materials', []):
+            writer.writerow(['Material', tm['material'], tm['total']])
+            for dr in tm['drivers']:
+                writer.writerow(['Driver', dr['name'], dr['total']])
+                for ln in dr['lines']:
+                    writer.writerow(['Trip', ln['count'], tm['material'],
+                                     ln['vehicle'], ln['destination'],
+                                     ln['customer']])
+            for ln in tm.get('unassigned', []):
+                writer.writerow(['Trip', ln['count'], tm['material'],
+                                 ln['vehicle'], ln['destination'],
+                                 ln['customer']])
         for ld in row.get('hyva_loadings', []):
             writer.writerow(['Trip', ld['count'], ld['label'], '', '', ld['worker'], ''])
         for tr in row.get('tractor_lines', []):

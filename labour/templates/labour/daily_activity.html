@@ -225,11 +225,20 @@
                                 {% endfor %}
                             </div>
                             {% endif %}
-                            {% if row.trip_lines or row.hyva_loadings %}
+                            {% if row.trip_materials or row.hyva_loadings %}
                             <div class="dd-block">
-                                <div class="dd-title">Trips ({{ row.trip_lines|length }})</div>
-                                {% for tl in row.trip_lines %}
-                                <div class="dd-item tl-line"><span class="t">{{ tl.trips }} {{ tl.material }}{% if tl.vehicle %} | {{ tl.vehicle }}{% endif %}{% if tl.destination %} | {{ tl.destination }}{% endif %}{% if tl.customer %} | {{ tl.customer }}{% endif %}{% if tl.drivers or tl.plain_drivers %} | {% for d in tl.drivers %}{% if not forloop.first %}, {% endif %}{% if d.1 %}{{ d.1 }} {% endif %}{{ d.0 }}{% endfor %}{% if tl.plain_drivers %}{% if tl.drivers %}, {% endif %}{{ tl.plain_drivers|join:", " }}{% endif %}{% endif %}</span></div>
+                                <div class="dd-title">Trips</div>
+                                {% for tm in row.trip_materials %}
+                                <div class="dd-item tl-line"><span class="t font-bold">{{ tm.material }} ({{ tm.total }} trip{{ tm.total|pluralize }})</span></div>
+                                {% for dr in tm.drivers %}
+                                <div class="dd-item tl-line"><span class="t pl-2">▸ {{ dr.name }} — {{ dr.total }} trip{{ dr.total|pluralize }}</span></div>
+                                {% for ln in dr.lines %}
+                                <div class="dd-item tl-line"><span class="t pl-5">{{ ln.count }} {{ tm.material }}{% if ln.vehicle %} | {{ ln.vehicle }}{% endif %}{% if ln.destination %} | {{ ln.destination }}{% endif %}{% if ln.customer %} | {{ ln.customer }}{% endif %}</span></div>
+                                {% endfor %}
+                                {% endfor %}
+                                {% for ln in tm.unassigned %}
+                                <div class="dd-item tl-line"><span class="t pl-2">{{ ln.count }} {{ tm.material }}{% if ln.vehicle %} | {{ ln.vehicle }}{% endif %}{% if ln.destination %} | {{ ln.destination }}{% endif %}{% if ln.customer %} | {{ ln.customer }}{% endif %}</span></div>
+                                {% endfor %}
                                 {% endfor %}
                                 {% for ld in row.hyva_loadings %}
                                 <div class="dd-item tl-line"><span class="t">{{ ld.count }} {{ ld.label }} | {{ ld.worker }}</span></div>
