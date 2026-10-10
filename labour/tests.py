@@ -1427,6 +1427,27 @@ class DailyActivityDetailTest(TestCase):
             [r for r in data['day_list'] if r['date'] == self.day], []
         )
 
+    def test_vendor_supply_trips_excluded(self):
+        # Vendor se inward maal nahi — sirf outward entries dikhti hain.
+        from master_data.models import Material
+        from trips.models import Trip
+
+        from .views import _daily_activity_data
+
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-VENDOR', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='Site',
+            transaction_type='VENDOR_SUPPLY', trip_status='COMPLETED',
+        )
+        data = _daily_activity_data(self.day, self.day)
+        self.assertFalse(data['has_trip_records'])
+        self.assertEqual(
+            [r for r in data['day_list'] if r['date'] == self.day], []
+        )
+
     def test_tractor_lines_location_from_trips(self):
         from labour.models import LabourTripGroup
         from master_data.models import Material, VehicleType

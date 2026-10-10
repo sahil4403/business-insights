@@ -2869,6 +2869,9 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         # Stock transfer (internal) trips ka Daily Activity me koi matlab
         # nahi — customer trips hi dikhao.
         .exclude(transaction_type='INTERNAL_STOCK')
+        # Vendor supply (inward maal) nahi — sirf vendor se lene ke baad
+        # ki outward entries rakho.
+        .exclude(transaction_type='VENDOR_SUPPLY')
         .select_related('material', 'vehicle__vehicle_type', 'customer')
         .prefetch_related('drivers')
         .order_by('trip_date', 'id')
