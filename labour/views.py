@@ -3028,6 +3028,28 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'drivers': drivers, 'unassigned': un_lines,
             })
         row['trip_materials'] = trip_materials
+        # Hyva group line tabhi dikhao jab wahi kaam Trip records me na ho —
+        # warna same kaam do jagah dikhega (Oct 9: Gaju ki 2 White Sand
+        # Hyva records me bhi, Hyva line me bhi). Match: same worker +
+        # material naam label me ho. Material '—' (unknown) par match nahi.
+        drivers_by_mat = {}
+        for tm in trip_materials:
+            if tm['material'] == '—':
+                continue
+            drivers_by_mat.setdefault(tm['material'].strip().lower(), set()).update(
+                d['name'].strip().lower() for d in tm['drivers']
+            )
+        kept = []
+        for ld in row['hyva_loadings']:
+            w = ld['worker'].strip().lower()
+            lab = ld['label'].strip().lower()
+            dup = any(
+                mat and (mat in lab or lab in mat) and w in names
+                for mat, names in drivers_by_mat.items()
+            )
+            if not dup:
+                kept.append(ld)
+        row['hyva_loadings'] = kept
 
         # ---- TRACTOR (HAND/JCB fill lines + matched location/drivers) ----
         # STRICT rule: location/drivers SIRF same-date tractor-vehicle trips

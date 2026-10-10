@@ -1263,6 +1263,41 @@ class DailyActivityDetailTest(TestCase):
         self.assertIn('White Sand', row['loadings'][0]['label'])
         self.assertEqual(row['hyva_loadings'], [])
 
+    def test_hyva_line_suppressed_when_covered_by_records(self):
+        # Oct 9 bug: Gaju ka kaam records me bhi, Hyva line me bhi (double).
+        from labour.models import LabourTripGroup
+        from master_data.models import Material
+        from trips.models import Trip
+
+        gaju = Labour.objects.create(
+            name='Gaju2', category='HYVA_DRIVER',
+            is_active=True, status='ACTIVE',
+        )
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('200'),
+            fill_type='HAND', load_type='WHITE_HYVA',
+        )
+        g.labourers.set([gaju])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-DUP', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='MIDC',
+            trip_status='COMPLETED',
+            driver_trip_counts={str(gaju.pk): 2},
+        )
+        t.drivers.set([gaju])
+        row = self._day_row()
+        # Hyva line gayab (records cover karte hain), record line maujood
+        self.assertEqual(row['hyva_loadings'], [])
+        mats = {m['material']: m for m in row['trip_materials']}
+        self.assertIn('White Sand', mats)
+        self.assertEqual(
+            [(d['name'], d['total']) for d in mats['White Sand']['drivers']],
+            [('Gaju2', 2)],
+        )
+
     def test_hyva_loadings_separate_heading(self):
         from labour.models import LabourTripGroup
 
