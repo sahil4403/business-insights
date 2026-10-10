@@ -41,6 +41,10 @@
     .day-detail { display: none; background: #f8fafc; border-top: 1px dashed #e2e8f0; }
     .day-row.open + .day-detail { display: block; }
     .dd-block { padding: 0.5rem 0.75rem; }
+    /* Day detail masonry: lambe-chhote blocks gap ke bina bharein */
+    .day-cols { columns: 1; }
+    @media (min-width: 768px) { .day-cols { columns: 2; column-gap: 4px; } }
+    .day-cols > .dd-block { break-inside: avoid; margin-bottom: 4px; }
     .dd-block .dd-title { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2px; }
     .dd-item { font-size: 12.5px; display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
     .dd-item .t { color: #475569; }
@@ -207,7 +211,7 @@
                 </tr>
                 <tr class="day-detail">
                     <td colspan="5" class="p-0">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-1">
+                        <div class="day-cols">
                             {% if row.loadings %}
                             <div class="dd-block">
                                 <div class="dd-title">Loading ({{ row.loadings|length }})</div>
