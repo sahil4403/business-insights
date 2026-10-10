@@ -1514,6 +1514,57 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(len(row['tractor_lines']), 1)
         self.assertEqual(row['tractor_lines'][0]['location'], 'Pune')
 
+    def test_tractor_records_listed_in_tractor_section(self):
+        # Tractor-vehicle record Trips me nahi, Tractor me detail ke saath.
+        from labour.models import LabourTripGroup
+        from master_data.models import Material, VehicleType
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=5, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-TRAC-REC', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-REC', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-REC-01', vehicle_type=vtype,
+            registration_number='MH-REC-TRAC',
+        )
+        cust = None
+        from master_data.models import CustomerType
+        from customers.models import Customer
+        ctype, _ = CustomerType.objects.get_or_create(
+            code='TRAC-REC-CT', defaults={'name': 'TracRec'}
+        )
+        cust = Customer.objects.create(
+            customer_code='TR-REC-01', name='Chauhan',
+            customer_type=ctype, is_active=True,
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='MIDC',
+            customer=cust, vehicle=vehicle, trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 1},
+        )
+        t.drivers.set([self.d1])
+        row = self._day_row()
+        # Trips section me tractor record nahi
+        self.assertEqual(row['trip_materials'], [])
+        # Tractor section me fill line + record detail line
+        self.assertEqual(len(row['tractor_lines']), 1)
+        recs = row['tractor_records']
+        self.assertEqual(len(recs), 1)
+        self.assertEqual(recs[0]['material'], 'White Sand')
+        self.assertEqual(recs[0]['destination'], 'MIDC')
+        self.assertEqual(recs[0]['customer'], 'Chauhan')
+        self.assertEqual(recs[0]['drivers'], [('Driver1', 1)])
+
     def test_tractor_ignores_stock_destination(self):
         # "Stock" destination internal kaam hai — location blank rahe.
         from labour.models import LabourTripGroup

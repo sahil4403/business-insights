@@ -3082,6 +3082,40 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         trac = [t for t in recs
                 if 'tractor' in _vehicle_label(t).lower()]
         pool = trac
+        # Tractor-vehicle records khud bhi Tractor section me lines-by-lines
+        # dikhenge (Trips-materials jaisa format), taaki koi tractor trip
+        # chhute nahi.
+        trac_lines = []
+        tbuckets = {}
+        for t in trac:
+            mat = (getattr(t.material, 'name', '') or '').strip() or '—'
+            dest = (t.destination or '').strip()
+            cust = (getattr(t.customer, 'name', '') or '').strip()
+            key = (mat, dest, cust)
+            b = tbuckets.setdefault(key, {
+                'material': mat, 'destination': dest, 'customer': cust,
+                'vehicle': _vehicle_label(t), 'trips': 0,
+                'driver_counts': Counter(), 'plain_drivers': [],
+            })
+            b['trips'] += 1
+            counts = t.driver_trip_counts or {}
+            if counts:
+                for k, v in counts.items():
+                    try:
+                        b['driver_counts'][int(k)] += int(v or 0)
+                    except (TypeError, ValueError):
+                        pass
+            else:
+                for dr in t.drivers.all():
+                    if dr.name not in b['plain_drivers']:
+                        b['plain_drivers'].append(dr.name)
+        for (mat, dest, cust), b in sorted(tbuckets.items()):
+            trac_lines.append({
+                'material': mat, 'destination': dest, 'customer': cust,
+                'vehicle': b['vehicle'], 'trips': b['trips'],
+                'drivers': _driver_parts(b['driver_counts']),
+                'plain_drivers': b['plain_drivers'],
+            })
         # "Stock" destination internal kaam hai — use location mat mano.
         loc_counter = Counter(
             t.destination.strip() for t in pool
@@ -3117,6 +3151,7 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
              'location': location, 'drivers': tdrivers}
             for f in ('JCB', 'HAND') if fill_counts[f]
         ]
+        row['tractor_records'] = trac_lines
 
         # ---- ROZI TABLES (category groups) ----
         # Rozi column = rozi/extra records + us din ki trip-group kamai ka
@@ -3300,10 +3335,10 @@ def _daily_activity_excel(data, filename='daily_activity.xlsx'):
                 ws.cell(row=r, column=1, value=ld['count'])
                 ws.cell(row=r, column=2, value=ld['label'])
                 ws.cell(row=r, column=4, value=ld['worker'])
-        if row.get('tractor_lines'):
+        if row.get('tractor_lines') or row.get('tractor_records'):
             r += 1
             ws.cell(row=r, column=1, value='Tractor Trips').font = bold
-            for tr in row['tractor_lines']:
+            for tr in row.get('tractor_lines', []):
                 r += 1
                 ws.cell(row=r, column=1, value=tr['count'])
                 ws.cell(row=r, column=2, value=f"Trips {tr['fill']}")
@@ -3311,6 +3346,14 @@ def _daily_activity_excel(data, filename='daily_activity.xlsx'):
                 if tr['location']:
                     ws.cell(row=r, column=4,
                              value=_drivers_text(tr['drivers'], []))
+            for tl in row.get('tractor_records', []):
+                r += 1
+                ws.cell(row=r, column=1, value=tl['trips'])
+                ws.cell(row=r, column=2, value=tl['material'])
+                ws.cell(row=r, column=3, value=tl['destination'])
+                ws.cell(row=r, column=4, value=tl['customer'])
+                ws.cell(row=r, column=5,
+                         value=_drivers_text(tl['drivers'], tl['plain_drivers']))
         for title, trows in (('Rozi — Mistri', row['rozi_tables']['mistri']),
                              ('Rozi — Tractor Labour', row['rozi_tables']['tractor']),
                              ('Rozi — Hyva & JCB', row['rozi_tables']['hyva_jcb'])):
@@ -3442,6 +3485,11 @@ def _daily_activity_csv(data, filename='daily_activity.csv'):
             parts = [f"{c} {n}" if c else n for n, c in tr['drivers']]
             writer.writerow([f"Tractor {tr['fill']}", tr['count'], tr['location'],
                              ', '.join(parts) if tr['location'] else ''])
+        for tl in row.get('tractor_records', []):
+            parts = [f"{c} {n}" if c else n for n, c in tl['drivers']]
+            parts.extend(tl['plain_drivers'])
+            writer.writerow(['Tractor Trip', tl['trips'], tl['material'],
+                             tl['destination'], tl['customer'], ', '.join(parts)])
         for title, key in (('Rozi-Mistri', 'mistri'),
                            ('Rozi-Tractor', 'tractor'),
                            ('Rozi-HyvaJCB', 'hyva_jcb')):
