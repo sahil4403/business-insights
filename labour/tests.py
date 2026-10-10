@@ -1277,6 +1277,13 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(len(row['hyva_loadings']), 1)
         self.assertEqual(row['hyva_loadings'][0]['worker'], 'Santosh')
         self.assertEqual(row['hyva_loadings'][0]['count'], 3)
+        # Page par Hyva line Trips block ke andar, alag heading nahi
+        html = self.client.get(
+            reverse('labour:daily_activity'),
+            {'from_date': '2026-10-09', 'to_date': '2026-10-09'},
+        ).content.decode()
+        self.assertNotIn('Hyva Loading (', html)
+        self.assertIn('3 White Sand Hyva | Santosh', html)
 
     def test_trip_lines_group_and_combine_drivers(self):
         from master_data.models import CustomerType, Material
@@ -1495,9 +1502,10 @@ class DailyActivityPageRenderTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        self.assertIn('Loading (1)', html)
+        # Hyva-operator nahi → Trips block me Hyva line
+        self.assertIn('Trips (0)', html)
+        self.assertIn('3 White Sand Hyva | Santosh', html)
         self.assertIn('White Sand', html)
-        self.assertIn('Santosh', html)
         self.assertIn('Rozi — Mistri', html)
         self.assertIn('Raju', html)
         # Purana confusing ×count block gaya

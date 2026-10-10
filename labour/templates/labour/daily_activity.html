@@ -225,19 +225,14 @@
                                 {% endfor %}
                             </div>
                             {% endif %}
-                            {% if row.hyva_loadings %}
-                            <div class="dd-block">
-                                <div class="dd-title">Hyva Loading ({{ row.hyva_loadings|length }})</div>
-                                {% for ld in row.hyva_loadings %}
-                                <div class="dd-item"><span class="t">{{ ld.count }} {{ ld.label }} | {{ ld.worker }}</span></div>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                            {% if row.trip_lines %}
+                            {% if row.trip_lines or row.hyva_loadings %}
                             <div class="dd-block">
                                 <div class="dd-title">Trips ({{ row.trip_lines|length }})</div>
                                 {% for tl in row.trip_lines %}
                                 <div class="dd-item tl-line"><span class="t">{{ tl.trips }} {{ tl.material }}{% if tl.vehicle %} | {{ tl.vehicle }}{% endif %}{% if tl.destination %} | {{ tl.destination }}{% endif %}{% if tl.customer %} | {{ tl.customer }}{% endif %}{% if tl.drivers or tl.plain_drivers %} | {% for d in tl.drivers %}{% if not forloop.first %}, {% endif %}{% if d.1 %}{{ d.1 }} {% endif %}{{ d.0 }}{% endfor %}{% if tl.plain_drivers %}{% if tl.drivers %}, {% endif %}{{ tl.plain_drivers|join:", " }}{% endif %}{% endif %}</span></div>
+                                {% endfor %}
+                                {% for ld in row.hyva_loadings %}
+                                <div class="dd-item tl-line"><span class="t">{{ ld.count }} {{ ld.label }} | {{ ld.worker }}</span></div>
                                 {% endfor %}
                             </div>
                             {% endif %}

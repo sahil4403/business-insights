@@ -3200,18 +3200,10 @@ def _daily_activity_excel(data, filename='daily_activity.xlsx'):
                 ws.cell(row=r, column=1, value=ld['count'])
                 ws.cell(row=r, column=2, value=ld['label'])
                 ws.cell(row=r, column=3, value=ld['worker'])
-        if row.get('hyva_loadings'):
-            r += 1
-            ws.cell(row=r, column=1, value='Hyva Loading').font = bold
-            for ld in row['hyva_loadings']:
-                r += 1
-                ws.cell(row=r, column=1, value=ld['count'])
-                ws.cell(row=r, column=2, value=ld['label'])
-                ws.cell(row=r, column=3, value=ld['worker'])
-        if row.get('trip_lines'):
+        if row.get('trip_lines') or row.get('hyva_loadings'):
             r += 1
             ws.cell(row=r, column=1, value='Trips').font = bold
-            for tl in row['trip_lines']:
+            for tl in row.get('trip_lines', []):
                 r += 1
                 ws.cell(row=r, column=1, value=tl['trips'])
                 ws.cell(row=r, column=2, value=tl['material'])
@@ -3220,6 +3212,11 @@ def _daily_activity_excel(data, filename='daily_activity.xlsx'):
                 ws.cell(row=r, column=5, value=tl['customer'])
                 ws.cell(row=r, column=6,
                          value=_drivers_text(tl['drivers'], tl['plain_drivers']))
+            for ld in row.get('hyva_loadings', []):
+                r += 1
+                ws.cell(row=r, column=1, value=ld['count'])
+                ws.cell(row=r, column=2, value=ld['label'])
+                ws.cell(row=r, column=4, value=ld['worker'])
         if row.get('tractor_lines'):
             r += 1
             ws.cell(row=r, column=1, value='Tractor Trips').font = bold
@@ -3344,13 +3341,13 @@ def _daily_activity_csv(data, filename='daily_activity.csv'):
         writer.writerow([row['date'].strftime('%d-%b-%Y')])
         for ld in row.get('loadings', []):
             writer.writerow(['Loading', ld['count'], ld['label'], ld['worker']])
-        for ld in row.get('hyva_loadings', []):
-            writer.writerow(['Hyva Loading', ld['count'], ld['label'], ld['worker']])
         for tl in row.get('trip_lines', []):
             parts = [f"{c} {n}" if c else n for n, c in tl['drivers']]
             parts.extend(tl['plain_drivers'])
             writer.writerow(['Trip', tl['trips'], tl['material'], tl['vehicle'],
                              tl['destination'], tl['customer'], ', '.join(parts)])
+        for ld in row.get('hyva_loadings', []):
+            writer.writerow(['Trip', ld['count'], ld['label'], '', '', ld['worker'], ''])
         for tr in row.get('tractor_lines', []):
             parts = [f"{c} {n}" if c else n for n, c in tr['drivers']]
             writer.writerow([f"Tractor {tr['fill']}", tr['count'], tr['location'],
