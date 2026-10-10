@@ -2862,6 +2862,16 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
 
     # Apni internal jagah (order nahi): wahan "Stock", driver nahi.
     INTERNAL_PLACES = {'stock', 'kosara'}
+    # Vehicle shabd (Hyva/Halfton/...) material ka naam nahi badalte:
+    # "Halfton White" aur "White Sand" ek hi maal hai. Canonical key se
+    # group/merge karo taaki same maal do blocks me na bate.
+    VEHICLE_WORDS = {'hyva', 'halfton', 'halftone', 'halftonwhite',
+                     'tractor', 'jcb', 'half', 'ton', 'halfton'}
+
+    def _canon_material(name):
+        tokens = re.findall(r'[a-z]+', (name or '').lower())
+        kept = [t for t in tokens if t not in VEHICLE_WORDS]
+        return ''.join(kept) or ''.join(tokens)
 
     if period_start is None and period_end is None:
         trip_qs = Trip.objects.all()
@@ -2985,16 +2995,36 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         # TRACTOR TRIPS me rehta hai. Customer (completed samet) trips
         # yahin rehte hain.
         mat_groups = defaultdict(list)
+        mat_names = defaultdict(set)
         for t in recs:
             if 'tractor' in _vehicle_label(t).lower():
                 continue
             mat = (getattr(t.material, 'name', '') or '').strip() or '—'
-            mat_groups[mat].append(t)
+            key = _canon_material(mat)
+            # Same maal, alag naam ("Halfton White" vs "White Sand"):
+            # canonical ek dusre me samaye to ek hi group.
+            if key != '—':
+                for existing in list(mat_groups):
+                    if existing == '—':
+                        continue
+                    if key in existing or existing in key:
+                        key = existing
+                        break
+            mat_groups[key].append(t)
+            mat_names[key].add(mat)
         trip_materials = []
-        for mat in sorted(mat_groups):
+        for key in sorted(mat_groups):
+            names = mat_names[key]
+
+            def _name_rank(n):
+                toks = re.findall(r'[a-z]+', n.lower())
+                dirty = sum(1 for t in toks if t in VEHICLE_WORDS)
+                return (dirty, -len(n), n)
+
+            mat = sorted(names, key=_name_rank)[0]
             per_driver = defaultdict(list)
             unassigned = []
-            for t in mat_groups[mat]:
+            for t in mat_groups[key]:
                 counts = t.driver_trip_counts or {}
                 if counts:
                     for k, v in counts.items():
@@ -3035,7 +3065,7 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'customer': (getattr(t.customer, 'name', '') or '').strip(),
             } for t in unassigned]
             trip_materials.append({
-                'material': mat, 'total': len(mat_groups[mat]),
+                'material': mat, 'total': len(mat_groups[key]),
                 'drivers': drivers, 'unassigned': un_lines,
             })
         row['trip_materials'] = trip_materials
@@ -3047,13 +3077,14 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         for tm in trip_materials:
             if tm['material'] == '—':
                 continue
-            drivers_by_mat.setdefault(tm['material'].strip().lower(), set()).update(
+            drivers_by_mat.setdefault(
+                _canon_material(tm['material']), set()).update(
                 d['name'].strip().lower() for d in tm['drivers']
             )
         kept = []
         for ld in row['hyva_loadings']:
             w = ld['worker'].strip().lower()
-            lab = ld['label'].strip().lower()
+            lab = _canon_material(ld['label'])
             dup = any(
                 mat and (mat in lab or lab in mat) and w in names
                 for mat, names in drivers_by_mat.items()

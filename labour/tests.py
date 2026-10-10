@@ -1406,6 +1406,35 @@ class DailyActivityDetailTest(TestCase):
             sum(m['total'] for m in row['trip_materials']), 3
         )
 
+    def test_same_material_merges_name_variants(self):
+        # "Halfton White" aur "White Sand" ek hi maal — ek block me.
+        from master_data.models import Material
+        from trips.models import Trip
+
+        ws, _ = Material.objects.get_or_create(
+            code='WS-MERGE', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        hw, _ = Material.objects.get_or_create(
+            code='HW-MERGE', defaults={'name': 'Halfton White', 'unit': 'TRIP'}
+        )
+        Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=ws, destination='A',
+            trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 1},
+        ).drivers.set([self.d1])
+        Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=hw, destination='B',
+            trip_status='COMPLETED',
+            driver_trip_counts={str(self.d2.pk): 1},
+        ).drivers.set([self.d2])
+        row = self._day_row()
+        mats = [m['material'] for m in row['trip_materials']]
+        # Double block nahi — ek hi, poore naam ke saath
+        self.assertEqual(mats, ['White Sand'])
+        self.assertEqual(row['trip_materials'][0]['total'], 2)
+
     def test_internal_stock_trips_excluded(self):
         from master_data.models import Material
         from trips.models import Trip
