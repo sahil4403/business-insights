@@ -2860,6 +2860,9 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
     """
     from trips.models import Trip
 
+    # Apni internal jagah (order nahi): wahan "Stock", driver nahi.
+    INTERNAL_PLACES = {'stock', 'kosara'}
+
     if period_start is None and period_end is None:
         trip_qs = Trip.objects.all()
     else:
@@ -3113,19 +3116,38 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                     if dr.name not in b['plain_drivers']:
                         b['plain_drivers'].append(dr.name)
         for (mat, dest, cust), b in sorted(tbuckets.items()):
+            is_stock_line = dest.strip().lower() in INTERNAL_PLACES
             trac_lines.append({
-                'material': mat, 'destination': dest, 'customer': cust,
+                'material': mat,
+                'destination': 'Stock' if is_stock_line else dest,
+                'customer': cust,
                 'vehicle': b['vehicle'], 'trips': b['trips'],
-                'drivers': _driver_parts(b['driver_counts']),
-                'plain_drivers': b['plain_drivers'],
+                'drivers': [] if is_stock_line else _driver_parts(b['driver_counts']),
+                'plain_drivers': [] if is_stock_line else b['plain_drivers'],
             })
         # Kosara/Stock apni internal jagah hai (order nahi): wahan "Stock"
         # likho, driver naam mat dikhao. Sirf real place par details.
-        INTERNAL_PLACES = {'stock', 'kosara'}
         loc_counter = Counter(
             t.destination.strip() for t in pool if (t.destination or '').strip()
         )
         raw_location = loc_counter.most_common(1)[0][0] if loc_counter else ''
+
+        def _pool_trip_total(trips):
+            # Tractor records ke driver-trip counts ka total.
+            total = 0
+            for t in trips:
+                counts = t.driver_trip_counts or {}
+                if counts:
+                    for v in counts.values():
+                        try:
+                            total += int(v or 0)
+                        except (TypeError, ValueError):
+                            pass
+                else:
+                    total += len(list(t.drivers.all())) or 1
+            return total
+
+        pool_total = _pool_trip_total(pool)
         if raw_location.strip().lower() in INTERNAL_PLACES:
             location, tdrivers, is_stock = 'Stock', [], True
         else:
@@ -3154,11 +3176,24 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             # double-counting hogi.
             if g.fill_type in ('HAND', 'JCB') and not g.load_type:
                 fill_counts[g.fill_type] += g.trip_count
-        row['tractor_lines'] = [
-            {'fill': f, 'count': fill_counts[f],
-             'location': location, 'drivers': tdrivers, 'is_stock': is_stock}
-            for f in ('JCB', 'HAND') if fill_counts[f]
-        ]
+        row['tractor_lines'] = []
+        for f in ('JCB', 'HAND'):
+            if not fill_counts[f]:
+                continue
+            # Count cross-check (Oct 8 bug): records ka trip total fill line
+            # ke count se exact mile tabhi location/drivers — warna blank.
+            # Galat attribution se khaali behtar hai.
+            if not is_stock and pool_total != fill_counts[f]:
+                row['tractor_lines'].append(
+                    {'fill': f, 'count': fill_counts[f],
+                     'location': '', 'drivers': [], 'is_stock': False}
+                )
+            else:
+                row['tractor_lines'].append(
+                    {'fill': f, 'count': fill_counts[f],
+                     'location': location, 'drivers': tdrivers,
+                     'is_stock': is_stock}
+                )
         row['tractor_records'] = trac_lines
 
         # ---- ROZI TABLES (category groups) ----

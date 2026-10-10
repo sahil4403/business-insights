@@ -1484,15 +1484,19 @@ class DailyActivityDetailTest(TestCase):
             trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
             total_amount=Decimal('100'), material=fly, destination='Pune',
             vehicle=vehicle, trip_status='COMPLETED',
-            driver_trip_counts={str(self.d1.pk): 2},
+            driver_trip_counts={str(self.d1.pk): 5},
         )
         t.drivers.set([self.d1])
         row = self._day_row()
         by_fill = {l['fill']: l for l in row['tractor_lines']}
         self.assertEqual(by_fill['HAND']['count'], 5)
         self.assertEqual(by_fill['JCB']['count'], 2)
+        # Pool total (5) HAND (5) se exact milta hai → details
         self.assertEqual(by_fill['HAND']['location'], 'Pune')
-        self.assertEqual(by_fill['HAND']['drivers'], [('Driver1', 2)])
+        self.assertEqual(by_fill['HAND']['drivers'], [('Driver1', 5)])
+        # JCB (2) se match nahi → blank (galat attribution se behtar)
+        self.assertEqual(by_fill['JCB']['location'], '')
+        self.assertEqual(by_fill['JCB']['drivers'], [])
         # Loading me sirf load wale groups; pure tractor trips bahar.
         # g3 me JCB/Hyva member nahi (Kishan tractor hai) → fallback loadings.
         self.assertEqual(
@@ -1523,15 +1527,17 @@ class DailyActivityDetailTest(TestCase):
             vehicle_code='TRAC-EX-01', vehicle_type=vtype,
             registration_number='MH-EX-TRAC',
         )
-        Trip.objects.create(
+        t = Trip.objects.create(
             trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
             total_amount=Decimal('100'), material=sand, destination='Pune',
             vehicle=vehicle, trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 2},
         )
+        t.drivers.set([self.d1])
         row = self._day_row()
         # Trips section me tractor trip nahi
         self.assertEqual(row['trip_materials'], [])
-        # Tractor section me location phir bhi matched
+        # Tractor section me location phir bhi matched (count 2 == 2)
         self.assertEqual(len(row['tractor_lines']), 1)
         self.assertEqual(row['tractor_lines'][0]['location'], 'Pune')
 
@@ -1620,6 +1626,42 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(row['tractor_lines'][0]['location'], 'Stock')
         self.assertEqual(row['tractor_lines'][0]['drivers'], [])
 
+    def test_tractor_count_mismatch_stays_blank(self):
+        # Oct 8 bug: 8 HAND trips par 1-trip wale record ki location/driver
+        # aa gayi thi. Count exact mile tabhi details — warna blank.
+        from labour.models import LabourTripGroup
+        from master_data.models import Material, VehicleType
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=8, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-MISMATCH', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-MISMATCH', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-MIS-01', vehicle_type=vtype,
+            registration_number='MH-MIS-TRAC',
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='Vichoda',
+            vehicle=vehicle, trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 1},
+        )
+        t.drivers.set([self.d1])
+        row = self._day_row()
+        self.assertEqual(len(row['tractor_lines']), 1)
+        self.assertEqual(row['tractor_lines'][0]['count'], 8)
+        self.assertEqual(row['tractor_lines'][0]['location'], '')
+        self.assertEqual(row['tractor_lines'][0]['drivers'], [])
+
     def test_tractor_stock_destination_shows_stock(self):
         # Kosara/Stock internal jagah hai: "Stock" likho, driver mat dikhao.
         from labour.models import LabourTripGroup
@@ -1654,8 +1696,14 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(row['tractor_lines'][0]['location'], 'Stock')
         self.assertEqual(row['tractor_lines'][0]['drivers'], [])
         self.assertTrue(row['tractor_lines'][0]['is_stock'])
+        # Detail record line me bhi Kosara nahi — Stock, bina drivers
+        self.assertEqual(len(row['tractor_records']), 1)
+        self.assertEqual(row['tractor_records'][0]['destination'], 'Stock')
+        self.assertEqual(row['tractor_records'][0]['drivers'], [])
+        self.assertEqual(row['tractor_records'][0]['plain_drivers'], [])
 
-    def test_tractor_never_uses_hyva_trips(self):        # Oct 9 bug: tractor line me Hyva trip ki location/driver aa gayi thi.
+    def test_tractor_never_uses_hyva_trips(self):
+        # Oct 9 bug: tractor line me Hyva trip ki location/driver aa gayi thi.
         # Ab tractor-vehicle trip na ho to blank — koi fallback nahi.
         from labour.models import LabourTripGroup
         from master_data.models import Material
