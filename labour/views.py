@@ -2866,7 +2866,10 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         trip_qs = Trip.objects.filter(trip_date__range=(period_start, period_end))
     trip_qs = (
         trip_qs.exclude(trip_status='CANCELLED')
-        .select_related('material', 'vehicle__vehicle_type')
+        # Stock transfer (internal) trips ka Daily Activity me koi matlab
+        # nahi — customer trips hi dikhao.
+        .exclude(transaction_type='INTERNAL_STOCK')
+        .select_related('material', 'vehicle__vehicle_type', 'customer')
         .prefetch_related('drivers')
         .order_by('trip_date', 'id')
     )
@@ -2973,9 +2976,10 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         for t in recs:
             mat = (getattr(t.material, 'name', '') or '').strip() or '—'
             dest = (t.destination or '').strip()
-            key = (mat, dest)
+            cust = (getattr(t.customer, 'name', '') or '').strip()
+            key = (mat, dest, cust)
             b = buckets.setdefault(key, {
-                'material': mat, 'destination': dest,
+                'material': mat, 'destination': dest, 'customer': cust,
                 'vehicles': Counter(), 'trips': 0, 'driver_counts': Counter(),
                 'plain_drivers': [],
             })
@@ -2995,11 +2999,12 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                     if dr.name not in b['plain_drivers']:
                         b['plain_drivers'].append(dr.name)
         trip_lines = []
-        for (mat, dest), b in sorted(buckets.items()):
+        for (mat, dest, cust), b in sorted(buckets.items()):
             vehicle = b['vehicles'].most_common(1)[0][0] if b['vehicles'] else ''
             drivers = _driver_parts(b['driver_counts'])
             trip_lines.append({
-                'material': mat, 'destination': dest, 'vehicle': vehicle,
+                'material': mat, 'destination': dest, 'customer': cust,
+                'vehicle': vehicle,
                 'trips': b['trips'], 'drivers': drivers,
                 'plain_drivers': b['plain_drivers'],
             })
@@ -3212,7 +3217,8 @@ def _daily_activity_excel(data, filename='daily_activity.xlsx'):
                 ws.cell(row=r, column=2, value=tl['material'])
                 ws.cell(row=r, column=3, value=tl['vehicle'])
                 ws.cell(row=r, column=4, value=tl['destination'])
-                ws.cell(row=r, column=5,
+                ws.cell(row=r, column=5, value=tl['customer'])
+                ws.cell(row=r, column=6,
                          value=_drivers_text(tl['drivers'], tl['plain_drivers']))
         if row.get('tractor_lines'):
             r += 1
@@ -3344,7 +3350,7 @@ def _daily_activity_csv(data, filename='daily_activity.csv'):
             parts = [f"{c} {n}" if c else n for n, c in tl['drivers']]
             parts.extend(tl['plain_drivers'])
             writer.writerow(['Trip', tl['trips'], tl['material'], tl['vehicle'],
-                             tl['destination'], ', '.join(parts)])
+                             tl['destination'], tl['customer'], ', '.join(parts)])
         for tr in row.get('tractor_lines', []):
             parts = [f"{c} {n}" if c else n for n, c in tr['drivers']]
             writer.writerow([f"Tractor {tr['fill']}", tr['count'], tr['location'],

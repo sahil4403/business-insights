@@ -1279,9 +1279,17 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(row['hyva_loadings'][0]['count'], 3)
 
     def test_trip_lines_group_and_combine_drivers(self):
-        from master_data.models import Material
+        from master_data.models import CustomerType, Material
+        from customers.models import Customer
         from trips.models import Trip
 
+        ctype, _ = CustomerType.objects.get_or_create(
+            code='TRIPLINE-TEST', defaults={'name': 'Tripline Test'}
+        )
+        cust = Customer.objects.create(
+            customer_code='TL-001', name='Sharma Construction',
+            customer_type=ctype, is_active=True,
+        )
         fly, _ = Material.objects.get_or_create(
             code='FLY-TEST', defaults={'name': 'Fly Ash', 'unit': 'TRIP'}
         )
@@ -1291,14 +1299,14 @@ class DailyActivityDetailTest(TestCase):
         t1 = Trip.objects.create(
             trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
             total_amount=Decimal('100'), material=fly, destination='Pune',
-            trip_status='COMPLETED',
+            customer=cust, trip_status='COMPLETED',
             driver_trip_counts={str(self.d1.pk): 3, str(self.d2.pk): 3},
         )
         t1.drivers.set([self.d1, self.d2])
         t2 = Trip.objects.create(
             trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
             total_amount=Decimal('100'), material=fly, destination='Pune',
-            trip_status='COMPLETED',
+            customer=cust, trip_status='COMPLETED',
         )
         t3 = Trip.objects.create(
             trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
@@ -1315,6 +1323,7 @@ class DailyActivityDetailTest(TestCase):
         # Same material+destination = ek line, drivers combined
         pune = by_mat[('Fly Ash', 'Pune')]
         self.assertEqual(pune['trips'], 2)
+        self.assertEqual(pune['customer'], 'Sharma Construction')
         self.assertEqual(
             sorted((n, c) for n, c in pune['drivers']),
             [('Driver1', 3), ('Driver2', 3)],
@@ -1322,6 +1331,27 @@ class DailyActivityDetailTest(TestCase):
         # Alag destination = alag line; cancelled excluded
         self.assertIn(('White Sand', 'Mumbai'), by_mat)
         self.assertEqual(len(row['trip_lines']), 2)
+
+    def test_internal_stock_trips_excluded(self):
+        from master_data.models import Material
+        from trips.models import Trip
+
+        from .views import _daily_activity_data
+
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-STOCK', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='Stock',
+            transaction_type='INTERNAL_STOCK', trip_status='COMPLETED',
+        )
+        data = _daily_activity_data(self.day, self.day)
+        # Stock transfer lines kahin nahi: na day rows me, na trip lines me
+        self.assertFalse(data['has_trip_records'])
+        self.assertEqual(
+            [r for r in data['day_list'] if r['date'] == self.day], []
+        )
 
     def test_tractor_lines_location_from_trips(self):
         from labour.models import LabourTripGroup
