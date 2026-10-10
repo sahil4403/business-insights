@@ -1587,7 +1587,7 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(recs[0]['drivers'], [('Driver1', 1)])
 
     def test_tractor_ignores_stock_destination(self):
-        # "Stock" destination internal kaam hai — location blank rahe.
+        # Destination "Stock" internal hai: location "Stock", driver blank.
         from labour.models import LabourTripGroup
         from master_data.models import Material, VehicleType
         from trips.models import Trip
@@ -1599,14 +1599,14 @@ class DailyActivityDetailTest(TestCase):
         )
         g.labourers.set([self.kishan])
         sand, _ = Material.objects.get_or_create(
-            code='SAND-STOCKDEST', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+            code='SAND-STOCKDEST2', defaults={'name': 'White Sand', 'unit': 'TRIP'}
         )
         vtype, _ = VehicleType.objects.get_or_create(
-            code='TRACTOR-STOCK', defaults={'name': 'Tractor Trolley'}
+            code='TRACTOR-STOCK2', defaults={'name': 'Tractor Trolley'}
         )
         vehicle = Vehicle.objects.create(
-            vehicle_code='TRAC-STOCK-01', vehicle_type=vtype,
-            registration_number='MH-STOCK-TRAC',
+            vehicle_code='TRAC-STOCK2-01', vehicle_type=vtype,
+            registration_number='MH-STOCK2-TRAC',
         )
         t = Trip.objects.create(
             trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
@@ -1617,8 +1617,43 @@ class DailyActivityDetailTest(TestCase):
         t.drivers.set([self.d1])
         row = self._day_row()
         self.assertEqual(len(row['tractor_lines']), 1)
-        self.assertEqual(row['tractor_lines'][0]['location'], '')
+        self.assertEqual(row['tractor_lines'][0]['location'], 'Stock')
         self.assertEqual(row['tractor_lines'][0]['drivers'], [])
+
+    def test_tractor_stock_destination_shows_stock(self):
+        # Kosara/Stock internal jagah hai: "Stock" likho, driver mat dikhao.
+        from labour.models import LabourTripGroup
+        from master_data.models import Material, VehicleType
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=11, rate_per_trip=Decimal('450'),
+            fill_type='JCB', load_type='',
+        )
+        g.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-KOSARA', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-KOS', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-KOS-01', vehicle_type=vtype,
+            registration_number='MH-KOS-TRAC',
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='Kosara',
+            vehicle=vehicle, trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 1},
+        )
+        t.drivers.set([self.d1])
+        row = self._day_row()
+        self.assertEqual(len(row['tractor_lines']), 1)
+        self.assertEqual(row['tractor_lines'][0]['location'], 'Stock')
+        self.assertEqual(row['tractor_lines'][0]['drivers'], [])
+        self.assertTrue(row['tractor_lines'][0]['is_stock'])
 
     def test_tractor_never_uses_hyva_trips(self):        # Oct 9 bug: tractor line me Hyva trip ki location/driver aa gayi thi.
         # Ab tractor-vehicle trip na ho to blank — koi fallback nahi.

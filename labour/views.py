@@ -3119,14 +3119,19 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'drivers': _driver_parts(b['driver_counts']),
                 'plain_drivers': b['plain_drivers'],
             })
-        # "Stock" destination internal kaam hai — use location mat mano.
+        # Kosara/Stock apni internal jagah hai (order nahi): wahan "Stock"
+        # likho, driver naam mat dikhao. Sirf real place par details.
+        INTERNAL_PLACES = {'stock', 'kosara'}
         loc_counter = Counter(
-            t.destination.strip() for t in pool
-            if (t.destination or '').strip()
-            and (t.destination or '').strip().lower() != 'stock'
+            t.destination.strip() for t in pool if (t.destination or '').strip()
         )
-        location = loc_counter.most_common(1)[0][0] if loc_counter else ''
-        rel = [t for t in pool if (t.destination or '').strip() == location] if location else []
+        raw_location = loc_counter.most_common(1)[0][0] if loc_counter else ''
+        if raw_location.strip().lower() in INTERNAL_PLACES:
+            location, tdrivers, is_stock = 'Stock', [], True
+        else:
+            location = raw_location
+            is_stock = False
+        rel = [t for t in pool if (t.destination or '').strip() == location] if location and not is_stock else []
         dcounts = Counter()
         for t in rel:
             for k, v in (t.driver_trip_counts or {}).items():
@@ -3151,7 +3156,7 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 fill_counts[g.fill_type] += g.trip_count
         row['tractor_lines'] = [
             {'fill': f, 'count': fill_counts[f],
-             'location': location, 'drivers': tdrivers}
+             'location': location, 'drivers': tdrivers, 'is_stock': is_stock}
             for f in ('JCB', 'HAND') if fill_counts[f]
         ]
         row['tractor_records'] = trac_lines
