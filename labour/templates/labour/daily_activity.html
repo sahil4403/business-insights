@@ -53,6 +53,12 @@
     /* Section card: bordered box; lambi lines ek line me (andar scroll) */
     .dd-sec { background: #fff; border: 1px solid #eef1f6; border-radius: 0.8rem; padding: 0.55rem 0.75rem; margin-bottom: 4px; overflow-x: auto; }
     .dd-sec .dd-title { font-size: 11.5px; font-weight: 800; padding-bottom: 4px; margin-bottom: 3px; border-bottom: 1px solid #f1f5f9; }
+    /* Trip material blocks: clear hierarchy + breathing space */
+    .tm-head { margin-top: 8px; margin-bottom: 2px; }
+    .tm-head:first-child { margin-top: 0; }
+    .tm-head .t { font-size: 13.5px; }
+    .tm-table { margin: 2px 0 10px; }
+    .tm-table:last-child { margin-bottom: 2px; }
     /* Lambi trip lines ek line me fit hon — zaroorat par halka chhota font */
     .tl-line { font-size: 11.5px; }
     /* Har trip line ke neeche halki faded underline */
@@ -233,32 +239,27 @@
                             <div class="dd-block dd-sec">
                                 <div class="dd-title">Trips</div>
                                 {% for tm in row.trip_materials %}
-                                <div class="dd-item"><span class="t font-bold">{{ tm.material }} ({{ tm.total }} trip{{ tm.total|pluralize }})</span></div>
-                                {% for dr in tm.drivers %}
-                                <div class="dd-item"><span class="t pl-2">▸ {{ dr.name }} — {{ dr.total }} trip{{ dr.total|pluralize }}</span></div>
-                                <table class="w-full text-[12px]">
-                                    <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-0.5">Trips</th><th class="py-0.5">Destination</th><th class="py-0.5">Customer</th></tr></thead>
+                                <div class="dd-item tm-head"><span class="t font-bold">{{ tm.material }} ({{ tm.total }} trip{{ tm.total|pluralize }})</span></div>
+                                <table class="w-full text-[12px] tm-table">
+                                    <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-1">Driver</th><th class="py-1">Trips</th><th class="py-1">Destination</th><th class="py-1">Customer</th></tr></thead>
                                     <tbody>
+                                        {% for dr in tm.drivers %}
                                         {% for ln in dr.lines %}
-                                        <tr class="border-t border-slate-100"><td class="py-0.5 font-semibold">{{ ln.count }}</td><td class="py-0.5">{{ ln.destination|default:"—" }}</td><td class="py-0.5">{{ ln.customer|default:"—" }}</td></tr>
+                                        <tr class="border-t border-slate-100">
+                                            {% if forloop.first %}<td class="py-1.5 pr-2 font-semibold whitespace-nowrap" rowspan="{{ dr.lines|length }}">{{ dr.name }} ({{ dr.total }})</td>{% endif %}
+                                            <td class="py-1.5 font-semibold">{{ ln.count }}</td><td class="py-1.5">{{ ln.destination|default:"—" }}</td><td class="py-1.5">{{ ln.customer|default:"—" }}</td>
+                                        </tr>
                                         {% endfor %}
-                                    </tbody>
-                                </table>
-                                {% endfor %}
-                                {% if tm.unassigned %}
-                                <table class="w-full text-[12px]">
-                                    <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-0.5">Trips</th><th class="py-0.5">Destination</th><th class="py-0.5">Customer</th></tr></thead>
-                                    <tbody>
+                                        {% endfor %}
                                         {% for ln in tm.unassigned %}
-                                        <tr class="border-t border-slate-100"><td class="py-0.5 font-semibold">{{ ln.count }}</td><td class="py-0.5">{{ ln.destination|default:"—" }}</td><td class="py-0.5">{{ ln.customer|default:"—" }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-1.5 pr-2 font-semibold">—</td><td class="py-1.5 font-semibold">{{ ln.count }}</td><td class="py-1.5">{{ ln.destination|default:"—" }}</td><td class="py-1.5">{{ ln.customer|default:"—" }}</td></tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                                {% endif %}
                                 {% endfor %}
                                 {% for hm in row.hyva_materials %}
-                                <div class="dd-item"><span class="t font-bold">{{ hm.label }} ({{ hm.total }})</span></div>
-                                <table class="w-full text-[12px]">
+                                <div class="dd-item tm-head"><span class="t font-bold">{{ hm.label }} ({{ hm.total }})</span></div>
+                                <table class="w-full text-[12px] tm-table">
                                     <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-0.5">Sr</th><th class="py-0.5">Trips</th><th class="py-0.5">Driver</th></tr></thead>
                                     <tbody>
                                         {% for dr in hm.drivers %}
