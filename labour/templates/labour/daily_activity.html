@@ -241,18 +241,18 @@
                                 {% for tm in row.trip_materials %}
                                 <div class="dd-item tm-head"><span class="t font-bold">{{ tm.material }} ({{ tm.total }} trip{{ tm.total|pluralize }})</span></div>
                                 <table class="w-full text-[12px] tm-table">
-                                    <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-1">Driver</th><th class="py-1">Trips</th><th class="py-1">Destination</th><th class="py-1">Customer</th></tr></thead>
+                                    <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-1">Driver</th><th class="py-1">Vehicle</th><th class="py-1">Trips</th><th class="py-1">Destination</th><th class="py-1">Customer</th></tr></thead>
                                     <tbody>
                                         {% for dr in tm.drivers %}
                                         {% for ln in dr.lines %}
                                         <tr class="border-t border-slate-100">
                                             {% if forloop.first %}<td class="py-1.5 pr-2 font-semibold whitespace-nowrap" rowspan="{{ dr.lines|length }}">{{ dr.name }} ({{ dr.total }})</td>{% endif %}
-                                            <td class="py-1.5 font-semibold">{{ ln.count }}</td><td class="py-1.5">{{ ln.destination|default:"—" }}</td><td class="py-1.5">{{ ln.customer|default:"—" }}</td>
+                                            <td class="py-1.5 font-semibold whitespace-nowrap">{{ ln.vehicle|default:"—" }}</td><td class="py-1.5 font-semibold">{{ ln.count }}</td><td class="py-1.5">{{ ln.destination|default:"—" }}</td><td class="py-1.5">{{ ln.customer|default:"—" }}</td>
                                         </tr>
                                         {% endfor %}
                                         {% endfor %}
                                         {% for ln in tm.unassigned %}
-                                        <tr class="border-t border-slate-100"><td class="py-1.5 pr-2 font-semibold">—</td><td class="py-1.5 font-semibold">{{ ln.count }}</td><td class="py-1.5">{{ ln.destination|default:"—" }}</td><td class="py-1.5">{{ ln.customer|default:"—" }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-1.5 pr-2 font-semibold">—</td><td class="py-1.5 font-semibold whitespace-nowrap">{{ ln.vehicle|default:"—" }}</td><td class="py-1.5 font-semibold">{{ ln.count }}</td><td class="py-1.5">{{ ln.destination|default:"—" }}</td><td class="py-1.5">{{ ln.customer|default:"—" }}</td></tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>

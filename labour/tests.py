@@ -1435,6 +1435,47 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(mats, ['White Sand'])
         self.assertEqual(row['trip_materials'][0]['total'], 2)
 
+    def test_trip_lines_carry_vehicle_label(self):
+        # Same maal Hyva + Halfton se: ek block, par har line me
+        # vehicle (Hyva/Halfton) alag — Daily Activity me wahi dikhta hai.
+        from master_data.models import Material, VehicleType
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-VEH', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        hyva_vt = VehicleType.objects.get(code='HYVA')
+        half_vt = VehicleType.objects.get(code='HALFTON')
+        hyva_veh = Vehicle.objects.create(
+            vehicle_code='VEH-HYVA-T1', vehicle_type=hyva_vt,
+            registration_number='MH-HYVA-T1',
+        )
+        half_veh = Vehicle.objects.create(
+            vehicle_code='VEH-HALF-T1', vehicle_type=half_vt,
+            registration_number='MH-HALF-T1',
+        )
+        t1 = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('2'), rate=Decimal('100'),
+            total_amount=Decimal('200'), material=sand, destination='MIDC',
+            vehicle=hyva_veh, trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 2},
+        )
+        t1.drivers.set([self.d1])
+        t2 = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('3'), rate=Decimal('100'),
+            total_amount=Decimal('300'), material=sand, destination='MIDC',
+            vehicle=half_veh, trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 3},
+        )
+        t2.drivers.set([self.d1])
+        row = self._day_row()
+        self.assertEqual(len(row['trip_materials']), 1)
+        lines = row['trip_materials'][0]['drivers'][0]['lines']
+        self.assertEqual(
+            sorted(l['vehicle'] for l in lines), ['Halfton', 'Hyva']
+        )
+
     def test_internal_stock_trips_excluded(self):
         from master_data.models import Material
         from trips.models import Trip
