@@ -48,11 +48,13 @@
     @media (min-width: 768px) { .day-cols { columns: 2; column-gap: 4px; } }
     .day-cols > .dd-block { break-inside: avoid; margin-bottom: 4px; }
     .dd-block .dd-title { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2px; }
-    .dd-item { font-size: 12.5px; display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+    .dd-item { font-size: 12px; display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; white-space: nowrap; }
     .dd-item .t { color: #475569; }
+    /* Section card: bordered box; lambi lines ek line me (andar scroll) */
+    .dd-sec { background: #fff; border: 1px solid #eef1f6; border-radius: 0.8rem; padding: 0.55rem 0.75rem; margin-bottom: 4px; overflow-x: auto; }
+    .dd-sec .dd-title { font-size: 11.5px; font-weight: 800; padding-bottom: 4px; margin-bottom: 3px; border-bottom: 1px solid #f1f5f9; }
     /* Lambi trip lines ek line me fit hon — zaroorat par halka chhota font */
-    .tl-line { font-size: 12px; }
-    .tl-line .t { overflow-wrap: anywhere; }
+    .tl-line { font-size: 11.5px; }
 </style>
 {% endblock %}
 
@@ -218,7 +220,7 @@
                     <td colspan="5" class="p-0">
                         <div class="day-cols">
                             {% if row.loadings %}
-                            <div class="dd-block">
+                            <div class="dd-block dd-sec">
                                 <div class="dd-title">Loading ({{ row.loadings|length }})</div>
                                 {% for ld in row.loadings %}
                                 <div class="dd-item"><span class="t">{{ ld.count }} {{ ld.label }} | {{ ld.worker }}</span></div>
@@ -226,7 +228,7 @@
                             </div>
                             {% endif %}
                             {% if row.trip_materials or row.hyva_loadings %}
-                            <div class="dd-block">
+                            <div class="dd-block dd-sec">
                                 <div class="dd-title">Trips</div>
                                 {% for tm in row.trip_materials %}
                                 <div class="dd-item tl-line"><span class="t font-bold">{{ tm.material }} ({{ tm.total }} trip{{ tm.total|pluralize }})</span></div>
@@ -249,7 +251,7 @@
                             </div>
                             {% endif %}
                             {% if row.tractor_lines or row.tractor_records %}
-                            <div class="dd-block">
+                            <div class="dd-block dd-sec">
                                 <div class="dd-title">Tractor Trips</div>
                                 {% for tr in row.tractor_lines %}
                                 <div class="dd-item"><span class="t">{{ tr.count }} Trip{{ tr.count|pluralize }} {{ tr.fill }}{% if tr.location %} | {{ tr.location }}{% endif %}{% if tr.location and tr.drivers %} | {% for d in tr.drivers %}{% if not forloop.first %}, {% endif %}{% if d.1 %}{{ d.1 }} {% endif %}{{ d.0 }}{% endfor %}{% endif %}</span></div>
@@ -260,7 +262,7 @@
                             </div>
                             {% endif %}
                             {% if row.rozi_tables.mistri %}
-                            <div class="dd-block">
+                            <div class="dd-block dd-sec">
                                 <div class="dd-title">Rozi — Mistri</div>
                                 <table class="w-full text-[12px]">
                                     <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-0.5">Sr</th><th class="py-0.5">Name</th><th class="py-0.5 text-right">Rozi</th><th class="py-0.5 text-right">Advance</th></tr></thead>
@@ -273,7 +275,7 @@
                             </div>
                             {% endif %}
                             {% if row.rozi_tables.tractor %}
-                            <div class="dd-block">
+                            <div class="dd-block dd-sec">
                                 <div class="dd-title">Rozi — Tractor Labour</div>
                                 <table class="w-full text-[12px]">
                                     <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-0.5">Sr</th><th class="py-0.5">Name</th><th class="py-0.5 text-right">Rozi</th><th class="py-0.5 text-right">Advance</th></tr></thead>
@@ -286,7 +288,7 @@
                             </div>
                             {% endif %}
                             {% if row.rozi_tables.hyva_jcb %}
-                            <div class="dd-block">
+                            <div class="dd-block dd-sec">
                                 <div class="dd-title">Rozi — Hyva Driver &amp; JCB Operator</div>
                                 <table class="w-full text-[12px]">
                                     <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-0.5">Sr</th><th class="py-0.5">Name</th><th class="py-0.5 text-right">Rozi</th><th class="py-0.5 text-right">Advance</th></tr></thead>
@@ -299,7 +301,7 @@
                             </div>
                             {% endif %}
                             {% if row.day_settlements %}
-                            <div class="dd-block">
+                            <div class="dd-block dd-sec">
                                 <div class="dd-title">Settlements ({{ row.day_settlements|length }})</div>
                                 {% for s in row.day_settlements %}
                                 <div class="dd-item"><span class="t">🤝 {{ s.labour.name }} · Cash ₹{{ s.cash_paid|floatformat:0 }}</span><span class="rv pos">₹{{ s.total_salary|floatformat:0 }}</span></div>
@@ -307,7 +309,7 @@
                             </div>
                             {% endif %}
                             {% if not row.loadings and not row.hyva_loadings and not row.trip_lines and not row.tractor_lines and not row.rozi_tables.mistri and not row.rozi_tables.tractor and not row.rozi_tables.hyva_jcb and not row.day_settlements %}
-                            <div class="dd-block"><div class="dd-item"><span class="t text-slate-400">No detailed entries</span></div></div>
+                            <div class="dd-block dd-sec"><div class="dd-item"><span class="t text-slate-400">No detailed entries</span></div></div>
                             {% endif %}
                         </div>
                         {% if data.driver_pmts %}

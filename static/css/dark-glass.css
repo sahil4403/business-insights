@@ -179,6 +179,8 @@ html[data-theme="dark"]::before {
 [data-theme="dark"] .day-row { border-color: var(--d-border-soft) !important; }
 [data-theme="dark"] .dd-item .t { color: #c3cfdb !important; }
 [data-theme="dark"] .dd-block .dd-title { color: var(--d-faint) !important; }
+[data-theme="dark"] .dd-sec { background: var(--d-surface) !important; border-color: var(--d-border) !important; }
+[data-theme="dark"] .dd-sec .dd-title { border-color: var(--d-border-soft) !important; }
 /* Category quick-switch tabs (own <style>: white pills + slate text) */
 [data-theme="dark"] .cat-tab { background: var(--d-surface-2) !important; border-color: var(--d-border) !important; color: #c3cfdb !important; }
 [data-theme="dark"] .cat-tab .cnt { background: rgba(255, 255, 255, .08) !important; color: #8fa0b3 !important; }
