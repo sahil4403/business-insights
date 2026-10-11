@@ -3147,7 +3147,10 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                     if dr.name not in b['plain_drivers']:
                         b['plain_drivers'].append(dr.name)
         for (mat, dest, cust), b in sorted(tbuckets.items()):
-            is_stock_line = dest.strip().lower() in INTERNAL_PLACES
+            # Sirf "Stock" aur bina-customer Kosara internal hai. Customer
+            # ke saath Kosara real place hai — wahi dikhao.
+            dl = dest.strip().lower()
+            is_stock_line = (dl == 'stock') or (dl == 'kosara' and not cust)
             trac_lines.append({
                 'material': mat,
                 'destination': 'Stock' if is_stock_line else dest,
@@ -3156,12 +3159,17 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'drivers': [] if is_stock_line else _driver_parts(b['driver_counts']),
                 'plain_drivers': [] if is_stock_line else b['plain_drivers'],
             })
-        # Kosara/Stock apni internal jagah hai (order nahi): wahan "Stock"
-        # likho, driver naam mat dikhao. Sirf real place par details.
+        # Kosara/Stock: customer ke saath real place, bina customer internal.
+        # Internal par "Stock" likho, driver naam mat dikhao.
         loc_counter = Counter(
             t.destination.strip() for t in pool if (t.destination or '').strip()
         )
         raw_location = loc_counter.most_common(1)[0][0] if loc_counter else ''
+        raw_low = raw_location.strip().lower()
+        rel_all = [t for t in pool if (t.destination or '').strip() == raw_location]
+        has_customer = any(
+            (getattr(t.customer, 'name', '') or '').strip() for t in rel_all
+        )
 
         def _pool_trip_total(trips):
             # Tractor records ke driver-trip counts ka total.
@@ -3179,7 +3187,10 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             return total
 
         pool_total = _pool_trip_total(pool)
-        if raw_location.strip().lower() in INTERNAL_PLACES:
+        # Stock hamesha internal; Kosara sirf bina-customer internal.
+        # Customer ke saath Kosara real place hai (6-Oct bug:
+        # Chauhan→Kosara par "Stock" dikh raha tha).
+        if raw_low == 'stock' or (raw_low == 'kosara' and not has_customer):
             location, tdrivers, is_stock = 'Stock', [], True
         else:
             location = raw_location

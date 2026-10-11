@@ -1731,6 +1731,53 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(row['tractor_records'][0]['drivers'], [])
         self.assertEqual(row['tractor_records'][0]['plain_drivers'], [])
 
+    def test_tractor_kosara_with_customer_shows_place(self):
+        # 6-Oct bug: Chauhan→Kosara trip par Place me "Stock" aa raha tha.
+        # Customer ke saath Kosara real place hai — wahi + driver dikho.
+        from labour.models import LabourTripGroup
+        from master_data.models import CustomerType, Material, VehicleType
+        from customers.models import Customer
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-KOS-CUST', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-KOS-CUST', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-KOSC-01', vehicle_type=vtype,
+            registration_number='MH-KOSC-TRAC',
+        )
+        ctype, _ = CustomerType.objects.get_or_create(
+            code='KOSC-CT', defaults={'name': 'KosCust'}
+        )
+        cust = Customer.objects.create(
+            customer_code='KOSC-CHAUHAN', name='Chauhan',
+            customer_type=ctype, is_active=True,
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='Kosara',
+            customer=cust, vehicle=vehicle, trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 2},
+        )
+        t.drivers.set([self.d1])
+        row = self._day_row()
+        self.assertEqual(len(row['tractor_lines']), 1)
+        self.assertEqual(row['tractor_lines'][0]['location'], 'Kosara')
+        self.assertEqual(row['tractor_lines'][0]['drivers'], [('Driver1', 2)])
+        self.assertFalse(row['tractor_lines'][0]['is_stock'])
+        self.assertEqual(len(row['tractor_records']), 1)
+        self.assertEqual(row['tractor_records'][0]['destination'], 'Kosara')
+        self.assertEqual(row['tractor_records'][0]['customer'], 'Chauhan')
+
     def test_tractor_never_uses_hyva_trips(self):
         # Oct 9 bug: tractor line me Hyva trip ki location/driver aa gayi thi.
         # Ab tractor-vehicle trip na ho to blank — koi fallback nahi.
