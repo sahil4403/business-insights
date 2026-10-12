@@ -3218,6 +3218,21 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             # double-counting hogi.
             if g.fill_type in ('HAND', 'JCB') and not g.load_type:
                 fill_counts[g.fill_type] += g.trip_count
+        # Customer-order trips fill kaam ka hissa hain (12-Oct bug: fill
+        # 39 JCB + 5 HAND me se 2 customer trips neeche records me bhi
+        # dikhe — screen par 39+5+1+1 = 46 lagta tha, actual 44).
+        # Unhe fill me se net karo — HAND pehle, bacha JCB me se — taaki
+        # fill + records ka total actual trips se mile.
+        cust_total = _pool_trip_total([
+            t for t in pool
+            if (getattr(t.customer, 'name', '') or '').strip()
+        ])
+        net_counts = {}
+        _remaining = cust_total
+        for f in ('HAND', 'JCB'):
+            _take = min(fill_counts[f], _remaining)
+            net_counts[f] = fill_counts[f] - _take
+            _remaining -= _take
         row['tractor_lines'] = []
         for f in ('JCB', 'HAND'):
             if not fill_counts[f]:
@@ -3226,8 +3241,13 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             # ke count se exact mile tabhi location/drivers — warna blank.
             # Galat attribution se khaali behtar hai.
             if not is_stock and pool_total != fill_counts[f]:
+                # Subset case: customer trips net karke dikhao (place blank —
+                # bacha kaam stock/internal hai, uski jagah pata nahi).
+                # Zero net wali line chhupao.
+                if net_counts[f] <= 0:
+                    continue
                 row['tractor_lines'].append(
-                    {'fill': f, 'count': fill_counts[f],
+                    {'fill': f, 'count': net_counts[f],
                      'location': '', 'drivers': [], 'is_stock': False}
                 )
             else:

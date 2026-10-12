@@ -1819,6 +1819,115 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(row['tractor_records'][0]['destination'], 'Kosara')
         self.assertEqual(row['tractor_records'][0]['customer'], 'Chauhan')
 
+    def test_tractor_customer_trips_subtracted_hand_first(self):
+        # 12-Oct bug: fill 39 JCB + 5 HAND (= 44 labour trips) aur usi me
+        # se 2 customer trips (1+1) — screen par 39+5+1+1 = 46 dikhta tha.
+        # Customer trips fill me se nikalo (HAND pehle) taaki total 44 mile.
+        from labour.models import LabourTripGroup
+        from master_data.models import CustomerType, Material, VehicleType
+        from customers.models import Customer
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        gj = LabourTripGroup.objects.create(
+            date=self.day, trip_count=39, rate_per_trip=Decimal('450'),
+            fill_type='JCB', load_type='',
+        )
+        gj.labourers.set([self.kishan])
+        gh = LabourTripGroup.objects.create(
+            date=self.day, trip_count=5, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        gh.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-SUB12', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-SUB12', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-SUB12-01', vehicle_type=vtype,
+            registration_number='MH-SUB12-TRAC',
+        )
+        ctype, _ = CustomerType.objects.get_or_create(
+            code='SUB12-CT', defaults={'name': 'Sub12'}
+        )
+        for i, (code, name, dest) in enumerate([
+            ('SUB12-A', 'CustomerA', 'SiteA'),
+            ('SUB12-B', 'CustomerB', 'SiteB'),
+        ]):
+            cust = Customer.objects.create(
+                customer_code=code, name=name,
+                customer_type=ctype, is_active=True,
+            )
+            t = Trip.objects.create(
+                trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+                total_amount=Decimal('100'), material=sand, destination=dest,
+                customer=cust, vehicle=vehicle, trip_status='COMPLETED',
+                driver_trip_counts={str(self.d1.pk): 1},
+            )
+            t.drivers.set([self.d1])
+        row = self._day_row()
+        by_fill = {l['fill']: l for l in row['tractor_lines']}
+        # 2 customer trips HAND (5) me se — JCB untouched.
+        self.assertEqual(by_fill['JCB']['count'], 39)
+        self.assertEqual(by_fill['HAND']['count'], 3)
+        self.assertEqual(len(row['tractor_records']), 2)
+        shown = (
+            sum(l['count'] for l in row['tractor_lines'])
+            + sum(t['trips'] for t in row['tractor_records'])
+        )
+        self.assertEqual(shown, 44)
+
+    def test_tractor_customer_subtract_spills_to_jcb(self):
+        # HAND se zyada customer trips hon to bacha hua JCB me se —
+        # HAND line zero par gayab, JCB net dikhe.
+        from labour.models import LabourTripGroup
+        from master_data.models import CustomerType, Material, VehicleType
+        from customers.models import Customer
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        gj = LabourTripGroup.objects.create(
+            date=self.day, trip_count=39, rate_per_trip=Decimal('450'),
+            fill_type='JCB', load_type='',
+        )
+        gj.labourers.set([self.kishan])
+        gh = LabourTripGroup.objects.create(
+            date=self.day, trip_count=1, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        gh.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-SPILL', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-SPILL', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-SPILL-01', vehicle_type=vtype,
+            registration_number='MH-SPILL-TRAC',
+        )
+        ctype, _ = CustomerType.objects.get_or_create(
+            code='SPILL-CT', defaults={'name': 'Spill'}
+        )
+        cust = Customer.objects.create(
+            customer_code='SPILL-A', name='SpillCust',
+            customer_type=ctype, is_active=True,
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='SiteX',
+            customer=cust, vehicle=vehicle, trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 3},
+        )
+        t.drivers.set([self.d1])
+        row = self._day_row()
+        by_fill = {l['fill']: l for l in row['tractor_lines']}
+        # 3 me se 1 HAND gaya (line gayab), 2 JCB me se.
+        self.assertNotIn('HAND', by_fill)
+        self.assertEqual(by_fill['JCB']['count'], 37)
+
     def test_tractor_never_uses_hyva_trips(self):
         # Oct 9 bug: tractor line me Hyva trip ki location/driver aa gayi thi.
         # Ab tractor-vehicle trip na ho to blank — koi fallback nahi.
