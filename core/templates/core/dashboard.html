@@ -26,10 +26,10 @@
 
 <!-- VEHICLE DOCUMENT EXPIRY ALERTS -->
 {% if expiry_alerts %}
-<div id="expiryAlertsBanner" class="mb-5 rounded-xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-4 overflow-hidden" data-animate>
-    <h2 class="text-sm font-extrabold text-orange-800 mb-2.5 flex items-center gap-2">
-        🔔 Vehicle document alerts
-        <span class="text-xs font-bold bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">{{ expiry_alerts|length }}</span>
+<div id="expiryAlertsBanner" class="mb-5 rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-4 overflow-hidden" data-animate>
+    <h2 class="text-sm font-extrabold text-orange-800 uppercase tracking-wide mb-2.5 flex items-center gap-2">
+        🔔 Vehicle Document Alerts
+        <span class="text-[11px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">{{ expiry_alerts|length }}</span>
         <button type="button" onclick="dismissExpiryAlerts()" title="Aaj ke liye hatao"
                 class="ml-auto w-7 h-7 rounded-full bg-white/80 border border-orange-200 text-orange-500 hover:text-red-600 hover:border-red-300 text-[12px] font-bold flex items-center justify-center transition active:scale-90 cursor-pointer">✕</button>
     </h2>
@@ -46,7 +46,7 @@
                         {% if a.urgency == 'expired' %}EXPIRE ho chuka ({{ a.expiry_date }}){% elif a.days_left == 0 %}AAJ expire ho raha hai!{% else %}{{ a.days_left }} din bache — expiry {{ a.expiry_date }}{% endif %}
                     </span>
                 </span>
-                <span class="text-slate-400 shrink-0">→</span>
+                <span class="text-slate-300 shrink-0">→</span>
             </a>
         {% endfor %}
     </div>
@@ -101,35 +101,30 @@
             </div>
         </div>
         <div class="md:hidden flex items-center gap-2 shrink-0">
-            <button type="button" onclick="__toggleTheme()" title="Dark mode on/off" aria-label="Toggle dark mode" class="icon-btn theme-toggle-btn">
+            <button type="button" onclick="__toggleTheme()" title="Dark mode on/off" aria-label="Toggle dark mode" class="theme-toggle-btn h-10 w-10 rounded-xl bg-slate-800 text-white flex items-center justify-center transition active:scale-[0.95]" style="cursor:pointer;border:0;">
                 <svg class="icon-md theme-icon-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 <svg class="icon-md theme-icon-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             </button>
             {% if user.is_superuser %}
-            <a href="/staff/" class="icon-btn" title="Staff" aria-label="Staff">
+            <a href="/staff/" class="h-10 w-10 rounded-xl bg-brand-50 text-brand-600 border border-brand-100 flex items-center justify-center transition active:scale-[0.95]" title="Staff" aria-label="Staff">
                 <svg class="icon-md" aria-hidden="true"><use href="#i-users"/></svg>
             </a>
             {% endif %}
-            <a href="{% url 'core:admin_reauth' %}" target="_blank" class="icon-btn" title="Admin" aria-label="Admin">
+            <a href="{% url 'core:admin_reauth' %}" target="_blank" class="h-10 w-10 rounded-xl bg-slate-800 text-white flex items-center justify-center transition active:scale-[0.95]" title="Admin" aria-label="Admin">
                 <svg class="icon-md" aria-hidden="true"><use href="#i-settings"/></svg>
             </a>
-            <form method="post" action="{% url 'authentication:logout' %}" style="display:contents;">{% csrf_token %}<button type="submit" class="icon-btn icon-btn-danger" title="Logout" aria-label="Logout">
+            <form method="post" action="{% url 'authentication:logout' %}" style="display:contents;">{% csrf_token %}<button type="submit" class="h-10 w-10 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center transition active:scale-[0.95]" style="cursor:pointer;" title="Logout" aria-label="Logout">
                 <svg class="icon-md" aria-hidden="true"><use href="#i-logout"/></svg>
             </button></form>
         </div>
-        {% if not request.is_viewer %}
-        <div class="hidden md:flex items-center gap-2 shrink-0">
-            <a href="{% url 'trips:create' %}" class="btn btn-primary whitespace-nowrap no-underline"><svg class="icon-sm" aria-hidden="true"><use href="#i-plus"/></svg>New Trip</a>
-        </div>
-        {% endif %}
     </div>
 </div>
 
 <!-- FILTERS -->
 <div class="mb-5 md:mb-6" data-animate>
-    <div class="app-tabs" role="group" aria-label="Trip filters">
-        <a href="{% url 'core:dashboard' %}" id="filter-all" class="app-chip {% if not from_date and not to_date %}active{% endif %}" {% if not from_date and not to_date %}aria-current="true"{% endif %}>All</a>
-        <button type="button" id="filter-toggle" class="app-chip {% if from_date or to_date %}active{% endif %}" aria-expanded="{% if from_date or to_date %}true{% else %}false{% endif %}" aria-controls="filter-panel"><svg class="icon-sm" aria-hidden="true"><use href="#i-calendar"/></svg>Date range</button>
+    <div class="app-tabs">
+        <a href="{% url 'core:dashboard' %}" class="app-chip {% if not from_date and not to_date %}active{% endif %}">All</a>
+        <button type="button" id="filter-toggle" class="app-chip {% if from_date or to_date %}active{% endif %}"><svg class="icon-sm" aria-hidden="true"><use href="#i-calendar"/></svg>Date range</button>
     </div>
     <div id="filter-panel" class="app-surface mt-3 p-4 {% if not from_date and not to_date %}hidden{% endif %}">
         <form method="get" id="dashboard_filter_form" class="grid grid-cols-2 gap-3 items-end">
@@ -141,9 +136,9 @@
                 <label class="label" for="to_date">To Date</label>
                 <input type="date" id="to_date" name="to_date" value="{{ to_date }}" class="input">
             </div>
-            <div class="col-span-2 flex gap-3 justify-end">
-                <button type="button" onclick="clearDashboardFilter()" class="btn btn-secondary min-w-36">Clear</button>
-                <button type="submit" class="btn btn-primary min-w-36">Apply</button>
+            <div class="col-span-2 flex gap-3">
+                <button type="submit" class="btn btn-primary flex-1">Apply</button>
+                <button type="button" onclick="clearDashboardFilter()" class="btn btn-secondary flex-1">Clear</button>
             </div>
         </form>
     </div>
@@ -180,7 +175,7 @@
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center justify-between gap-2">
                                     <span class="text-[14px] font-bold text-slate-900 truncate">
-                                        {% if trip.transaction_type == 'INTERNAL_STOCK' %}<span class="inline-flex items-center gap-1 text-slate-500"><svg class="icon-sm" aria-hidden="true"><use href="#i-box"/></svg>Internal Stock</span>{% elif trip.transaction_type == 'VENDOR_SUPPLY' %}<span class="inline-flex items-center gap-1 text-amber-800"><svg class="icon-sm" aria-hidden="true"><use href="#i-download"/></svg>Inward Sale</span>{% else %}{{ trip.customer.name }}{% endif %}
+                                        {% if trip.transaction_type == 'INTERNAL_STOCK' %}<span class="inline-flex items-center gap-1 text-slate-500"><svg class="icon-sm" aria-hidden="true"><use href="#i-box"/></svg>Internal Stock</span>{% elif trip.transaction_type == 'VENDOR_SUPPLY' %}<span class="inline-flex items-center gap-1 text-amber-700"><svg class="icon-sm" aria-hidden="true"><use href="#i-download"/></svg>Inward Sale</span>{% else %}{{ trip.customer.name }}{% endif %}
                                     </span>
                                     <span class="shrink-0 text-[11px] font-semibold text-slate-400">{{ trip.trip_date|date:"d-M-Y" }}</span>
                                 </div>
@@ -216,7 +211,7 @@
                     </a>
                 {% empty %}
                     <div class="text-center py-12 text-slate-400 text-sm">
-                        <svg class="icon-xl mx-auto mb-2 text-slate-400" aria-hidden="true"><use href="#i-truck"/></svg>
+                        <svg class="icon-xl mx-auto mb-2 text-slate-300" aria-hidden="true"><use href="#i-truck"/></svg>
                         No trip records found for this date range.
                     </div>
                 {% endfor %}
@@ -247,7 +242,7 @@
                                     {% if trip.transaction_type == 'INTERNAL_STOCK' %}
                                         <span class="inline-flex items-center gap-1 text-slate-400 italic"><svg class="icon-sm" aria-hidden="true"><use href="#i-box"/></svg>Internal Stock</span>
                                     {% elif trip.transaction_type == 'VENDOR_SUPPLY' %}
-                                        <span class="inline-flex items-center gap-1 text-amber-800 italic"><svg class="icon-sm" aria-hidden="true"><use href="#i-download"/></svg>Inward Sale</span>
+                                        <span class="inline-flex items-center gap-1 text-amber-700 italic"><svg class="icon-sm" aria-hidden="true"><use href="#i-download"/></svg>Inward Sale</span>
                                     {% else %}
                                         {{ trip.customer.name }}
                                     {% endif %}
@@ -287,13 +282,13 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-4 py-3">
-                                    <a href="{% url 'trips:detail' trip.id %}" class="btn btn-ghost !h-9 !px-3.5 !text-[13px] no-underline">View</a>
+                                    <a href="{% url 'trips:detail' trip.id %}" class="inline-flex h-9 px-3.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-[13px] items-center transition hover:bg-brand-100 hover:text-brand-700 no-underline">View</a>
                                 </td>
                             </tr>
                         {% empty %}
                             <tr>
                                 <td colspan="10" class="px-4 py-14 text-center text-slate-400">
-                                    <svg class="icon-xl mx-auto mb-2 text-slate-400" aria-hidden="true"><use href="#i-truck"/></svg>
+                                    <svg class="icon-xl mx-auto mb-2 text-slate-300" aria-hidden="true"><use href="#i-truck"/></svg>
                                     No trip records found for this date range.
                                 </td>
                             </tr>
@@ -310,11 +305,11 @@
 
 <!-- QUICK-ACCESS CATEGORIES -->
 <div class="mb-4 md:mb-6 {% if from_date or to_date %}hidden md:block{% endif %}" data-animate>
-    <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Quick access by transport type</h2>
+    <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Quick Access by Transport Type</h2>
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
 
         <a href="{% url 'trips:list' %}?category=hyva{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}window.location.href=this.href;return false;">
-            <div class="h-14 w-14 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
+            <div class="h-14 w-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
                 <svg class="icon-xl" aria-hidden="true"><use href="#i-hyva"/></svg>
             </div>
             <div class="font-bold text-slate-900">Hyva</div>
@@ -322,7 +317,7 @@
         </a>
 
         <a href="{% url 'trips:list' %}?category=tractor{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}window.location.href=this.href;return false;">
-            <div class="h-14 w-14 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
+            <div class="h-14 w-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
                 <svg class="icon-xl" aria-hidden="true"><use href="#i-tractor"/></svg>
             </div>
             <div class="font-bold text-slate-900">Tractor</div>
@@ -330,7 +325,7 @@
         </a>
 
         <a href="{% url 'trips:list' %}?category=halfton{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}window.location.href=this.href;return false;">
-            <div class="h-14 w-14 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
+            <div class="h-14 w-14 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
                 <svg class="icon-xl" aria-hidden="true"><use href="#i-truck"/></svg>
             </div>
             <div class="font-bold text-slate-900">Halfton</div>
@@ -338,7 +333,7 @@
         </a>
 
         <a href="{% url 'trips:list' %}?category=jcb{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}window.location.href=this.href;return false;">
-            <div class="h-14 w-14 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
+            <div class="h-14 w-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
                 <svg class="icon-xl" aria-hidden="true"><use href="#i-jcb"/></svg>
             </div>
             <div class="font-bold text-slate-900">JCB</div>
@@ -346,7 +341,7 @@
         </a>
 
         <a href="{% url 'labour:list' %}" class="app-surface lift p-4 flex flex-col items-center text-center no-underline group" onclick="event.preventDefault();var pl=document.getElementById('page-loader-overlay');if(pl)pl.classList.add('active');var tb=document.getElementById('page-loader');if(tb){tb.className='active';tb.style.width='35%';}window.location.href=this.href;return false;">
-            <div class="h-14 w-14 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
+            <div class="h-14 w-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110">
                 <svg class="icon-xl" aria-hidden="true"><use href="#i-hard-hat"/></svg>
             </div>
             <div class="font-bold text-slate-900 flex items-center gap-1.5">
@@ -442,29 +437,19 @@ function clearDashboardFilter() {
 
     const filterPanel = document.getElementById('filter-panel');
     const filterToggle = document.getElementById('filter-toggle');
-    const filterAll = document.getElementById('filter-all');
     const hasActiveFilter = {% if from_date or to_date %}true{% else %}false{% endif %};
-    // Panel sirf tab khula dikhe jab date filter active ho ya user ne
-    // Date range dabakar khola ho — warna All active + khula form ka
-    // state conflict dikhta hai.
-    function syncFilterState(open) {
-        if (filterPanel) filterPanel.classList.toggle('hidden', !open);
-        if (filterToggle) {
-            filterToggle.classList.toggle('active', open);
-            filterToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        }
-        if (filterAll && !hasActiveFilter) {
-            filterAll.classList.toggle('active', !open);
-            if (open) filterAll.removeAttribute('aria-current');
-            else filterAll.setAttribute('aria-current', 'true');
-        }
-    }
     if (filterToggle) {
         filterToggle.addEventListener('click', function () {
-            var open = filterPanel ? filterPanel.classList.contains('hidden') : true;
-            syncFilterState(open);
+            if (filterPanel) filterPanel.classList.toggle('hidden');
+            filterToggle.classList.toggle('active');
         });
     }
-    syncFilterState(hasActiveFilter);
+    if (filterPanel) {
+        if (window.innerWidth >= 768 || hasActiveFilter) {
+            filterPanel.classList.remove('hidden');
+        } else {
+            filterPanel.classList.add('hidden');
+        }
+    }
 </script>
 {% endblock %}

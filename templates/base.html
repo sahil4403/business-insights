@@ -105,14 +105,6 @@
         .btn-ghost { background: #fff; border: 1px solid #cbd5e1; color: #334155; }
         .btn-ghost:hover { background: #f8fafc; border-color: #94a3b8; }
 
-        /* Shared square icon button (Staff/Admin/theme/logout) — one style,
-           neutral + danger variant, instead of per-button bespoke classes. */
-        .icon-btn { display: inline-flex; align-items: center; justify-content: center; height: 2.5rem; width: 2.5rem; border-radius: 0.75rem; background: #fff; border: 1px solid #e2e8f0; color: #475569; cursor: pointer; transition: background .15s ease, transform .12s ease; }
-        .icon-btn:hover { background: #f8fafc; }
-        .icon-btn:active { transform: scale(0.95); }
-        .icon-btn-danger { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
-        .icon-btn-danger:hover { background: #fee2e2; }
-
         /* MINIMAL MOBILE-APP DESIGN TOKENS */
         .app-surface { background: #fff; border-radius: 1.25rem; box-shadow: 0 1px 2px rgba(15,23,42,0.04); border: 1px solid #eef1f6; }
         .lift { transition: transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s ease, border-color .2s ease; }
@@ -390,10 +382,10 @@
                 </span>
                 <span class="leading-tight">
                     <span class="block font-extrabold text-[15px] text-slate-900 tracking-tight">Shri Raj Construction</span>
-                    <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">& Building Materials Supplier</span>
+                    <span class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">& Building Materials Supplier</span>
                 </span>
             </a>
-            <div class="flex items-center gap-1 overflow-x-auto nav-scroll min-w-0 flex-1">
+            <div class="flex items-center gap-1 overflow-x-auto nav-scroll">
                 {% if not request.is_operator %}
                 <a href="{% url 'core:dashboard' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-home"/></svg>Home</a>
                 <a href="{% url 'core:customer_report' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Customers</a>
@@ -402,30 +394,20 @@
                 <a href="{% url 'core:payment_report' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-wallet"/></svg>Payments</a>
                 <a href="{% url 'core:vehicle_report' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-truck"/></svg>Vehicles</a>
                 <a href="{% url 'expenses:list' %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-receipt"/></svg>Expenses</a>
+                {% if not request.is_viewer %}
+                <a href="{% url 'core:admin_reauth' %}" target="_blank" class="nav-link text-slate-400"><svg class="icon-sm" aria-hidden="true"><use href="#i-settings"/></svg>Admin</a>
+                {% endif %}
+                <button type="button" onclick="__toggleTheme()" title="Dark mode on/off" aria-label="Toggle dark mode" class="nav-link theme-toggle-btn" style="background:transparent;border:0;cursor:pointer;font:inherit;">
+                    <svg class="icon-sm theme-icon-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    <svg class="icon-sm theme-icon-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                </button>
+                {% if user.is_superuser %}
+                <a href="/staff/" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Staff</a>
+                {% endif %}
                 {% else %}
                 <a href="{% url 'labour:detail' request.operator_labour.id %}" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-hard-hat"/></svg>My Page</a>
                 {% endif %}
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-                {% if not request.is_operator %}
-                <details class="relative">
-                    <summary class="nav-link" style="cursor:pointer;list-style:none;" aria-label="More options">More<svg class="icon-sm" aria-hidden="true"><use href="#i-chevron-down"/></svg></summary>
-                    <div class="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50 flex flex-col">
-                        {% if user.is_superuser %}
-                        <a href="/staff/" data-navlink class="nav-link"><svg class="icon-sm" aria-hidden="true"><use href="#i-users"/></svg>Staff</a>
-                        {% endif %}
-                        {% if not request.is_viewer %}
-                        <a href="{% url 'core:admin_reauth' %}" target="_blank" class="nav-link text-slate-400"><svg class="icon-sm" aria-hidden="true"><use href="#i-settings"/></svg>Admin</a>
-                        {% endif %}
-                        <button type="button" onclick="__toggleTheme()" aria-label="Toggle dark mode" class="nav-link w-full text-left" style="background:transparent;border:0;cursor:pointer;font:inherit;">
-                            <svg class="icon-sm theme-icon-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                            <svg class="icon-sm theme-icon-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                            Theme
-                        </button>
-                    </div>
-                </details>
-                {% endif %}
-                <form method="post" action="{% url 'authentication:logout' %}" class="m-0 p-0">{% csrf_token %}<button type="submit" class="nav-link !text-red-600 hover:!bg-red-50 text-left bg-transparent cursor-pointer" style="font:inherit;border:0;"><svg class="icon-sm" aria-hidden="true"><use href="#i-logout"/></svg>Logout</button></form>
+                <form method="post" action="{% url 'authentication:logout' %}" class="m-0 p-0">{% csrf_token %}<button type="submit" class="nav-link !text-red-600 hover:!bg-red-50 w-full text-left bg-transparent cursor-pointer" style="font:inherit;border:0;"><svg class="icon-sm" aria-hidden="true"><use href="#i-logout"/></svg>Logout</button></form>
             </div>
         </div>
     </nav>
