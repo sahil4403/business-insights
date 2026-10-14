@@ -978,12 +978,15 @@ def hyva_trip_edit(request, group_id):
             labourers = list(form.cleaned_data['labourers'])
             bhatta = form.cleaned_data.get('bhatta')
             note = form.cleaned_data.get('note', '')
+            # Form me date field dikhta hai — submitted date se save karo
+            # (pehle group ki purani date se save hota tha, date change lost).
+            new_date = form.cleaned_data.get('date') or date
 
             # Update / extend the day's groups to match the submitted rows
             for idx, row in enumerate(rows):
                 if idx < len(siblings):
                     g = siblings[idx]
-                    g.date = date
+                    g.date = new_date
                     g.trip_count = row['trip_count']
                     g.load_type = row['load_type']
                     g.fill_type = 'HAND'
@@ -992,7 +995,7 @@ def hyva_trip_edit(request, group_id):
                     g.labourers.set(labourers)
                 else:
                     g = LabourTripGroup.objects.create(
-                        date=date,
+                        date=new_date,
                         trip_count=row['trip_count'],
                         rate_per_trip=Decimal(load_rates[row['load_type']]),
                         load_type=row['load_type'],
@@ -1010,20 +1013,33 @@ def hyva_trip_edit(request, group_id):
             labourer_ids = [l.id for l in labourers]
             bhatta_scope = LabourExtraPayment.objects.filter(
                 labour__in=lab_ids | set(labourer_ids),
-                date=date, note='Bhatta',
+                date=new_date, note='Bhatta',
             )
             if bhatta:
                 existing = set(bhatta_scope.values_list('labour_id', flat=True))
                 for l in labourers:
                     if l.id not in existing:
                         LabourExtraPayment.objects.create(
-                            labour=l, date=date,
+                            labour=l, date=new_date,
                             amount=Decimal(LabourHyvaTripForm.BHATTA_AMOUNT),
                             note='Bhatta',
                         )
                 bhatta_scope.exclude(labour_id__in=labourer_ids).delete()
             else:
                 bhatta_scope.delete()
+            if new_date != date:
+                # Entry dusre din move hui: purani date ki Bhatta rows un
+                # workers ki hatao jinka purani date par koi kaam nahi bacha
+                # (dusri entry ka Bhatta galti se na ude).
+                still_there = set(
+                    LabourTripGroup.objects.filter(date=date).values_list(
+                        'labourers__id', flat=True
+                    )
+                )
+                LabourExtraPayment.objects.filter(
+                    labour__in=(lab_ids | set(labourer_ids)) - still_there,
+                    date=date, note='Bhatta',
+                ).delete()
 
             total_trips = sum(r['trip_count'] for r in rows)
             total = sum(
@@ -1056,7 +1072,7 @@ def hyva_trip_edit(request, group_id):
             'form': form,
             'page_title': 'Edit Hyva Trip',
             'editing': True,
-            'editing_date': date,
+            'editing_date': form.cleaned_data.get('date') or date,
             'existing_rows': rows,
             'lab_ids': lab_ids,
             'bhatta_on': bool(request.POST.get('bhatta')),
@@ -1320,11 +1336,14 @@ def jcb_trip_edit(request, group_id):
             if op_lab is not None:
                 labourers = [op_lab]
             note = form.cleaned_data.get('note', '')
+            # Form me date field dikhta hai — submitted date se save karo
+            # (pehle group ki purani date se save hota tha, date change lost).
+            new_date = form.cleaned_data.get('date') or date
 
             for idx, row in enumerate(rows):
                 if idx < len(siblings):
                     g = siblings[idx]
-                    g.date = date
+                    g.date = new_date
                     g.trip_count = row['trip_count']
                     g.load_type = row['load_type']
                     g.fill_type = 'JCB'
@@ -1333,7 +1352,7 @@ def jcb_trip_edit(request, group_id):
                     g.labourers.set(labourers)
                 else:
                     g = LabourTripGroup.objects.create(
-                        date=date,
+                        date=new_date,
                         trip_count=row['trip_count'],
                         rate_per_trip=Decimal(load_rates[row['load_type']]),
                         load_type=row['load_type'],
@@ -1349,20 +1368,33 @@ def jcb_trip_edit(request, group_id):
             labourer_ids = [l.id for l in labourers]
             bhatta_scope = LabourExtraPayment.objects.filter(
                 labour__in=lab_ids | set(labourer_ids),
-                date=date, note='Bhatta',
+                date=new_date, note='Bhatta',
             )
             if bhatta:
                 existing = set(bhatta_scope.values_list('labour_id', flat=True))
                 for l in labourers:
                     if l.id not in existing:
                         LabourExtraPayment.objects.create(
-                            labour=l, date=date,
+                            labour=l, date=new_date,
                             amount=Decimal(LabourJcbTripForm.BHATTA_AMOUNT),
                             note='Bhatta',
                         )
                 bhatta_scope.exclude(labour_id__in=labourer_ids).delete()
             else:
                 bhatta_scope.delete()
+            if new_date != date:
+                # Entry dusre din move hui: purani date ki Bhatta rows un
+                # workers ki hatao jinka purani date par koi kaam nahi bacha
+                # (dusri entry ka Bhatta galti se na ude).
+                still_there = set(
+                    LabourTripGroup.objects.filter(date=date).values_list(
+                        'labourers__id', flat=True
+                    )
+                )
+                LabourExtraPayment.objects.filter(
+                    labour__in=(lab_ids | set(labourer_ids)) - still_there,
+                    date=date, note='Bhatta',
+                ).delete()
 
             # Advance: typed value sets/updates the day's advance per operator.
             # Blank chhoda to existing advance ko haath nahi lagate.
@@ -1370,10 +1402,20 @@ def jcb_trip_edit(request, group_id):
             if advance_amount and advance_amount > 0:
                 for l in labourers:
                     LabourAdvance.objects.update_or_create(
-                        labour=l, date=date,
+                        labour=l, date=new_date,
                         defaults={'amount': advance_amount, 'note': 'Advance (JCB loading)'},
                     )
                     adv_set.append(l.name)
+                if new_date != date:
+                    still_there = set(
+                        LabourTripGroup.objects.filter(date=date).values_list(
+                            'labourers__id', flat=True
+                        )
+                    )
+                    LabourAdvance.objects.filter(
+                        labour__in=set(labourer_ids) - still_there,
+                        date=date, note='Advance (JCB loading)',
+                    ).delete()
 
             total_trips = sum(r['trip_count'] for r in rows)
             total = sum(
@@ -1412,7 +1454,7 @@ def jcb_trip_edit(request, group_id):
             'form': form,
             'page_title': 'Edit JCB Loading',
             'editing': True,
-            'editing_date': date,
+            'editing_date': form.cleaned_data.get('date') or date,
             'existing_rows': rows,
             'lab_ids': lab_ids,
             'bhatta_on': bool(request.POST.get('bhatta')),

@@ -740,6 +740,152 @@ class HyvaBhattaOnlyTest(TestCase):
         )
 
 
+class TripEditDateChangeTest(TestCase):
+    """JCB/Hyva edit me date badlo to entry nayi date par move honi chahiye.
+
+    Bug: form me date field dikhta tha par POST par view purani date se
+    save karta tha (date = group.date) — date change silently lost.
+    """
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='trip-date-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.jcb_op = Labour.objects.create(
+            name='JCB Op Date',
+            category='JCB_OPERATOR',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+        self.hyva_op = Labour.objects.create(
+            name='Hyva Op Date',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+
+    def test_jcb_edit_changes_date(self):
+        from .models import LabourExtraPayment, LabourTripGroup
+
+        day_a = date(2026, 10, 1)
+        day_b = date(2026, 10, 5)
+        group = LabourTripGroup.objects.create(
+            date=day_a, trip_count=2, load_type='WHITE_HYVA',
+            fill_type='JCB',
+        )
+        group.labourers.add(self.jcb_op)
+        LabourExtraPayment.objects.create(
+            labour=self.jcb_op, date=day_a,
+            amount=Decimal('200'), note='Bhatta',
+        )
+        response = self.client.post(
+            reverse('labour:jcb_trip_edit', args=[group.pk]),
+            data={
+                'date': '2026-10-05',
+                'labourers': [str(self.jcb_op.pk)],
+                'load_type_0': 'WHITE_HYVA',
+                'trip_count_0': '2',
+                'bhatta': 'on',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        group.refresh_from_db()
+        self.assertEqual(group.date, day_b)
+        self.assertFalse(
+            LabourTripGroup.objects.filter(
+                date=day_a, labourers=self.jcb_op
+            ).exists()
+        )
+        self.assertTrue(
+            LabourExtraPayment.objects.filter(
+                labour=self.jcb_op, date=day_b, note='Bhatta'
+            ).exists()
+        )
+        self.assertFalse(
+            LabourExtraPayment.objects.filter(
+                labour=self.jcb_op, date=day_a, note='Bhatta'
+            ).exists()
+        )
+
+    def test_jcb_edit_moves_advance_with_date(self):
+        from .models import LabourAdvance, LabourTripGroup
+
+        day_a = date(2026, 10, 1)
+        day_b = date(2026, 10, 5)
+        group = LabourTripGroup.objects.create(
+            date=day_a, trip_count=2, load_type='WHITE_HYVA',
+            fill_type='JCB',
+        )
+        group.labourers.add(self.jcb_op)
+        response = self.client.post(
+            reverse('labour:jcb_trip_edit', args=[group.pk]),
+            data={
+                'date': '2026-10-05',
+                'labourers': [str(self.jcb_op.pk)],
+                'load_type_0': 'WHITE_HYVA',
+                'trip_count_0': '2',
+                'advance': '500',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            LabourAdvance.objects.filter(
+                labour=self.jcb_op, date=day_b, amount=Decimal('500')
+            ).exists()
+        )
+        self.assertFalse(
+            LabourAdvance.objects.filter(
+                labour=self.jcb_op, date=day_a
+            ).exists()
+        )
+
+    def test_hyva_edit_changes_date(self):
+        from .models import LabourExtraPayment, LabourTripGroup
+
+        day_a = date(2026, 10, 1)
+        day_b = date(2026, 10, 5)
+        group = LabourTripGroup.objects.create(
+            date=day_a, trip_count=3, load_type='WHITE_HYVA',
+            fill_type='HAND',
+        )
+        group.labourers.add(self.hyva_op)
+        LabourExtraPayment.objects.create(
+            labour=self.hyva_op, date=day_a,
+            amount=Decimal('200'), note='Bhatta',
+        )
+        response = self.client.post(
+            reverse('labour:hyva_trip_edit', args=[group.pk]),
+            data={
+                'date': '2026-10-05',
+                'labourers': [str(self.hyva_op.pk)],
+                'load_type_0': 'WHITE_HYVA',
+                'trip_count_0': '3',
+                'bhatta': 'on',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        group.refresh_from_db()
+        self.assertEqual(group.date, day_b)
+        self.assertTrue(
+            LabourExtraPayment.objects.filter(
+                labour=self.hyva_op, date=day_b, note='Bhatta'
+            ).exists()
+        )
+        self.assertFalse(
+            LabourExtraPayment.objects.filter(
+                labour=self.hyva_op, date=day_a, note='Bhatta'
+            ).exists()
+        )
+
+
 class OutstandingAdjustTest(TestCase):
     def setUp(self):
         user_model = get_user_model()
