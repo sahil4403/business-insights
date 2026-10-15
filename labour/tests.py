@@ -1536,7 +1536,8 @@ class DailyActivityDetailTest(TestCase):
         # White Sand block me sirf White Sand; Fly Ash me sirf Fly Ash
         self.assertEqual(sorted(by_mat), ['Fly Ash', 'White Sand'])
         flym = by_mat['Fly Ash']
-        self.assertEqual(flym['total'], 2)
+        # Header records nahi, actual trips: 3 + 3 driver lines + 1 unassigned.
+        self.assertEqual(flym['total'], 7)
         # Har driver ka pura hisaab ek saath, Driver1 pehle
         self.assertEqual(
             [(d['name'], d['total']) for d in flym['drivers']],
@@ -1547,9 +1548,9 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(d1lines[0]['destination'], 'Pune')
         self.assertEqual(d1lines[0]['customer'], 'Sharma Construction')
         self.assertEqual(d1lines[0]['count'], 3)
-        # Cancelled trip count nahi hota
+        # Cancelled trip count nahi hota (7 Fly Ash + 1 White Sand)
         self.assertEqual(
-            sum(m['total'] for m in row['trip_materials']), 3
+            sum(m['total'] for m in row['trip_materials']), 8
         )
 
     def test_same_material_merges_name_variants(self):
@@ -2073,6 +2074,78 @@ class DailyActivityDetailTest(TestCase):
         # 3 me se 1 HAND gaya (line gayab), 2 JCB me se.
         self.assertNotIn('HAND', by_fill)
         self.assertEqual(by_fill['JCB']['count'], 37)
+
+    def test_tractor_record_counts_trips_not_rows(self):
+        # 15-Oct bug: 1 Trip row me 2 trips (driver count 2) — record line
+        # me "1" dikhta tha ("1 hi order"), jabki 2 trips gaye the.
+        # Record line me actual trip count aana chahiye.
+        from labour.models import LabourTripGroup
+        from master_data.models import CustomerType, Material, VehicleType
+        from customers.models import Customer
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        gh = LabourTripGroup.objects.create(
+            date=self.day, trip_count=4, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        gh.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-REC15', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-REC15', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-REC15-01', vehicle_type=vtype,
+            registration_number='MH-REC15-TRAC',
+        )
+        ctype, _ = CustomerType.objects.get_or_create(
+            code='REC15-CT', defaults={'name': 'Rec15'}
+        )
+        cust = Customer.objects.create(
+            customer_code='REC15-HARI', name='Hari Thekar',
+            customer_type=ctype, is_active=True,
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('2'), rate=Decimal('100'),
+            total_amount=Decimal('200'), material=sand, destination='Padoli',
+            customer=cust, vehicle=vehicle, trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 2},
+        )
+        t.drivers.set([self.d1])
+        row = self._day_row()
+        self.assertEqual(len(row['tractor_records']), 1)
+        self.assertEqual(row['tractor_records'][0]['trips'], 2)
+        self.assertEqual(
+            row['tractor_records'][0]['drivers'], [('Driver1', 2)]
+        )
+        # Fill net (4-2=2) + records (2) = 4 actual.
+        shown = (
+            sum(l['count'] for l in row['tractor_lines'])
+            + sum(r['trips'] for r in row['tractor_records'])
+        )
+        self.assertEqual(shown, 4)
+
+    def test_trip_material_header_counts_trips(self):
+        # Header "(N trips)" records nahi, actual trips gine — lines ka
+        # total header se mile (1 row × 3 trips = "(3 trips)").
+        from master_data.models import Material
+        from trips.models import Trip
+
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-HDR', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('3'), rate=Decimal('100'),
+            total_amount=Decimal('300'), material=sand, destination='MIDC',
+            trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 3},
+        )
+        t.drivers.set([self.d1])
+        row = self._day_row()
+        self.assertEqual(len(row['trip_materials']), 1)
+        self.assertEqual(row['trip_materials'][0]['total'], 3)
 
     def test_tractor_never_uses_hyva_trips(self):
         # Oct 9 bug: tractor line me Hyva trip ki location/driver aa gayi thi.

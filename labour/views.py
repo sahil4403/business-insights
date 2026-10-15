@@ -3106,8 +3106,13 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'destination': (t.destination or '').strip(),
                 'customer': (getattr(t.customer, 'name', '') or '').strip(),
             } for t in unassigned]
+            # Header me records nahi, actual trips (lines ka total) —
+            # warna "(1 trip)" ke neeche 3-trips wali lines dikhti hain.
+            tm_total = sum(d['total'] for d in drivers) + sum(
+                l['count'] for l in un_lines
+            )
             trip_materials.append({
-                'material': mat, 'total': len(mat_groups[key]),
+                'material': mat, 'total': tm_total,
                 'drivers': drivers, 'unassigned': un_lines,
             })
         row['trip_materials'] = trip_materials
@@ -3176,8 +3181,19 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'vehicle': _vehicle_label(t), 'trips': 0,
                 'driver_counts': Counter(), 'plain_drivers': [],
             })
-            b['trips'] += 1
+            # Record ginne ki jagah actual trips gino (15-Oct bug: 1 row
+            # me 2 trips par record line "1" dikhti thi) — driver counts
+            # ka total, warna drivers, warna 1.
             counts = t.driver_trip_counts or {}
+            rec_total = 0
+            for v in counts.values():
+                try:
+                    rec_total += int(v or 0)
+                except (TypeError, ValueError):
+                    pass
+            if not rec_total:
+                rec_total = len(list(t.drivers.all())) or 1
+            b['trips'] += rec_total
             if counts:
                 for k, v in counts.items():
                     try:
