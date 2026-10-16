@@ -293,7 +293,7 @@
                                     <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-0.5">Sr</th><th class="py-0.5">Name</th><th class="py-0.5 text-right">Rozi</th><th class="py-0.5 text-right">Advance</th></tr></thead>
                                     <tbody>
                                         {% for r in row.rozi_tables.mistri %}
-                                        <tr class="border-t border-slate-100"><td class="py-0.5">{{ r.sr }})</td><td class="py-0.5 font-semibold">{{ r.name }}</td><td class="py-0.5 text-right">₹{{ r.rozi|floatformat:0 }}</td><td class="py-0.5 text-right">₹{{ r.advance|floatformat:0 }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-0.5">{{ r.sr }})</td><td class="py-0.5 font-semibold">{{ r.name }}{% if r.merged %} <span class="text-[10px] text-amber-700 font-bold">· {{ r.merged }} records</span>{% endif %}</td><td class="py-0.5 text-right">₹{{ r.rozi|floatformat:0 }}</td><td class="py-0.5 text-right">₹{{ r.advance|floatformat:0 }}</td></tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
@@ -306,7 +306,7 @@
                                     <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-0.5">Sr</th><th class="py-0.5">Name</th><th class="py-0.5 text-right">Rozi</th><th class="py-0.5 text-right">Advance</th></tr></thead>
                                     <tbody>
                                         {% for r in row.rozi_tables.tractor %}
-                                        <tr class="border-t border-slate-100"><td class="py-0.5">{{ r.sr }})</td><td class="py-0.5 font-semibold">{{ r.name }}</td><td class="py-0.5 text-right">₹{{ r.rozi|floatformat:0 }}</td><td class="py-0.5 text-right">₹{{ r.advance|floatformat:0 }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-0.5">{{ r.sr }})</td><td class="py-0.5 font-semibold">{{ r.name }}{% if r.merged %} <span class="text-[10px] text-amber-700 font-bold">· {{ r.merged }} records</span>{% endif %}</td><td class="py-0.5 text-right">₹{{ r.rozi|floatformat:0 }}</td><td class="py-0.5 text-right">₹{{ r.advance|floatformat:0 }}</td></tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
@@ -319,7 +319,7 @@
                                     <thead><tr class="text-left text-slate-400 text-[10px] uppercase"><th class="py-0.5">Sr</th><th class="py-0.5">Name</th><th class="py-0.5 text-right">Rozi</th><th class="py-0.5 text-right">Advance</th></tr></thead>
                                     <tbody>
                                         {% for r in row.rozi_tables.hyva_jcb %}
-                                        <tr class="border-t border-slate-100"><td class="py-0.5">{{ r.sr }})</td><td class="py-0.5 font-semibold">{{ r.name }}</td><td class="py-0.5 text-right">₹{{ r.rozi|floatformat:0 }}</td><td class="py-0.5 text-right">₹{{ r.advance|floatformat:0 }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-0.5">{{ r.sr }})</td><td class="py-0.5 font-semibold">{{ r.name }}{% if r.merged %} <span class="text-[10px] text-amber-700 font-bold">· {{ r.merged }} records</span>{% endif %}</td><td class="py-0.5 text-right">₹{{ r.rozi|floatformat:0 }}</td><td class="py-0.5 text-right">₹{{ r.advance|floatformat:0 }}</td></tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>

@@ -3019,12 +3019,17 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             Labour.objects.filter(id__in=wanted_ids).values_list('id', 'name')
         )
 
-    # Rozi/advance ke liye labour category ek query me.
+    # Rozi/advance ke liye labour category ek query me. Trip-group members
+    # bhi lo (prefetched — extra query nahi) taaki sirf-trip wale ki
+    # category bhi pata chale (section + merge rule ke liye).
     labour_ids = set()
     for row in day_list:
         for e in list(row.get('day_extras', [])) + list(row.get('day_advances', [])):
             if getattr(e, 'labour_id', None):
                 labour_ids.add(e.labour_id)
+    for g in labour_groups:
+        for lab in g.labourers.all():
+            labour_ids.add(lab.id)
     labour_cats = {}
     if labour_ids:
         labour_cats = dict(
@@ -3377,12 +3382,14 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         # hissa (Hyva/Tractor ki kamai trips se aati hai). Trip wala labour
         # (jaise Gaju) rozi record na hone par bhi dikhna chahiye.
         trip_earn = defaultdict(lambda: Decimal('0'))
+        worked_ids = set()
         for g in groups:
             members = list(g.labourers.all())
             if members:
                 share = g.total_amount / len(members)
                 for lab in members:
                     trip_earn[lab.id] += share
+                    worked_ids.add(lab.id)
         per_labour = {}
         for e in row.get('day_extras', []):
             lid = getattr(e, 'labour_id', None)
@@ -3402,13 +3409,48 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             names = dict(
                 Labour.objects.filter(id__in=per_labour.keys()).values_list('id', 'name')
             )
+        # Same-naam IDs: jiss din sirf EK role me trip kaam hua, usi section
+        # me EK combined row dikhao (16-Oct Mamaji: tractor kaam → Tractor
+        # me Rozi+Advance ek saath). Dono roles me kaam → alag rows + flag.
+        _nonzero = [
+            lid for lid, vals in per_labour.items()
+            if vals['rozi'] or vals['advance']
+        ]
+        _by_name = defaultdict(list)
+        for lid in _nonzero:
+            _by_name[_norm_name(names.get(lid, ''))].append(lid)
+        _merge_into = {}
+        for _key, _ids in _by_name.items():
+            if _key and len(_ids) > 1:
+                _wcats = {
+                    labour_cats.get(i, '') for i in _ids if i in worked_ids
+                }
+                if len(_wcats) == 1:
+                    _wcat = next(iter(_wcats))
+                    _target = sorted(
+                        _ids,
+                        key=lambda i: (labour_cats.get(i, '') != _wcat, i),
+                    )[0]
+                    for i in _ids:
+                        _merge_into[i] = _target
         tables = {'mistri': [], 'tractor': [], 'hyva_jcb': []}
-        shown_ids = []
+        _agg = {}
         for lid in sorted(per_labour, key=lambda i: names.get(i, '')):
             vals = per_labour[lid]
             if not vals['rozi'] and not vals['advance']:
                 continue
-            cat = labour_cats.get(lid, '')
+            _t = _merge_into.get(lid, lid)
+            _r = _agg.setdefault(
+                _t,
+                {'rozi': Decimal('0'), 'advance': Decimal('0'), 'ids': []},
+            )
+            _r['rozi'] += vals['rozi']
+            _r['advance'] += vals['advance']
+            if lid not in _r['ids']:
+                _r['ids'].append(lid)
+        for _t in sorted(_agg, key=lambda i: names.get(i, '')):
+            _r = _agg[_t]
+            cat = labour_cats.get(_t, '')
             if cat == 'MISTRI':
                 bucket = tables['mistri']
             elif cat == 'TRACTOR':
@@ -3417,23 +3459,19 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 bucket = tables['hyva_jcb']
             bucket.append({
                 'sr': len(bucket) + 1,
-                'name': names.get(lid, f'#{lid}'),
-                'rozi': vals['rozi'],
-                'advance': vals['advance'],
+                'name': names.get(_t, f'#{_t}'),
+                'rozi': _r['rozi'],
+                'advance': _r['advance'],
+                'merged': len(_r['ids']) if len(_r['ids']) > 1 else 0,
             })
-            shown_ids.append(lid)
         row['rozi_tables'] = tables
-        # Same naam 2 records me (Mamaji Tractor + Mistri Helper) aur dono
-        # me is din entry — paisa merge mat karo (alag vyakti ho sakta hai),
-        # sirf flag dikhao taaki galat-role entry pakad me aaye.
-        _shown_names = defaultdict(set)
-        _spell = {}
-        for lid in shown_ids:
-            _key = _norm_name(names.get(lid, ''))
-            _shown_names[_key].add(lid)
-            _spell.setdefault(_key, (names.get(lid, '') or '').strip())
+        # Ab bhi 2 rows me bati naam (dono roles me kaam) → flag dikhao.
+        _rownames = defaultdict(list)
+        for _table in tables.values():
+            for r in _table:
+                _rownames[_norm_name(r['name'])].append((r['name'] or '').strip())
         row['dup_names'] = sorted(
-            _spell[k] for k, ids in _shown_names.items() if k and len(ids) > 1
+            {_rownames[k][0] for k in _rownames if k and len(_rownames[k]) > 1}
         )
 
 

@@ -991,6 +991,70 @@ class SameNameLabourTest(TestCase):
         self.assertEqual(len(rows), 1)
         self.assertIn('Mamaji', rows[0].get('dup_names', []))
 
+    def test_same_name_merges_into_worked_section(self):
+        # Mamaji aaj tractor trip me tha (HAND group) + Rozi mistri record
+        # par + Advance tractor record par → Tractor me EK row (combined),
+        # Mistri khaali, flag nahi.
+        from .models import LabourTripGroup
+        from .views import _daily_activity_data
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=4, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g.labourers.set([self.mamaji_tractor])
+        LabourRozi.objects.create(
+            labour=self.mamaji_mistri, date=self.day,
+            day_type='FULL', amount=Decimal('500'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.mamaji_tractor, date=self.day,
+            amount=Decimal('1000'),
+        )
+        data = _daily_activity_data(self.day, self.day)
+        rows = [r for r in data['day_list'] if r['date'] == self.day]
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row.get('dup_names', []), [])
+        self.assertEqual(row['rozi_tables']['mistri'], [])
+        self.assertEqual(len(row['rozi_tables']['tractor']), 1)
+        trow = row['rozi_tables']['tractor'][0]
+        self.assertEqual(trow['name'], 'Mamaji')
+        self.assertEqual(trow['rozi'], Decimal('1800') + Decimal('500'))
+        self.assertEqual(trow['advance'], Decimal('1000'))
+        self.assertEqual(trow.get('merged'), 2)
+
+    def test_same_name_stays_split_when_both_worked(self):
+        # Dono roles me aaj trip kaam → alag rows + flag (user ka rule).
+        from .models import LabourTripGroup
+        from .views import _daily_activity_data
+
+        g1 = LabourTripGroup.objects.create(
+            date=self.day, trip_count=4, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g1.labourers.set([self.mamaji_tractor])
+        g2 = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g2.labourers.set([self.mamaji_mistri])
+        LabourRozi.objects.create(
+            labour=self.mamaji_mistri, date=self.day,
+            day_type='FULL', amount=Decimal('500'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.mamaji_tractor, date=self.day,
+            amount=Decimal('1000'),
+        )
+        data = _daily_activity_data(self.day, self.day)
+        rows = [r for r in data['day_list'] if r['date'] == self.day]
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(len(row['rozi_tables']['tractor']), 1)
+        self.assertEqual(len(row['rozi_tables']['mistri']), 1)
+        self.assertIn('Mamaji', row.get('dup_names', []))
+
 
 class OutstandingAdjustTest(TestCase):
     def setUp(self):
