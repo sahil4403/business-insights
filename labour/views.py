@@ -1946,14 +1946,43 @@ def rozi_edit(request, rozi_id):
     })
 
 
+def _norm_name(name):
+    return (name or '').strip().lower()
+
+
+def _role_badge(labour):
+    """Short disambiguation label for same-name records."""
+    if labour.category == 'MISTRI':
+        return 'Mistri Helper' if labour.sub_category == 'HELPER' else 'Mistri'
+    return labour.get_category_display()
+
+
+def _attach_dup_badges(labours):
+    """Same (normalized) naam 2+ records me — badge lagao.
+
+    Returns display names (original spelling) for warning boxes.
+    Python-side matching taaki space/case farak ho tab bhi pakdo
+    (DB collation par bharosa nahi).
+    """
+    _groups = defaultdict(list)
+    for l in labours:
+        _groups[_norm_name(l.name)].append(l)
+    _dup_keys = {k for k, g in _groups.items() if k and len(g) > 1}
+    for l in labours:
+        l.show_badge = _norm_name(l.name) in _dup_keys
+        l.role_badge = _role_badge(l) if l.show_badge else ''
+    return sorted({_groups[k][0].name.strip() for k in _dup_keys})
+
+
 @login_required(login_url='/login/')
 def rozi_multi(request):
     """
     Quick rozi entry: pick a date, then choose Full / One&Half / Half for
     each labourer. Only those with a day_type selected are saved.
 
-    Rozi only applies to Mistri labour (Mistri + Mistri Helper). Default
-    shows Mistri category unless an explicit ?category= is passed.
+    Default shows Mistri category unless an explicit ?category= is passed.
+    Same-naam wale dusri category ke records bhi saath dikhte hain
+    (badge ke saath) taaki sahi role par entry ho.
     """
     today = timezone.localdate()
     selected_date = _parse_date(request.POST.get('date') or request.GET.get('date'), today)
@@ -1965,16 +1994,17 @@ def rozi_multi(request):
         # Same-naam wale dusri category ke records bhi dikhao taaki sahi
         # role par entry ho (Mamaji Tractor + Mistri Helper: filter ne sahi
         # record chhupaya to Rozi galat role par save hoti thi).
-        _shown_names = {l.name for l in labours}
-        labours += list(
-            _base_labours.exclude(category=category_filter).filter(
-                name__in=_shown_names
-            ).order_by('name')
-        ) if _shown_names else []
+        _shown_keys = {_norm_name(l.name) for l in labours}
+        _seen_ids = {l.id for l in labours}
+        labours += [
+            l for l in _base_labours.exclude(category=category_filter).order_by('name')
+            if _norm_name(l.name) in _shown_keys and l.id not in _seen_ids
+        ]
+        # Same-naam rows paas-paas dikho (stable sort — list order same rehti hai).
+        labours = sorted(labours, key=lambda l: _norm_name(l.name))
     else:
         labours = list(_base_labours.order_by('name'))
-    _name_counts = Counter(l.name for l in labours)
-    dup_names = sorted(n for n, c in _name_counts.items() if c > 1)
+    dup_names = _attach_dup_badges(labours)
 
     existing = {
         rz.labour_id: rz
@@ -2059,19 +2089,17 @@ def advance_multi(request):
     if category_filter:
         # Same-naam wale dusri category ke records bhi dikhao (rozi_multi
         # jaisi galti yahan na ho — sahi role par advance jaye).
-        _shown_names = {l.name for l in labours}
-        _extra = (
-            list(
-                Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True).exclude(
-                    category=category_filter
-                ).filter(name__in=_shown_names).annotate(
-                    last_advance=Max('advances__date')
-                ).order_by('name')
-            ) if _shown_names else []
-        )
-        labours = labours + _extra
-    _name_counts = Counter(l.name for l in labours)
-    dup_names = sorted(n for n, c in _name_counts.items() if c > 1)
+        _shown_keys = {_norm_name(l.name) for l in labours}
+        _seen_ids = {l.id for l in labours}
+        labours = labours + [
+            l for l in Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True).exclude(
+                category=category_filter
+            ).annotate(
+                last_advance=Max('advances__date')
+            ).order_by('name')
+            if _norm_name(l.name) in _shown_keys and l.id not in _seen_ids
+        ]
+    dup_names = _attach_dup_badges(labours)
     # Existing advances for selected_date, to pre-fill
     existing = {
         a.labour_id: a
@@ -3399,10 +3427,13 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         # me is din entry — paisa merge mat karo (alag vyakti ho sakta hai),
         # sirf flag dikhao taaki galat-role entry pakad me aaye.
         _shown_names = defaultdict(set)
+        _spell = {}
         for lid in shown_ids:
-            _shown_names[(names.get(lid, '') or '').strip()].add(lid)
+            _key = _norm_name(names.get(lid, ''))
+            _shown_names[_key].add(lid)
+            _spell.setdefault(_key, (names.get(lid, '') or '').strip())
         row['dup_names'] = sorted(
-            n for n, ids in _shown_names.items() if n and len(ids) > 1
+            _spell[k] for k, ids in _shown_names.items() if k and len(ids) > 1
         )
 
 

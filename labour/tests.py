@@ -955,6 +955,26 @@ class SameNameLabourTest(TestCase):
             ).exists()
         )
 
+    def test_space_case_variant_still_matched(self):
+        # Prod me naam me space/case farak ho tab bhi pakdo + badge chhota.
+        tractor_caps = Labour.objects.create(
+            name='MAMAJI', category='TRACTOR',
+            is_active=True, status='ACTIVE',
+        )
+        response = self.client.get(
+            reverse('labour:rozi_multi'), {'category': 'MISTRI'}
+        )
+        self.assertEqual(response.status_code, 200)
+        ids = {l.id for l in response.context['labours']}
+        self.assertIn(tractor_caps.id, ids)
+        badges = {
+            l.id: l.role_badge
+            for l in response.context['labours'] if l.show_badge
+        }
+        self.assertEqual(badges[tractor_caps.id], 'Tractor')
+        self.assertEqual(badges[self.mamaji_mistri.id], 'Mistri Helper')
+        tractor_caps.delete()
+
     def test_daily_activity_flags_duplicate_name(self):
         from .views import _daily_activity_data
 

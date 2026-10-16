@@ -50,7 +50,7 @@
                     <div class="adv-row">
                         <div class="pname truncate">
                             {{ l.name }}
-                            {% if l.name in dup_names %}<span class="text-[10px] text-amber-700 font-bold ml-1">· {{ l.get_category_display }}{% if l.sub_category %} ({{ l.get_sub_category_display }}){% endif %}</span>{% endif %}
+                            {% if l.show_badge %}<span class="text-[10px] text-amber-700 font-bold ml-1">· {{ l.role_badge }}</span>{% endif %}
                             {% if l.is_driver %}<span class="text-[10px] text-blue-600 font-bold ml-1">🚗</span>{% endif %}
                             {% if has_existing %}
                                 <span class="text-[10px] text-emerald-600 font-bold ml-1">✓</span>
