@@ -1974,6 +1974,32 @@ def _attach_dup_badges(labours):
     return sorted({_groups[k][0].name.strip() for k in _dup_keys})
 
 
+def _split_names_for_date(day):
+    """Is din Rozi/Advance/Extra 2+ same-naam records me — display names.
+
+    Entry pages par warning sirf problem wale din dikhao (roz nahi).
+    """
+    _ids = set()
+    for _m in (LabourRozi, LabourAdvance, LabourExtraPayment):
+        _ids.update(
+            _m.objects.filter(date=day).values_list('labour_id', flat=True)
+        )
+    if not _ids:
+        return []
+    _names = dict(
+        Labour.objects.filter(id__in=_ids).values_list('id', 'name')
+    )
+    _by_name = defaultdict(set)
+    _spell = {}
+    for _lid in _ids:
+        _k = _norm_name(_names.get(_lid, ''))
+        if not _k:
+            continue
+        _by_name[_k].add(_lid)
+        _spell.setdefault(_k, (_names.get(_lid, '') or '').strip())
+    return sorted(_spell[k] for k, v in _by_name.items() if len(v) > 1)
+
+
 @login_required(login_url='/login/')
 def rozi_multi(request):
     """
@@ -2063,6 +2089,7 @@ def rozi_multi(request):
         'MISTRI_RATES': LabourRozi.MISTRI_RATES,
         'category_filter': category_filter,
         'dup_names': dup_names,
+        'split_names': _split_names_for_date(selected_date),
     }
     return render(request, 'labour/rozi_multi.html', context)
 
@@ -2153,6 +2180,7 @@ def advance_multi(request):
         'labour_rows': labour_rows,
         'category_filter': category_filter,
         'dup_names': dup_names,
+        'split_names': _split_names_for_date(selected_date),
     }
     return render(request, 'labour/advance_multi.html', context)
 
@@ -3394,24 +3422,39 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         for e in row.get('day_extras', []):
             lid = getattr(e, 'labour_id', None)
             if lid:
-                per_labour.setdefault(lid, {'rozi': Decimal('0'), 'advance': Decimal('0')})
+                per_labour.setdefault(
+                    lid,
+                    {'rozi': Decimal('0'), 'advance': Decimal('0'),
+                     'rozi_pay': Decimal('0')},
+                )
                 per_labour[lid]['rozi'] += e.amount or Decimal('0')
+                if isinstance(e, LabourRozi):
+                    per_labour[lid]['rozi_pay'] += e.amount or Decimal('0')
         for a in row.get('day_advances', []):
             lid = getattr(a, 'labour_id', None)
             if lid:
-                per_labour.setdefault(lid, {'rozi': Decimal('0'), 'advance': Decimal('0')})
+                per_labour.setdefault(
+                    lid,
+                    {'rozi': Decimal('0'), 'advance': Decimal('0'),
+                     'rozi_pay': Decimal('0')},
+                )
                 per_labour[lid]['advance'] += a.amount or Decimal('0')
         for lid, share in trip_earn.items():
-            per_labour.setdefault(lid, {'rozi': Decimal('0'), 'advance': Decimal('0')})
+            per_labour.setdefault(
+                lid,
+                {'rozi': Decimal('0'), 'advance': Decimal('0'),
+                 'rozi_pay': Decimal('0')},
+            )
             per_labour[lid]['rozi'] += share
         names = {}
         if per_labour:
             names = dict(
                 Labour.objects.filter(id__in=per_labour.keys()).values_list('id', 'name')
             )
-        # Same-naam IDs: jiss din sirf EK role me trip kaam hua, usi section
-        # me EK combined row dikhao (16-Oct Mamaji: tractor kaam → Tractor
-        # me Rozi+Advance ek saath). Dono roles me kaam → alag rows + flag.
+        # Same-naam IDs: jiss din sirf EK role me trip kaam hua, us role ki
+        # section me Rozi (day-wage) fold karke dikhao — 16-Oct Mamaji: galat
+        # role ki FULL Rozi tractor row me. Extra/Advance hamesha apne record
+        # par rehte hain (15-Oct: Mistri Extra 100 alag row me).
         _nonzero = [
             lid for lid, vals in per_labour.items()
             if vals['rozi'] or vals['advance']
@@ -3419,7 +3462,7 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         _by_name = defaultdict(list)
         for lid in _nonzero:
             _by_name[_norm_name(names.get(lid, ''))].append(lid)
-        _merge_into = {}
+        _fold_rozi = {}
         for _key, _ids in _by_name.items():
             if _key and len(_ids) > 1:
                 _wcats = {
@@ -3427,21 +3470,46 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 }
                 if len(_wcats) == 1:
                     _wcat = next(iter(_wcats))
-                    _target = sorted(
-                        _ids,
-                        key=lambda i: (labour_cats.get(i, '') != _wcat, i),
-                    )[0]
+                    _cands = sorted(
+                        i for i in _ids if labour_cats.get(i, '') == _wcat
+                    )
+                    _target = _cands[0] if _cands else sorted(_ids)[0]
                     for i in _ids:
-                        _merge_into[i] = _target
+                        if (
+                            i != _target
+                            and labour_cats.get(i, '') != _wcat
+                            and per_labour.get(i, {}).get('rozi_pay')
+                        ):
+                            _fold_rozi[i] = _target
         tables = {'mistri': [], 'tractor': [], 'hyva_jcb': []}
         _agg = {}
         for lid in sorted(per_labour, key=lambda i: names.get(i, '')):
             vals = per_labour[lid]
             if not vals['rozi'] and not vals['advance']:
                 continue
-            _t = _merge_into.get(lid, lid)
+            if lid in _fold_rozi:
+                # Sirf Rozi-pay fold hota hai; Extra/Advance apne record par.
+                _t = _fold_rozi[lid]
+                _r = _agg.setdefault(
+                    _t,
+                    {'rozi': Decimal('0'), 'advance': Decimal('0'), 'ids': []},
+                )
+                _r['rozi'] += vals['rozi_pay']
+                _r['ids'].extend([_t, lid] if _t not in _r['ids'] else [lid])
+                _rest = vals['rozi'] - vals['rozi_pay']
+                if _rest or vals['advance']:
+                    _own = _agg.setdefault(
+                        lid,
+                        {'rozi': Decimal('0'), 'advance': Decimal('0'),
+                         'ids': []},
+                    )
+                    _own['rozi'] += _rest
+                    _own['advance'] += vals['advance']
+                    if lid not in _own['ids']:
+                        _own['ids'].append(lid)
+                continue
             _r = _agg.setdefault(
-                _t,
+                lid,
                 {'rozi': Decimal('0'), 'advance': Decimal('0'), 'ids': []},
             )
             _r['rozi'] += vals['rozi']
@@ -3465,14 +3533,6 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'merged': len(_r['ids']) if len(_r['ids']) > 1 else 0,
             })
         row['rozi_tables'] = tables
-        # Ab bhi 2 rows me bati naam (dono roles me kaam) → flag dikhao.
-        _rownames = defaultdict(list)
-        for _table in tables.values():
-            for r in _table:
-                _rownames[_norm_name(r['name'])].append((r['name'] or '').strip())
-        row['dup_names'] = sorted(
-            {_rownames[k][0] for k in _rownames if k and len(_rownames[k]) > 1}
-        )
 
 
 def _period_label(start, end):

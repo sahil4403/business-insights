@@ -975,7 +975,8 @@ class SameNameLabourTest(TestCase):
         self.assertEqual(badges[self.mamaji_mistri.id], 'Mistri Helper')
         tractor_caps.delete()
 
-    def test_daily_activity_flags_duplicate_name(self):
+    def test_split_stays_normal_without_flag(self):
+        # Bina trip-kaam ke split: alag rows, normal display, koi flag nahi.
         from .views import _daily_activity_data
 
         LabourRozi.objects.create(
@@ -989,7 +990,55 @@ class SameNameLabourTest(TestCase):
         data = _daily_activity_data(self.day, self.day)
         rows = [r for r in data['day_list'] if r['date'] == self.day]
         self.assertEqual(len(rows), 1)
-        self.assertIn('Mamaji', rows[0].get('dup_names', []))
+        row = rows[0]
+        self.assertEqual(len(row['rozi_tables']['mistri']), 1)
+        self.assertEqual(len(row['rozi_tables']['tractor']), 1)
+        self.assertNotIn('dup_names', row)
+
+    def test_extra_stays_on_own_record(self):
+        # 15-Oct case: Mistri Extra 100 + tractor trip kaam → alag-alag,
+        # Extra apne record par, koi flag/note nahi.
+        from .models import LabourExtraPayment, LabourTripGroup
+        from .views import _daily_activity_data
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=4, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g.labourers.set([self.mamaji_tractor])
+        LabourExtraPayment.objects.create(
+            labour=self.mamaji_mistri, date=self.day,
+            amount=Decimal('100'), note='Chhota kaam',
+        )
+        data = _daily_activity_data(self.day, self.day)
+        rows = [r for r in data['day_list'] if r['date'] == self.day]
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(len(row['rozi_tables']['mistri']), 1)
+        self.assertEqual(row['rozi_tables']['mistri'][0]['rozi'], Decimal('100'))
+        self.assertEqual(len(row['rozi_tables']['tractor']), 1)
+        self.assertNotIn('dup_names', row)
+
+    def test_entry_warning_only_on_split_day(self):
+        # Warning sirf problem wale din; saaf din normal page.
+        response = self.client.get(
+            reverse('labour:rozi_multi'),
+            {'category': 'MISTRI', 'date': '2026-10-16'},
+        )
+        self.assertEqual(response.context['split_names'], [])
+        LabourRozi.objects.create(
+            labour=self.mamaji_mistri, date=self.day,
+            day_type='FULL', amount=Decimal('500'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.mamaji_tractor, date=self.day,
+            amount=Decimal('1000'),
+        )
+        response = self.client.get(
+            reverse('labour:rozi_multi'),
+            {'category': 'MISTRI', 'date': '2026-10-16'},
+        )
+        self.assertIn('Mamaji', response.context['split_names'])
 
     def test_same_name_merges_into_worked_section(self):
         # Mamaji aaj tractor trip me tha (HAND group) + Rozi mistri record
@@ -1053,7 +1102,7 @@ class SameNameLabourTest(TestCase):
         row = rows[0]
         self.assertEqual(len(row['rozi_tables']['tractor']), 1)
         self.assertEqual(len(row['rozi_tables']['mistri']), 1)
-        self.assertIn('Mamaji', row.get('dup_names', []))
+        self.assertNotIn('dup_names', row)
 
 
 class OutstandingAdjustTest(TestCase):
