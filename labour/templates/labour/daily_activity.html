@@ -281,6 +281,11 @@
                                 {% endfor %}
                             </div>
                             {% endif %}
+                            {% if row.dup_names %}
+                            <div class="dd-block dd-sec">
+                                <div class="dd-item"><span class="t text-amber-700 font-semibold">⚠️ Same naam 2 records me: {{ row.dup_names|join:", " }} — Rozi/Advance alag-alag section me gaya hai, sahi role wala check karo.</span></div>
+                            </div>
+                            {% endif %}
                             {% if row.rozi_tables.mistri %}
                             <div class="dd-block dd-sec">
                                 <div class="dd-title">Rozi — Mistri</div>

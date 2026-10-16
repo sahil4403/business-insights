@@ -1959,12 +1959,22 @@ def rozi_multi(request):
     selected_date = _parse_date(request.POST.get('date') or request.GET.get('date'), today)
 
     category_filter = request.POST.get('category') or request.GET.get('category') or 'MISTRI'
+    _base_labours = Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True)
     if category_filter:
-        labours = list(Labour.objects.filter(
-            is_active=True, category=category_filter
-        ).exclude(is_vendor=True).exclude(is_one_day=True).order_by('name'))
+        labours = list(_base_labours.filter(category=category_filter).order_by('name'))
+        # Same-naam wale dusri category ke records bhi dikhao taaki sahi
+        # role par entry ho (Mamaji Tractor + Mistri Helper: filter ne sahi
+        # record chhupaya to Rozi galat role par save hoti thi).
+        _shown_names = {l.name for l in labours}
+        labours += list(
+            _base_labours.exclude(category=category_filter).filter(
+                name__in=_shown_names
+            ).order_by('name')
+        ) if _shown_names else []
     else:
-        labours = list(Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True).order_by('name'))
+        labours = list(_base_labours.order_by('name'))
+    _name_counts = Counter(l.name for l in labours)
+    dup_names = sorted(n for n, c in _name_counts.items() if c > 1)
 
     existing = {
         rz.labour_id: rz
@@ -2022,6 +2032,7 @@ def rozi_multi(request):
         'DAY_MULTIPLIER': LabourRozi.DAY_MULTIPLIER,
         'MISTRI_RATES': LabourRozi.MISTRI_RATES,
         'category_filter': category_filter,
+        'dup_names': dup_names,
     }
     return render(request, 'labour/rozi_multi.html', context)
 
@@ -2045,6 +2056,22 @@ def advance_multi(request):
             last_advance=Max('advances__date')
         ).order_by(F('last_advance').desc(nulls_last=True), 'name')
     )
+    if category_filter:
+        # Same-naam wale dusri category ke records bhi dikhao (rozi_multi
+        # jaisi galti yahan na ho — sahi role par advance jaye).
+        _shown_names = {l.name for l in labours}
+        _extra = (
+            list(
+                Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True).exclude(
+                    category=category_filter
+                ).filter(name__in=_shown_names).annotate(
+                    last_advance=Max('advances__date')
+                ).order_by('name')
+            ) if _shown_names else []
+        )
+        labours = labours + _extra
+    _name_counts = Counter(l.name for l in labours)
+    dup_names = sorted(n for n, c in _name_counts.items() if c > 1)
     # Existing advances for selected_date, to pre-fill
     existing = {
         a.labour_id: a
@@ -2097,6 +2124,7 @@ def advance_multi(request):
         'existing': existing,
         'labour_rows': labour_rows,
         'category_filter': category_filter,
+        'dup_names': dup_names,
     }
     return render(request, 'labour/advance_multi.html', context)
 
@@ -3347,6 +3375,7 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 Labour.objects.filter(id__in=per_labour.keys()).values_list('id', 'name')
             )
         tables = {'mistri': [], 'tractor': [], 'hyva_jcb': []}
+        shown_ids = []
         for lid in sorted(per_labour, key=lambda i: names.get(i, '')):
             vals = per_labour[lid]
             if not vals['rozi'] and not vals['advance']:
@@ -3364,7 +3393,17 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'rozi': vals['rozi'],
                 'advance': vals['advance'],
             })
+            shown_ids.append(lid)
         row['rozi_tables'] = tables
+        # Same naam 2 records me (Mamaji Tractor + Mistri Helper) aur dono
+        # me is din entry — paisa merge mat karo (alag vyakti ho sakta hai),
+        # sirf flag dikhao taaki galat-role entry pakad me aaye.
+        _shown_names = defaultdict(set)
+        for lid in shown_ids:
+            _shown_names[(names.get(lid, '') or '').strip()].add(lid)
+        row['dup_names'] = sorted(
+            n for n, ids in _shown_names.items() if n and len(ids) > 1
+        )
 
 
 def _period_label(start, end):

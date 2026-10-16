@@ -886,6 +886,92 @@ class TripEditDateChangeTest(TestCase):
         )
 
 
+class SameNameLabourTest(TestCase):
+    """Same naam ke 2 records (Mamaji: Tractor + Mistri Helper).
+
+    Bug (16-Oct): Quick Rozi page (MISTRI filter) me Tractor-Mamaji dikhta
+    hi nahi tha — Rozi galat record par save hoti thi, Advance sahi par.
+    Daily Activity me Rozi alag section, Advance alag section (split).
+    Fix: filter ke saath same-naam wale rows bhi dikho (badge ke saath),
+    aur Daily Activity me duplicate-naam flag dikhao.
+    """
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='samename-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.day = date(2026, 10, 16)
+        self.mamaji_tractor = Labour.objects.create(
+            name='Mamaji', category='TRACTOR',
+            is_active=True, status='ACTIVE',
+        )
+        self.mamaji_mistri = Labour.objects.create(
+            name='Mamaji', category='MISTRI', sub_category='HELPER',
+            is_active=True, status='ACTIVE',
+        )
+
+    def test_rozi_page_lists_both_mamajis(self):
+        response = self.client.get(
+            reverse('labour:rozi_multi'), {'category': 'MISTRI'}
+        )
+        self.assertEqual(response.status_code, 200)
+        ids = {l.id for l in response.context['labours']}
+        self.assertIn(self.mamaji_tractor.id, ids)
+        self.assertIn(self.mamaji_mistri.id, ids)
+        self.assertIn('Mamaji', response.context['dup_names'])
+
+    def test_rozi_saves_on_tractor_record(self):
+        response = self.client.post(
+            reverse('labour:rozi_multi') + '?category=MISTRI',
+            data={
+                'date': '2026-10-16',
+                'category': 'MISTRI',
+                f'day_type_{self.mamaji_tractor.pk}': 'FULL',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            LabourRozi.objects.filter(
+                labour=self.mamaji_tractor, date=self.day
+            ).exists()
+        )
+
+    def test_advance_saves_on_mistri_record(self):
+        response = self.client.post(
+            reverse('labour:advance_multi') + '?category=TRACTOR',
+            data={
+                'date': '2026-10-16',
+                'category': 'TRACTOR',
+                f'amount_{self.mamaji_mistri.pk}': '500',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            LabourAdvance.objects.filter(
+                labour=self.mamaji_mistri, date=self.day
+            ).exists()
+        )
+
+    def test_daily_activity_flags_duplicate_name(self):
+        from .views import _daily_activity_data
+
+        LabourRozi.objects.create(
+            labour=self.mamaji_mistri, date=self.day,
+            day_type='FULL', amount=Decimal('500'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.mamaji_tractor, date=self.day,
+            amount=Decimal('1000'),
+        )
+        data = _daily_activity_data(self.day, self.day)
+        rows = [r for r in data['day_list'] if r['date'] == self.day]
+        self.assertEqual(len(rows), 1)
+        self.assertIn('Mamaji', rows[0].get('dup_names', []))
+
+
 class OutstandingAdjustTest(TestCase):
     def setUp(self):
         user_model = get_user_model()
