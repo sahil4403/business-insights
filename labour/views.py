@@ -763,8 +763,6 @@ def labour_detail(request, labour_id):
 @login_required(login_url='/login/')
 def trip_group_create(request):
     """Create a new trip-group entry. Supports 'add_another' flow."""
-    add_another = request.GET.get('next') == 'add_another' or \
-        request.POST.get('add_another') == '1'
     category = request.GET.get('category') or request.POST.get('category') or ''
     if category not in dict(Labour.CATEGORY_CHOICES):
         category = 'TRACTOR'
@@ -779,8 +777,13 @@ def trip_group_create(request):
                 request,
                 f'Trip entry saved · {obj.trip_count} trips · ₹{obj.total_amount}.',
             )
+            # Save & Add Another → same page, pre-filled with last date + category
             if request.POST.get('add_another') == '1':
-                return redirect(f"{request.path}?next=add_another&date={obj.date.isoformat()}{('&category=' + category) if category else ''}")
+                return redirect(
+                    f"{reverse('labour:trip_add')}?next=add_another"
+                    f"&date={obj.date.isoformat()}"
+                    f"{'&category=' + category if category else ''}"
+                )
             return redirect('labour:list')
     else:
         initial_date = _parse_date(request.GET.get('date'), timezone.localdate())
