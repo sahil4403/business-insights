@@ -124,7 +124,7 @@
             <div class="val num">₹<span id="total-val">0</span></div>
         </div>
 
-        <div class="flex gap-2 sticky bottom-2">
+        <div class="flex gap-2 pt-4 pb-24">
             {% if editing_group %}
                 <form method="post" action="{% url 'labour:trip_delete' editing_group.id %}"
                       onsubmit="return confirm('Delete this trip entry? Sab labour ke hisse se ye entry ab hat jayegi.');" class="shrink-0">
