@@ -2181,14 +2181,8 @@ def advance_multi(request):
             saved += 1
         if not saved:
             messages.info(request, 'No advance amounts entered.')
-        # After saving, jump back to the current date so the old-date screen
-        # doesn't linger blank while entries already exist for it.
-        qs = [f'date={today.isoformat()}']
-        if category_filter:
-            qs.append(f'category={category_filter}')
-        if saved:
-            qs.append(f'saved={saved}')
-        return redirect(f"{request.path}?{'&'.join(qs)}")
+        # Save hogaye → labour home (list) par bhejo, advance_multi page par nahi.
+        return redirect('labour:list')
 
     context = {
         'page_title': 'Quick Advances',

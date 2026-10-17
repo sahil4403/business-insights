@@ -955,6 +955,18 @@ class SameNameLabourTest(TestCase):
             ).exists()
         )
 
+    def test_advance_save_redirects_to_labour_list(self):
+        """Advance save → labour:list, NOT back to advance_multi page."""
+        response = self.client.post(
+            reverse('labour:advance_multi'),
+            data={
+                'date': '2026-10-16',
+                f'amount_{self.mamaji_tractor.pk}': '1000',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/labour/')
+
     def test_space_case_variant_still_matched(self):
         # Prod me naam me space/case farak ho tab bhi pakdo + badge chhota.
         tractor_caps = Labour.objects.create(
