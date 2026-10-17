@@ -760,6 +760,18 @@ def labour_detail(request, labour_id):
 # Trip Group
 # ----------------------------------------------------------------------------
 
+def _parse_labourers(val):
+    """Comma-separated labourer IDs from URL query param -> list of ints."""
+    if not val:
+        return ()
+    ids = []
+    for part in val.split(','):
+        part = part.strip()
+        if part.isdigit():
+            ids.append(int(part))
+    return tuple(ids)
+
+
 @login_required(login_url='/login/')
 def trip_group_create(request):
     """Create a new trip-group entry. Supports 'add_another' flow."""
@@ -778,15 +790,18 @@ def trip_group_create(request):
                 f'Trip entry saved · {obj.trip_count} trips · ₹{obj.total_amount}.',
             )
             # Save & Add Another → same page, pre-filled with last date + category
-            if request.POST.get('add_another') == '1':
+            add_another = request.POST.get('add_another') == '1' or request.POST.get('add_another_flag') == '1'
+            if add_another:
                 return redirect(
                     f"{reverse('labour:trip_add')}?next=add_another"
                     f"&date={obj.date.isoformat()}"
                     f"{'&category=' + category if category else ''}"
+                    f"&labourers={','.join(str(l.id) for l in obj.labourers.all())}"
                 )
             return redirect('labour:list')
     else:
         initial_date = _parse_date(request.GET.get('date'), timezone.localdate())
+        form_kwargs['keep_labourers'] = _parse_labourers(request.GET.get('labourers'))
         form = LabourTripGroupForm(initial={'date': initial_date}, **form_kwargs)
 
     context = {

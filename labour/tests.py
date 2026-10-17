@@ -2525,3 +2525,57 @@ class DailyActivityPageRenderTest(TestCase):
                         'vnd.openxmlformats-officedocument',
                         response['Content-Type'],
                     )
+
+
+class TripAddAnotherTest(TestCase):
+    """Save & Add Another must stay on trip_add page, not redirect to labour:list."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='trip-add-again-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.l1 = Labour.objects.create(
+            name='Hand', category='TRACTOR', is_active=True, status='ACTIVE'
+        )
+        self.l2 = Labour.objects.create(
+            name='Ankush', category='TRACTOR', is_active=True, status='ACTIVE'
+        )
+        self.l3 = Labour.objects.create(
+            name='Diwakar', category='TRACTOR', is_active=True, status='ACTIVE'
+        )
+
+    def test_save_add_another_stays_on_trip_add(self):
+        response = self.client.post(
+            reverse('labour:trip_add') + '?category=TRACTOR',
+            data={
+                'date': '2026-10-16',
+                'trip_count': '2',
+                'rate_per_trip': '450',
+                'fill_type': 'HAND',
+                'labourers': [str(self.l1.pk), str(self.l2.pk), str(self.l3.pk)],
+                'add_another': '1',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        # Must redirect back to trip_add page (add_another), NOT to labour:list
+        self.assertIn('/labour/trips/add/', response.url)
+        self.assertIn('next=add_another', response.url)
+        self.assertNotIn('/labour/', response.url.replace('/labour/trips/add/', ''))
+
+    def test_save_redirects_to_labour_list(self):
+        """Plain Save (no add_another) redirects to labour:list."""
+        response = self.client.post(
+            reverse('labour:trip_add') + '?category=TRACTOR',
+            data={
+                'date': '2026-10-16',
+                'trip_count': '2',
+                'rate_per_trip': '450',
+                'fill_type': 'HAND',
+                'labourers': [str(self.l1.pk), str(self.l2.pk), str(self.l3.pk)],
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/labour/')

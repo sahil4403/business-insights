@@ -134,8 +134,9 @@
                 <button type="submit" class="btn btn-primary flex-1">💾 Save Changes</button>
             {% else %}
                 <a href="{% url 'labour:list' %}" class="btn btn-ghost">Cancel</a>
-                <button type="submit" name="add_another" value="1" class="btn btn-secondary flex-1">＋ Save & Add Another</button>
-                <button type="submit" class="btn btn-primary flex-1">Save</button>
+                <button type="submit" name="add_another" value="1" class="btn btn-secondary flex-1" onclick="__setAddAnother(1)">＋ Save & Add Another</button>
+                <button type="submit" class="btn btn-primary flex-1" onclick="__setAddAnother(0)">Save</button>
+                <input type="hidden" name="add_another_flag" value="0" id="add-another-flag">
             {% endif %}
         </div>
     </form>
@@ -214,5 +215,13 @@
 
     updateTotal();
 })();
+
+    // Backup flag for Save & Add Another — set by button onclick so the
+    // value reaches the server even if the submit button's name/value is
+    // not included (e.g. Enter-key submit or mobile quirks).
+    window.__setAddAnother = function (v) {
+        var el = document.getElementById('add-another-flag');
+        if (el) el.value = v;
+    };
 </script>
 {% endblock %}

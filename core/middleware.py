@@ -76,6 +76,8 @@ class OperatorAccessMiddleware:
             return True
         if path == '/labour/jcb/trips/add/':
             return True
+        if path == '/labour/trips/add/':
+            return True
         if path.startswith('/labour/jcb/trips/edit/'):
             return True  # ownership of the entry is enforced in the view
         if path in (f'/labour/extras/add/{lab_id}/', f'/labour/advances/add/{lab_id}/',
