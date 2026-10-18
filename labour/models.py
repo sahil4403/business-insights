@@ -466,6 +466,11 @@ class LabourTripGroup(models.Model):
 
     date = models.DateField()
     trip_count = models.PositiveIntegerField()
+    actual_trip_count = models.PositiveIntegerField(
+        default=0,
+        blank=True,
+        help_text="Actual trips physically done (may differ from trip_count). Shown only for display.",
+    )
     rate_per_trip = models.DecimalField(
         max_digits=10,
         decimal_places=2,
