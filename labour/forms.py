@@ -81,18 +81,13 @@ class LabourTripGroupForm(forms.ModelForm):
 
     class Meta:
         model = LabourTripGroup
-        fields = ['date', 'trip_count', 'actual_trip_count', 'rate_per_trip', 'fill_type', 'labourers', 'note']
+        fields = ['date', 'trip_count', 'rate_per_trip', 'fill_type', 'labourers', 'note']
         widgets = {
             'date': DateInput(),
             'trip_count': forms.NumberInput(attrs={
                 'class': 'input',
                 'min': 1,
                 'placeholder': 'No. of trips',
-            }),
-            'actual_trip_count': forms.NumberInput(attrs={
-                'class': 'input',
-                'min': 0,
-                'placeholder': 'Actual trips done',
             }),
             'rate_per_trip': forms.NumberInput(attrs={
                 'class': 'input',

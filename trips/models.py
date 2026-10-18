@@ -85,6 +85,12 @@ class Trip(models.Model):
         help_text="Stores trip counts completed per driver, e.g. {'18': 3, '6': 2}"
     )
 
+    actual_trip_count = models.PositiveIntegerField(
+        default=0,
+        blank=True,
+        help_text="Actual trips physically done (may differ from trip_count). Shown only for display.",
+    )
+
     quantity = models.DecimalField(
         max_digits=12,
         decimal_places=2

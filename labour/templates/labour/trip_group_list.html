@@ -104,9 +104,6 @@
                                                                 {% if r.group.fill_type == 'JCB' %}bg-amber-50 text-amber-700{% else %}bg-slate-100 text-slate-500{% endif %}">{{ r.group.fill_type }}</span>
                                                         {% endif %}
                                                         <span class="text-[12px] text-slate-700 font-bold num">{{ r.group.trip_count }} trips</span>
-                                                        {% if r.group.actual_trip_count %}
-                                                        <span class="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-bold ml-1 border border-amber-200">Actual: {{ r.group.actual_trip_count }}</span>
-                                                        {% endif %}
                                                         <span class="text-slate-300 hidden md:inline-block">|</span>
                                                         <span class="text-[12px] text-slate-500 font-medium num">@ ₹{{ r.group.rate_per_trip|floatformat:0 }}</span>
                                                     </div>
