@@ -314,7 +314,8 @@ class Trip(models.Model):
         if not self.material or not self.quantity:
             return 1
         unit = (self.material.unit or '').upper()
-        if unit == 'PIECE':
+        # TRIP and PIECE units: quantity directly = number of trips
+        if unit in ('PIECE', 'TRIP'):
             return int(self.quantity)
         # For weight materials (TON, etc.), default to 1 trip per record
         # Could extend with vehicle capacity config later
