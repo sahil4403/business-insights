@@ -405,9 +405,6 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                             <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-semibold whitespace-nowrap">
                                 {{ g.trip_count }} trip{{ g.trip_count|pluralize }}{% if g.load_type %} · {{ g.load_type }}{% endif %}
                             </span>
-                            {% if g.actual_trip_count %}
-                            <span class="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-bold ml-1 border border-amber-200">Actual: {{ g.actual_trip_count }}</span>
-                            {% endif %}
                             {% endif %}
                         </div>
                         <div class="text-right shrink-0 flex items-center gap-1.5">
