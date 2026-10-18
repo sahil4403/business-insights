@@ -22,6 +22,7 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
+from django.views.generic import TemplateView
 from authentication.views import staff_manage
 from core.views import custom_admin_login, js_error_beacon
 
@@ -36,6 +37,12 @@ urlpatterns = [
     path('login/', include('authentication.urls')),
     path("staff/", staff_manage, name='staff_manage'),
     path("__jserr__/", js_error_beacon, name='js_error_beacon'),
+    # PWA: Service Worker & Offline page
+    path('serviceworker.js', TemplateView.as_view(
+        template_name='serviceworker.js',
+        content_type='application/javascript'
+    ), name='serviceworker'),
+    path('offline/', TemplateView.as_view(template_name='offline.html'), name='offline'),
     path('', include('core.urls')),
 ]
 

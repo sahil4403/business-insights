@@ -91,12 +91,18 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,
+        "APP_DIRS": False,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+            ],
+            "loaders": [
+                ("django.template.loaders.cached.Loader", [
+                    "django.template.loaders.filesystem.Loader",
+                    "django.template.loaders.app_directories.Loader",
+                ]),
             ],
         },
     },
@@ -124,7 +130,7 @@ else:
             'PORT': os.getenv("DB_PORT"),
             # Persistent DB connections (per-request reconnect nahi) +
             # health check taaki stale connection kabhi error na de.
-            'CONN_MAX_AGE': int(os.getenv("DB_CONN_MAX_AGE", "60")),
+            'CONN_MAX_AGE': int(os.getenv("DB_CONN_MAX_AGE", "600")),
             'CONN_HEALTH_CHECKS': True,
         }
     }
@@ -167,8 +173,7 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        # Non-manifest storage: missing collectstatic must never 500 the site.
-        # WhiteNoise still compresses; un-hashed files get short cache (fresh in ~60s).
+        # Compressed storage without manifest for test compatibility
         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
@@ -236,6 +241,9 @@ SESSION_COOKIE_AGE = 1209600  # 2 weeks (seconds)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # browser/app background-close par cookie bana rahe
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Session backend optimization
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 # ---- Media (vehicle document uploads) ----
 MEDIA_URL = '/media/'

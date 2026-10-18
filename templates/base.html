@@ -1,10 +1,21 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="theme-color" content="#16665a">
-    <title>{% block title %}Shri Raj Construction & Building Materials Supplier{% endblock %}</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Business Insights">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
+    <link rel="preload" href="{% static 'css/app.css' %}" as="style">
+    <link rel="preload" href="{% static 'css/liquid-glass.css' %}" as="style">
+    <link rel="prefetch" href="/customers/">
+    <link rel="prefetch" href="/trips/">
+    <link rel="prefetch" href="/labour/">
+    <title>{% block title %}Business Insights{% endblock %}</title>
     {% load static %}
     <script>
     /* Theme pre-render: first paint se PEHLE saved theme lagao (light-flash nahi).
@@ -971,6 +982,95 @@
                 show();
                 setTimeout(hide, 1500); // no-nav failsafe
             }, true);
+        })();
+    </script>
+
+    <!-- Skeleton Loading CSS -->
+    <style>
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+            border-radius: 8px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skeleton-text { height: 1rem; margin-bottom: 0.5rem; }
+        .skeleton-title { height: 1.5rem; width: 60%; margin-bottom: 1rem; }
+        .skeleton-card { height: 100px; }
+        .skeleton-avatar { width: 48px; height: 48px; border-radius: 50%; }
+        .skeleton-btn { height: 48px; width: 100%; border-radius: 12px; }
+    </style>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/serviceworker.js', { scope: '/' })
+                    .then(function(reg) {
+                        console.log('[PWA] Service Worker registered:', reg.scope);
+                        if (reg.waiting) {
+                            reg.waiting.postMessage('SKIP_WAITING');
+                        }
+                        reg.addEventListener('updatefound', function() {
+                            var newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', function() {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('[PWA] New version available');
+                                }
+                            });
+                        });
+                    }).catch(function(err) {
+                        console.log('[PWA] Service Worker registration failed:', err);
+                    });
+            });
+        }
+
+        // Touch feedback for all interactive elements
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('button, a, .btn, .app-chip, .app-fab, .lq-link, .nav-link, [role="button"]').forEach(function(el) {
+                el.style.touchAction = 'manipulation';
+                el.addEventListener('touchstart', function() {
+                    el.style.transition = 'transform 0.1s ease, opacity 0.1s ease';
+                    el.style.transform = 'scale(0.97)';
+                    el.style.opacity = '0.85';
+                }, { passive: true });
+                el.addEventListener('touchend', function() {
+                    el.style.transform = '';
+                    el.style.opacity = '';
+                }, { passive: true });
+                el.addEventListener('touchcancel', function() {
+                    el.style.transform = '';
+                    el.style.opacity = '';
+                }, { passive: true });
+            });
+        });
+
+        // Prefetch on hover/touch for instant navigation
+        (function() {
+            var prefetched = new Set();
+            function prefetch(url) {
+                if (!url || prefetched.has(url)) return;
+                try {
+                    var u = new URL(url, location.href);
+                    if (u.origin !== location.origin || u.pathname.startsWith('/static')) return;
+                    prefetched.add(url);
+                    var link = document.createElement('link');
+                    link.rel = 'prefetch';
+                    link.href = url;
+                    document.head.appendChild(link);
+                } catch (e) {}
+            }
+            document.addEventListener('mouseover', function(e) {
+                var a = e.target.closest('a[href]');
+                if (a && !a.hasAttribute('data-no-prefetch')) prefetch(a.href);
+            }, true);
+            document.addEventListener('touchstart', function(e) {
+                var a = e.target.closest('a[href]');
+                if (a && !a.hasAttribute('data-no-prefetch')) prefetch(a.href);
+            }, { passive: true, capture: true });
         })();
     </script>
 </body>
