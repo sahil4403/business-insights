@@ -440,6 +440,7 @@ def trip_list(request):
         'total_count': len(trips_list),
         'total_qty': sum((t.quantity or Decimal('0')) for t in trips_list),
         'total_actual_count': sum((t.actual_trip_count or 0) for t in trips_list),
+        'total_calculated_trips': sum(t.calculated_trips for t in trips_list),
         'total_revenue': sum(t.total_amount for t in trips_list) if trips_list else Decimal('0'),
         'total_received': sum((t.calculated_received or Decimal('0')) for t in trips_list) if trips_list else Decimal('0'),
         'total_pending': sum((t.outstanding_amount or Decimal('0')) for t in trips_list) if trips_list else Decimal('0'),
