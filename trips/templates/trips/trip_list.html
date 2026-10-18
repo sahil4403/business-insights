@@ -479,7 +479,7 @@
     <div class="app-surface overflow-hidden" data-animate>
         <div id="tripsHeader" class="px-4 py-3 md:px-5 md:py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
             <div class="font-bold text-slate-900 text-base">
-                Trips <span class="text-[13px] font-medium text-slate-500">({% if summary.is_internal_stock %}{{ summary.total_qty|floatformat:0 }}{% else %}{{ summary.total_count }}{% endif %} trips)</span>
+                Trips {% if summary.is_internal_stock %}<span class="text-[13px] font-medium text-slate-500">({{ summary.total_qty|floatformat:0 }} trips)</span>{% elif summary.total_actual_count %}<span class="text-[13px] font-medium text-slate-500">({{ summary.total_actual_count }} actual)</span>{% else %}<span class="text-[13px] font-medium text-slate-500">({{ summary.total_count }} trips)</span>{% endif %}
                 {% if summary.total_actual_count %}
                 <span class="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-bold ml-1 border border-amber-200">Actual: {{ summary.total_actual_count }}</span>
                 {% endif %}

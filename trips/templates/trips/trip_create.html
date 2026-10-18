@@ -313,6 +313,15 @@
             </div>
 
             <div class="min-w-0">
+                <label class="label" for="{{ form.actual_trip_count.id_for_label }}">Actual Trip Count</label>
+                {{ form.actual_trip_count }}
+                <div class="help-text">Asli trips kitni hui hain (sirf display ke liye).</div>
+                {% for error in form.actual_trip_count.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="min-w-0">
                 <label class="label" for="{{ form.rate.id_for_label }}">Rate</label>
                 {{ form.rate }}
                 <div class="help-text">Can be ₹0 if rate not known yet — add it later via Edit Trip.</div>
