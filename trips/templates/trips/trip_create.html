@@ -1334,10 +1334,14 @@ function confirmSaveAndViewStatement(shouldSave) {
 
             // 8. Driver (skip for JCB, INTERNAL_STOCK, VENDOR_SUPPLY)
             var driverChecks = document.querySelectorAll('.driver-checkbox:checked');
+            // Also check for new driver quick-add
+            var newDrvName = document.querySelector('input[name="new_driver_name"]');
+            var newDrvCount = document.querySelector('input[name="new_driver_count"]');
+            var hasNewDriver = newDrvName && newDrvName.value.trim() && newDrvCount && parseFloat(newDrvCount.value) > 0;
             if (transType !== 'INTERNAL_STOCK' && transType !== 'VENDOR_SUPPLY') {
                 var vehicleCat = document.getElementById('id_vehicle_category');
                 var isJcb = vehicleCat && vehicleCat.value === 'JCB';
-                if (!isJcb && vehicle.value && driverChecks.length === 0) {
+                if (!isJcb && vehicle.value && driverChecks.length === 0 && !hasNewDriver) {
                     var box = document.getElementById('driver_allocation_box');
                     box.classList.add('field-error');
                     var div = document.createElement('div');
