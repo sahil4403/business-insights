@@ -307,6 +307,18 @@ class Trip(models.Model):
 
     def __str__(self):
         customer_name = self.customer.name if self.customer else 'Internal Stock'
+
+    @property
+    def calculated_trips(self):
+        """Calculate trips from quantity based on material unit."""
+        if not self.material or not self.quantity:
+            return 1
+        unit = (self.material.unit or '').upper()
+        if unit == 'PIECE':
+            return int(self.quantity)
+        # For weight materials (TON, etc.), default to 1 trip per record
+        # Could extend with vehicle capacity config later
+        return 1
         return f"{self.trip_code} - {customer_name}"
 
 class TripPayment(models.Model):

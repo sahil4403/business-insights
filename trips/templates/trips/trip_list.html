@@ -509,6 +509,7 @@
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap min-w-[120px]">Drivers / Labour</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Material</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Quantity</th>
+                            <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-300 whitespace-nowrap">Calc Trips</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right border-r border-slate-300 whitespace-nowrap">Revenue</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right border-r border-slate-300 whitespace-nowrap">Received</th>
                             <th class="px-1.5 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right border-r border-slate-300 whitespace-nowrap">Outstanding</th>
@@ -549,6 +550,7 @@
                                         {{ trip.quantity }}
                                     {% endif %}
                                 </td>
+                                <td class="px-1.5 py-2 border-r border-slate-300 whitespace-nowrap text-center">{{ trip.calculated_trips }}</td>
                                 <td class="px-1.5 py-2 text-right font-semibold whitespace-nowrap border-r border-slate-300">₹{{ trip.total_amount|floatformat:2 }}</td>
                                 <td class="px-1.5 py-2 text-right font-semibold whitespace-nowrap text-emerald-700 border-r border-slate-300">₹{{ trip.total_received|floatformat:2 }}</td>
                                 <td class="px-1.5 py-2 text-right font-semibold whitespace-nowrap {% if trip.outstanding_amount > 0 %}text-red-600{% endif %} border-r border-slate-300">₹{{ trip.outstanding_amount|floatformat:2 }}</td>
@@ -612,6 +614,9 @@
                         <div class="mt-0.5 text-[12px] text-slate-500 truncate">
                             {{ trip.vehicle|vehicle_icon }} {{ trip.vehicle.registration_number|default:"—" }} · 📦 {{ trip.material.name }}{% if trip.destination %} · 📍 {{ trip.destination }}{% endif %}
                             {% if trip.material.unit == 'PIECE' %} · {{ trip.quantity|floatformat:0 }} pcs{% endif %}
+                        </div>
+                        <div class="mt-0.5 text-[12px] text-slate-500">
+                            🧮 Calc Trips: <span class="font-semibold text-slate-700">{{ trip.calculated_trips }}</span>
                         </div>
                         <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
                             {% if trip.trip_status == 'PLANNED' %}
