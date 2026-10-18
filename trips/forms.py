@@ -72,7 +72,6 @@ class TripForm(forms.ModelForm):
             'material',
             'drivers',
             'quantity',
-            'actual_trip_count',
             'rate',
             'start_reading',
             'end_reading',
@@ -114,14 +113,6 @@ class TripForm(forms.ModelForm):
                 attrs={
                     'step': '0.01',
                     'min': '0.01',
-                }
-            ),
-
-            'actual_trip_count': forms.NumberInput(
-                attrs={
-                    'step': '1',
-                    'min': '0',
-                    'placeholder': 'Actual trips',
                 }
             ),
 
