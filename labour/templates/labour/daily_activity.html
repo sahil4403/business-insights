@@ -231,7 +231,7 @@
                             <div class="dd-block dd-sec">
                                 <div class="dd-title">Loading ({{ row.loadings|length }})</div>
                                 {% for ld in row.loadings %}
-                                <div class="dd-item"><span class="t">{{ ld.count }} {{ ld.label }} | {{ ld.worker }}</span></div>
+                                <div class="dd-item"><span class="t">{% if 'jcb' in ld.label|lower and ld.end_reading and ld.start_reading %}{{ ld.end_reading|floatformat:1 }} - {{ ld.start_reading|floatformat:1 }} = {{ ld.total_hours|floatformat:1 }} hrs{% else %}{{ ld.count }} {{ ld.label }}{% endif %} | {{ ld.worker }}</span></div>
                                 {% endfor %}
                             </div>
                             {% endif %}

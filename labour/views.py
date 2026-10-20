@@ -3119,10 +3119,30 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 bucket[key]['count'] += g.trip_count
                 bucket[key]['worker'] = lab.name
                 bucket[key]['label'] = label
+                bucket[key]['start_reading'] = None
+                bucket[key]['end_reading'] = None
+                bucket[key]['total_hours'] = None
+                # JCB loading: find matching Trip record for readings
+                if 'JCB_OPERATOR' in {getattr(m, 'category', '') for m in members}:
+                    from trips.models import Trip
+                    matching_trips = Trip.objects.filter(
+                        trip_date=g.date,
+                        vehicle__vehicle_type__name__icontains='JCB',
+                    ).filter(drivers=lab)
+                    for mt in matching_trips:
+                        if mt.start_reading is not None:
+                            bucket[key]['start_reading'] = mt.start_reading
+                        if mt.end_reading is not None:
+                            bucket[key]['end_reading'] = mt.end_reading
+                        if mt.total_hours is not None:
+                            bucket[key]['total_hours'] = mt.total_hours
 
         def _sorted(bucket):
             return sorted(
-                ({'worker': v['worker'], 'label': v['label'], 'count': v['count']}
+                ({'worker': v['worker'], 'label': v['label'], 'count': v['count'],
+                  'start_reading': v.get('start_reading'),
+                  'end_reading': v.get('end_reading'),
+                  'total_hours': v.get('total_hours')}
                  for v in bucket.values()),
                 key=lambda x: (x['worker'], x['label']),
             )
