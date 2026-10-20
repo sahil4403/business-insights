@@ -1177,16 +1177,24 @@ def jcb_trip_create(request):
                 labourers = [op_lab]
             note = form.cleaned_data.get('note', '')
 
+            # Guddu Bhaiya ke liye White Sand Hyva rate 100 (default 200)
+            is_guddu = any(
+                'guddu' in (l.name or '').lower() for l in labourers
+            )
+
             groups = []
             total = 0
             for row in rows:
+                _rate = load_rates[row['load_type']]
+                if is_guddu and row['load_type'] == 'WHITE_HYVA':
+                    _rate = '100'
                 grp = LabourTripGroup.objects.create(
                     date=date,
                     trip_count=row['trip_count'],
-                    rate_per_trip=Decimal(load_rates[row['load_type']]),
+                    rate_per_trip=Decimal(_rate),
                     load_type=row['load_type'],
                     fill_type='JCB',
-                    total_amount=Decimal(row['trip_count']) * Decimal(load_rates[row['load_type']]),
+                    total_amount=Decimal(row['trip_count']) * Decimal(_rate),
                     note=note,
                 )
                 grp.labourers.set(labourers)
@@ -1358,13 +1366,23 @@ def jcb_trip_edit(request, group_id):
             # (pehle group ki purani date se save hota tha, date change lost).
             new_date = form.cleaned_data.get('date') or date
 
+            # Guddu Bhaiya ke liye White Sand Hyva rate 100 (default 200)
+            is_guddu = any(
+                'guddu' in (l.name or '').lower() for l in labourers
+            )
+
             for idx, row in enumerate(rows):
+                _rate = load_rates[row['load_type']]
+                if is_guddu and row['load_type'] == 'WHITE_HYVA':
+                    _rate = '100'
                 if idx < len(siblings):
                     g = siblings[idx]
                     g.date = new_date
                     g.trip_count = row['trip_count']
                     g.load_type = row['load_type']
                     g.fill_type = 'JCB'
+                    g.rate_per_trip = Decimal(_rate)
+                    g.total_amount = Decimal(row['trip_count']) * Decimal(_rate)
                     g.note = note
                     g.save()
                     g.labourers.set(labourers)
@@ -1372,10 +1390,10 @@ def jcb_trip_edit(request, group_id):
                     g = LabourTripGroup.objects.create(
                         date=new_date,
                         trip_count=row['trip_count'],
-                        rate_per_trip=Decimal(load_rates[row['load_type']]),
+                        rate_per_trip=Decimal(_rate),
                         load_type=row['load_type'],
                         fill_type='JCB',
-                        total_amount=Decimal(row['trip_count']) * Decimal(load_rates[row['load_type']]),
+                        total_amount=Decimal(row['trip_count']) * Decimal(_rate),
                         note=note,
                     )
                     g.labourers.set(labourers)
