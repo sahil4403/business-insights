@@ -3292,8 +3292,7 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         # fallback nahi: match na mile to location blank, driver blank.
         # JCB trips bhi tractor_records me dikhao (reading calculation ke liye)
         trac = [t for t in recs
-                if 'tractor' in _vehicle_label(t).lower()
-                or 'jcb' in _vehicle_label(t).lower()]
+                if 'tractor' in _vehicle_label(t).lower()]
         pool = trac
         # Tractor-vehicle records khud bhi Tractor section me lines-by-lines
         # dikhenge (Trips-materials jaisa format), taaki koi tractor trip
