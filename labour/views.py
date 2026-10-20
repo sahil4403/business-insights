@@ -3316,6 +3316,28 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             is_stock_line = (dl == 'stock') or (dl == 'kosara' and not cust)
             # Include JCB reading fields for display
             is_jcb = 'jcb' in b['vehicle'].lower()
+            # JCB reading fields: use the last matching trip's readings
+            # (bucket may aggregate multiple records; readings from first JCB trip)
+            jcb_start = None
+            jcb_end = None
+            jcb_hours = None
+            if is_jcb:
+                for _t in trac:
+                    if _t in tbuckets and tbuckets[_t if False else key] is b:
+                        pass
+                # Find JCB trip in this bucket
+                for _t in trac:
+                    _mat = (getattr(_t.material, 'name', '') or '').strip() or '—'
+                    _dest = (_t.destination or '').strip()
+                    _cust = (getattr(_t.customer, 'name', '') or '').strip()
+                    if (_mat, _dest, _cust) == (mat, dest, cust):
+                        if _t.start_reading is not None:
+                            jcb_start = _t.start_reading
+                        if _t.end_reading is not None:
+                            jcb_end = _t.end_reading
+                        if _t.total_hours is not None:
+                            jcb_hours = _t.total_hours
+                        break
             trac_lines.append({
                 'material': mat,
                 'destination': 'Stock' if is_stock_line else dest,
@@ -3323,9 +3345,9 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'vehicle': b['vehicle'], 'trips': b['trips'],
                 'drivers': [] if is_stock_line else _driver_parts(b['driver_counts']),
                 'plain_drivers': [] if is_stock_line else b['plain_drivers'],
-                'start_reading': t.start_reading if is_jcb else None,
-                'end_reading': t.end_reading if is_jcb else None,
-                'total_hours': t.total_hours if is_jcb else None,
+                'start_reading': jcb_start,
+                'end_reading': jcb_end,
+                'total_hours': jcb_hours,
             })
         # Kosara/Stock: customer ke saath real place, bina customer internal.
         # Internal par "Stock" likho, driver naam mat dikhao.
