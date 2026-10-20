@@ -3213,6 +3213,9 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                         'vehicle': _vehicle_label(t),
                         'destination': (t.destination or '').strip(),
                         'customer': (getattr(t.customer, 'name', '') or '').strip(),
+                        'start_reading': t.start_reading,
+                        'end_reading': t.end_reading,
+                        'total_hours': t.total_hours,
                     })
                 lines.sort(key=lambda l: (l['destination'], l['customer']))
                 total = sum(l['count'] for l in lines)
@@ -3226,6 +3229,9 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'vehicle': _vehicle_label(t),
                 'destination': (t.destination or '').strip(),
                 'customer': (getattr(t.customer, 'name', '') or '').strip(),
+                'start_reading': t.start_reading,
+                'end_reading': t.end_reading,
+                'total_hours': t.total_hours,
             } for t in unassigned]
             # Header me records nahi, actual trips (lines ka total) —
             # warna "(1 trip)" ke neeche 3-trips wali lines dikhti hain.

@@ -247,12 +247,12 @@
                                         {% for ln in dr.lines %}
                                         <tr class="border-t border-slate-100">
                                             {% if forloop.first %}<td class="py-1.5 pr-2 font-semibold whitespace-nowrap" rowspan="{{ dr.lines|length }}">{{ dr.name }} ({{ dr.total }})</td>{% endif %}
-                                            <td class="py-1.5 font-semibold whitespace-nowrap">{{ ln.vehicle|default:"—" }}</td><td class="py-1.5 font-semibold">{{ ln.count }}</td><td class="py-1.5">{{ ln.destination|default:"—" }}</td><td class="py-1.5">{{ ln.customer|default:"—" }}</td>
+                                            <td class="py-1.5 font-semibold whitespace-nowrap">{{ ln.vehicle|default:"—" }}</td><td class="py-1.5 font-semibold">{% if 'jcb' in ln.vehicle|lower and ln.end_reading and ln.start_reading %}{{ ln.total_hours|floatformat:1 }} hrs{% else %}{{ ln.count }}{% endif %}</td><td class="py-1.5">{{ ln.destination|default:"—" }}</td><td class="py-1.5">{{ ln.customer|default:"—" }}</td>
                                         </tr>
                                         {% endfor %}
                                         {% endfor %}
                                         {% for ln in tm.unassigned %}
-                                        <tr class="border-t border-slate-100"><td class="py-1.5 pr-2 font-semibold">—</td><td class="py-1.5 font-semibold whitespace-nowrap">{{ ln.vehicle|default:"—" }}</td><td class="py-1.5 font-semibold">{{ ln.count }}</td><td class="py-1.5">{{ ln.destination|default:"—" }}</td><td class="py-1.5">{{ ln.customer|default:"—" }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-1.5 pr-2 font-semibold">—</td><td class="py-1.5 font-semibold whitespace-nowrap">{{ ln.vehicle|default:"—" }}</td><td class="py-1.5 font-semibold">{% if 'jcb' in ln.vehicle|lower and ln.end_reading and ln.start_reading %}{{ ln.total_hours|floatformat:1 }} hrs{% else %}{{ ln.count }}{% endif %}</td><td class="py-1.5">{{ ln.destination|default:"—" }}</td><td class="py-1.5">{{ ln.customer|default:"—" }}</td></tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
