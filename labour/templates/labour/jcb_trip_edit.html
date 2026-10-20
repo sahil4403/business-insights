@@ -163,12 +163,37 @@
     var advInput = document.querySelector('input[name="advance"]');
     var lineIdx = 0;
 
+    function isGudduSelected() {
+        var found = false;
+        document.querySelectorAll('.labour-pill input:checked').forEach(function (cb) {
+            var pill = cb.closest('.labour-pill');
+            if (pill && (pill.dataset.name || '').indexOf('guddu') !== -1) found = true;
+        });
+        return found;
+    }
+
+    function rateFor(code) {
+        if (code === 'WHITE_HYVA' && isGudduSelected()) return 100;
+        return parseFloat(rateMap[code]);
+    }
+
+    function refreshOptionLabels() {
+        rowsBox.querySelectorAll('.trip-row .load-sel').forEach(function (sel) {
+            var cur = sel.value;
+            Array.prototype.forEach.call(sel.options, function (opt) {
+                if (!opt.value) return;
+                opt.textContent = (labelMap[opt.value] || opt.value) + ' · ₹' + rateFor(opt.value) + '/trip';
+            });
+            sel.value = cur;
+        });
+    }
+
     function makeRow(sel, count) {
         var div = document.createElement('div');
         div.className = 'trip-row';
         var optHtml = '<option value="">— Load type —</option>';
         Object.keys(rateMap).forEach(function (c) {
-            var lbl = (labelMap[c] || c) + ' · ₹' + rateMap[c] + '/trip';
+            var lbl = (labelMap[c] || c) + ' · ₹' + rateFor(c) + '/trip';
             var selected = (c === sel) ? ' selected' : '';
             optHtml += '<option value="' + c + '"' + selected + '>' + lbl + '</option>';
         });
@@ -213,7 +238,7 @@
             var code = r.querySelector('.load-sel').value;
             var cnt = parseInt(r.querySelector('.trip-count').value) || 0;
             if (code && (code in rateMap) && cnt > 0) {
-                total += rateMap[code] * cnt;
+                total += rateFor(code) * cnt;
                 nLines++;
             }
         });
@@ -242,6 +267,7 @@
         function sync() {
             if (cb.checked) cb.parentElement.classList.add('checked');
             else cb.parentElement.classList.remove('checked');
+            refreshOptionLabels();
             updateTotal();
         }
         cb.addEventListener('change', sync);

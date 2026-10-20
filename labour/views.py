@@ -1188,7 +1188,7 @@ def jcb_trip_create(request):
                 _rate = load_rates[row['load_type']]
                 if is_guddu and row['load_type'] == 'WHITE_HYVA':
                     _rate = '100'
-                grp = LabourTripGroup.objects.create(
+                grp = LabourTripGroup(
                     date=date,
                     trip_count=row['trip_count'],
                     rate_per_trip=Decimal(_rate),
@@ -1197,6 +1197,8 @@ def jcb_trip_create(request):
                     total_amount=Decimal(row['trip_count']) * Decimal(_rate),
                     note=note,
                 )
+                grp._keep_manual_rate = True
+                grp.save()
                 grp.labourers.set(labourers)
                 groups.append(grp)
                 total += grp.total_amount
@@ -1384,10 +1386,11 @@ def jcb_trip_edit(request, group_id):
                     g.rate_per_trip = Decimal(_rate)
                     g.total_amount = Decimal(row['trip_count']) * Decimal(_rate)
                     g.note = note
+                    g._keep_manual_rate = True
                     g.save()
                     g.labourers.set(labourers)
                 else:
-                    g = LabourTripGroup.objects.create(
+                    g = LabourTripGroup(
                         date=new_date,
                         trip_count=row['trip_count'],
                         rate_per_trip=Decimal(_rate),
@@ -1396,6 +1399,8 @@ def jcb_trip_edit(request, group_id):
                         total_amount=Decimal(row['trip_count']) * Decimal(_rate),
                         note=note,
                     )
+                    g._keep_manual_rate = True
+                    g.save()
                     g.labourers.set(labourers)
 
             for g in siblings[len(rows):]:

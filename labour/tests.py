@@ -2591,3 +2591,90 @@ class TripAddAnotherTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/labour/')
+
+
+class GudduJcbRateTest(TestCase):
+    """Guddu Bhaiya ke JCB White Sand (WHITE_HYVA) rate ₹100 — baaki ₹200."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='guddu-rate-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.guddu = Labour.objects.create(
+            name='Guddu Bhaiya',
+            category='JCB_OPERATOR',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+        self.other = Labour.objects.create(
+            name='Santosh Bhaiya',
+            category='JCB_OPERATOR',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+
+    def _post_create(self, labour, day='2026-10-20'):
+        return self.client.post(
+            reverse('labour:jcb_trip_add'),
+            data={
+                'date': day,
+                'labourers': [str(labour.pk)],
+                'load_type_0': 'WHITE_HYVA',
+                'trip_count_0': '3',
+                'load_type_1': 'FLYASH_HYVA',
+                'trip_count_1': '2',
+            },
+        )
+
+    def test_guddu_white_hyva_rate_100(self):
+        response = self._post_create(self.guddu)
+        self.assertEqual(response.status_code, 302)
+        white = LabourTripGroup.objects.get(
+            date=date(2026, 10, 20), load_type='WHITE_HYVA'
+        )
+        self.assertEqual(white.rate_per_trip, Decimal('100'))
+        self.assertEqual(white.total_amount, Decimal('300'))
+
+    def test_guddu_other_loads_keep_default_rates(self):
+        self._post_create(self.guddu)
+        fly = LabourTripGroup.objects.get(
+            date=date(2026, 10, 20), load_type='FLYASH_HYVA'
+        )
+        self.assertEqual(fly.rate_per_trip, Decimal('50'))
+        self.assertEqual(fly.total_amount, Decimal('100'))
+
+    def test_other_operator_white_hyva_stays_200(self):
+        self._post_create(self.other)
+        white = LabourTripGroup.objects.get(
+            date=date(2026, 10, 20), load_type='WHITE_HYVA'
+        )
+        self.assertEqual(white.rate_per_trip, Decimal('200'))
+        self.assertEqual(white.total_amount, Decimal('600'))
+
+    def test_edit_recalculates_guddu_rate_to_100(self):
+        group = LabourTripGroup.objects.create(
+            date=date(2026, 10, 21),
+            trip_count=2,
+            load_type='WHITE_HYVA',
+            fill_type='JCB',
+        )
+        group.labourers.add(self.guddu)
+        self.assertEqual(group.rate_per_trip, Decimal('200'))
+
+        response = self.client.post(
+            reverse('labour:jcb_trip_edit', args=[group.pk]),
+            data={
+                'date': '2026-10-21',
+                'labourers': [str(self.guddu.pk)],
+                'load_type_0': 'WHITE_HYVA',
+                'trip_count_0': '2',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        group.refresh_from_db()
+        self.assertEqual(group.rate_per_trip, Decimal('100'))
+        self.assertEqual(group.total_amount, Decimal('200'))

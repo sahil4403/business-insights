@@ -530,10 +530,11 @@ class LabourTripGroup(models.Model):
         indexes = [models.Index(fields=['date'])]
 
     def save(self, *args, **kwargs):
-        if self.fill_type == 'JCB' and self.load_type in self.JCB_LOAD_RATES:
-            self.rate_per_trip = Decimal(self.JCB_LOAD_RATES[self.load_type])
-        elif self.load_type in self.HYVA_LOAD_RATES:
-            self.rate_per_trip = Decimal(self.HYVA_LOAD_RATES[self.load_type])
+        if not getattr(self, '_keep_manual_rate', False):
+            if self.fill_type == 'JCB' and self.load_type in self.JCB_LOAD_RATES:
+                self.rate_per_trip = Decimal(self.JCB_LOAD_RATES[self.load_type])
+            elif self.load_type in self.HYVA_LOAD_RATES:
+                self.rate_per_trip = Decimal(self.HYVA_LOAD_RATES[self.load_type])
         self.total_amount = self.trip_count * self.rate_per_trip
         super().save(*args, **kwargs)
 
