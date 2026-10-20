@@ -276,9 +276,9 @@
                                 {% for tr in row.tractor_lines %}
                                 <div class="dd-item"><span class="t">{{ tr.count }} Trip{{ tr.count|pluralize }} {{ tr.fill }}{% if tr.location %} | {{ tr.location }}{% endif %}{% if tr.location and tr.drivers %} | {% for d in tr.drivers %}{% if not forloop.first %}, {% endif %}{% if d.1 %}{{ d.1 }} {% endif %}{{ d.0 }}{% endfor %}{% endif %}</span></div>
                                 {% endfor %}
-                                {% for tl in row.tractor_records %}
-                                <div class="dd-item tl-line"><span class="t">{{ tl.trips }} {{ tl.material }}{% if tl.vehicle %} | {{ tl.vehicle }}{% endif %}{% if tl.destination %} | {{ tl.destination }}{% endif %}{% if tl.customer %} | {{ tl.customer }}{% endif %}{% if tl.drivers or tl.plain_drivers %} | {% for d in tl.drivers %}{% if not forloop.first %}, {% endif %}{% if d.1 %}{{ d.1 }} {% endif %}{{ d.0 }}{% endfor %}{% if tl.plain_drivers %}{% if tl.drivers %}, {% endif %}{{ tl.plain_drivers|join:", " }}{% endif %}{% endif %}</span></div>
-                                {% endfor %}
+{% for tl in row.tractor_records %}
+                                 <div class="dd-item tl-line"><span class="t">{% if 'jcb' in tl.vehicle|lower and tl.end_reading and tl.start_reading %}{{ tl.end_reading|floatformat:1 }} - {{ tl.start_reading|floatformat:1 }} = {{ tl.total_hours|floatformat:1 }} hrs{% else %}{{ tl.trips }} {{ tl.material }}{% endif %}{% if tl.vehicle %} | {{ tl.vehicle }}{% endif %}{% if tl.destination %} | {{ tl.destination }}{% endif %}{% if tl.customer %} | {{ tl.customer }}{% endif %}{% if tl.drivers or tl.plain_drivers %} | {% for d in tl.drivers %}{% if not forloop.first %}, {% endif %}{% if d.1 %}{{ d.1 }} {% endif %}{{ d.0 }}{% endfor %}{% if tl.plain_drivers %}{% if tl.drivers %}, {% endif %}{{ tl.plain_drivers|join:", " }}{% endif %}{% endif %}</span></div>
+                                 {% endfor %}
                             </div>
                             {% endif %}
                             {% if row.rozi_tables.mistri %}

@@ -3277,10 +3277,14 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             dest = (t.destination or '').strip()
             cust = (getattr(t.customer, 'name', '') or '').strip()
             key = (mat, dest, cust)
+            is_jcb = 'jcb' in _vehicle_label(t).lower()
             b = tbuckets.setdefault(key, {
                 'material': mat, 'destination': dest, 'customer': cust,
                 'vehicle': _vehicle_label(t), 'trips': 0,
                 'driver_counts': Counter(), 'plain_drivers': [],
+                'start_reading': t.start_reading if is_jcb else None,
+                'end_reading': t.end_reading if is_jcb else None,
+                'total_hours': t.total_hours if is_jcb else None,
             })
             # Record ginne ki jagah actual trips gino (15-Oct bug: 1 row
             # me 2 trips par record line "1" dikhti thi) — driver counts
@@ -3310,6 +3314,8 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             # ke saath Kosara real place hai — wahi dikhao.
             dl = dest.strip().lower()
             is_stock_line = (dl == 'stock') or (dl == 'kosara' and not cust)
+            # Include JCB reading fields for display
+            is_jcb = 'jcb' in b['vehicle'].lower()
             trac_lines.append({
                 'material': mat,
                 'destination': 'Stock' if is_stock_line else dest,
@@ -3317,6 +3323,9 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                 'vehicle': b['vehicle'], 'trips': b['trips'],
                 'drivers': [] if is_stock_line else _driver_parts(b['driver_counts']),
                 'plain_drivers': [] if is_stock_line else b['plain_drivers'],
+                'start_reading': t.start_reading if is_jcb else None,
+                'end_reading': t.end_reading if is_jcb else None,
+                'total_hours': t.total_hours if is_jcb else None,
             })
         # Kosara/Stock: customer ke saath real place, bina customer internal.
         # Internal par "Stock" likho, driver naam mat dikhao.
