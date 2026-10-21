@@ -43,6 +43,13 @@
             <label class="label">Amount (₹)</label>
             {{ form.amount }}
             {% if form.amount.errors %}<p class="text-xs text-red-600 mt-2">{{ form.amount.errors|join:", " }}</p>{% endif %}
+            {% if person_linked %}
+                <p class="text-[11.5px] text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-1.5 mt-2 mb-0">
+                    👥 Combined advance ({% if editing_advance %}{{ today|date:"d-M-Y" }}{% else %}is date{% endif %}):
+                    <span class="num font-bold">₹{{ advance_today_total|floatformat:2 }}</span>
+                    {% if not editing_advance %} — naya amount isme ADD hoga, purani entry overwrite nahi hogi.{% endif %}
+                </p>
+            {% endif %}
         </div>
 
         <div>

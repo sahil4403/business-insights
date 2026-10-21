@@ -48,6 +48,7 @@ from .models import (
     LabourRozi,
     LabourHoliday,
 )
+from . import person_service
 
 
 # ----------------------------------------------------------------------------
@@ -64,8 +65,8 @@ def _parse_date(s, default=None):
 
 
 def _ensure_old_balance(labour):
-    ob, _ = LabourOldBalance.objects.get_or_create(labour=labour, defaults={'amount': Decimal('0')})
-    return ob
+    """Shared outstanding — linked person ka ek hi figure (person_service)."""
+    return person_service.ensure_old_balance(labour)
 
 
 def _safe_back_url(request, fallback):
@@ -97,11 +98,16 @@ def _per_labour_trip_share(labour, period_start, period_end):
     return total
 
 
-def _day_aggregates_for_labour(labour, period_start, period_end):
+def _day_aggregates_for_labour(labour, period_start, period_end, combined=False):
     """
     Build per-day rows: Date | Trips amount | Extra | Total | Advance.
+    combined=True → linked person ke saare sections ka day-wise data
+    (Book/statement/PDF ke liye); detail page section-specific rehta hai.
     Returns list of dicts.
     """
+    ids = person_service.scope_ids(labour) if combined else [labour.pk]
+    id_set = set(ids)
+
     # Build a per-date map of all values
     days = {}
 
@@ -118,31 +124,39 @@ def _day_aggregates_for_labour(labour, period_start, period_end):
     # Trips: walk groups in range (labourers prefetched — per-group queries nahi).
     groups = list(
         LabourTripGroup.objects.filter(
-            date__gte=period_start, date__lte=period_end
-        ).prefetch_related('labourers')
+            date__gte=period_start, date__lte=period_end,
+            labourers__id__in=ids,
+        ).distinct().prefetch_related('labourers')
     )
     for grp in groups:
-        member_ids = [labour.pk for labour in grp.labourers.all()]
-        n = len(member_ids)
-        if n and labour.pk in member_ids:
+        members = list(grp.labourers.all())
+        if not any(m.pk in id_set for m in members):
+            continue
+        if combined:
+            # Same person ke do records ek group me ho to share ek hi baar.
+            persons = set()
+            for m in members:
+                persons.add(('p', m.person_id) if m.person_id else ('l', m.pk))
+            n = len(persons)
+        else:
+            n = len(members)
+        if n:
             _ensure(grp.date)['trips_amount'] += grp.total_amount / n
 
     # Extras
     for ep in LabourExtraPayment.objects.filter(
-        labour=labour, date__gte=period_start, date__lte=period_end
+        labour_id__in=ids, date__gte=period_start, date__lte=period_end
     ):
         _ensure(ep.date)['extra_amount'] += ep.amount
 
     # Rozi (daily wages) — counted like extra into the day total
     for rz in LabourRozi.objects.filter(
-        labour=labour, date__gte=period_start, date__lte=period_end
+        labour_id__in=ids, date__gte=period_start, date__lte=period_end
     ):
         _ensure(rz.date)['extra_amount'] += rz.amount
 
-    # Advances
-    for ad in LabourAdvance.objects.filter(
-        labour=labour, date__gte=period_start, date__lte=period_end
-    ):
+    # Advances — linked person ke saare sections ka combined pool.
+    for ad in person_service.advance_qs(labour, period_start, period_end):
         _ensure(ad.date)['advance_amount'] += ad.amount
 
     # Sort by date desc
@@ -188,8 +202,8 @@ def labour_list(request):
 
     labours_qs = Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True).order_by('name')
 
-    # Pre-compute outstanding per labour
-    ob_map = {ob.labour_id: ob.amount for ob in LabourOldBalance.objects.all()}
+    # Pre-compute outstanding per labour (linked person ka shared figure)
+    ob_map = person_service.old_balance_map(labours_qs)
 
     # Count trip groups this month for context
     today = timezone.localdate()
@@ -199,6 +213,7 @@ def labour_list(request):
         return {
             'obj': l,
             'old_balance': ob_map.get(l.id, Decimal('0')),
+            'also_in': person_service.also_in_labels(l),
             'month_trip_groups': l.trip_groups.filter(date__gte=month_start).count(),
         }
 
@@ -426,7 +441,7 @@ def labour_category_detail(request, category_code):
         return redirect('labour:list')
 
     labours_qs = Labour.objects.filter(is_active=True, category=category_code).exclude(is_vendor=True).exclude(is_one_day=True).order_by('name')
-    ob_map = {ob.labour_id: ob.amount for ob in LabourOldBalance.objects.all()}
+    ob_map = person_service.old_balance_map(labours_qs)
     today = timezone.localdate()
     month_start = today.replace(day=1)
 
@@ -435,6 +450,7 @@ def labour_category_detail(request, category_code):
         cards.append({
             'obj': l,
             'old_balance': ob_map.get(l.id, Decimal('0')),
+            'also_in': person_service.also_in_labels(l),
             'month_trip_groups': l.trip_groups.filter(date__gte=month_start).count(),
         })
 
@@ -577,10 +593,19 @@ def labour_detail(request, labour_id):
 
     rows = _day_aggregates_for_labour(labour, period_start, period_end)
 
-    # Summary block
-    trip_total = sum((r['trips_amount'] for r in rows), Decimal('0'))
-    extra_total = sum((r['extra_amount'] for r in rows), Decimal('0'))
-    advance_total = sum((r['advance_amount'] for r in rows), Decimal('0'))
+    # Summary block — linked person ke liye saare sections ka combined total.
+    # Day-wise rows section-specific rehte hain (card par clear label lagta hai).
+    linked_now = person_service.is_linked(labour)
+    if linked_now:
+        combined = person_service.salary_totals(labour, period_start, period_end)
+        trip_total = combined['trip_total']
+        extra_total = combined['extra_total'] + combined['rozi_total']
+        advance_total = combined['advance_total']
+    else:
+        combined = None
+        trip_total = sum((r['trips_amount'] for r in rows), Decimal('0'))
+        extra_total = sum((r['extra_amount'] for r in rows), Decimal('0'))
+        advance_total = sum((r['advance_amount'] for r in rows), Decimal('0'))
 
     # Month-wise grouping for Daily Activity (each month collapsible under its name)
     rows_by_month = []
@@ -599,8 +624,10 @@ def labour_detail(request, labour_id):
         bucket['rows'].append(r)
         bucket['trip_total'] += r['trips_amount']
 
-    # Driver payment for the period (overlapping ranges)
-    driver_qs = LabourDriverPayment.objects.filter(labour=labour).filter(
+    # Driver payment for the period (overlapping ranges) — linked person ke saare records
+    driver_qs = LabourDriverPayment.objects.filter(
+        labour_id__in=person_service.scope_ids(labour)
+    ).filter(
         period_start__lte=period_end, period_end__gte=period_start
     )
     driver_total = driver_qs.aggregate(t=Sum('amount'))['t'] or Decimal('0')
@@ -635,10 +662,10 @@ def labour_detail(request, labour_id):
     # Re-sort extras_list by date descending after appending rozis
     extras_list.sort(key=lambda e: getattr(e, 'date'), reverse=True)
 
-    # Advances in the period
-    advances_list = list(LabourAdvance.objects.filter(
-        labour=labour, date__gte=period_start, date__lte=period_end
-    ).order_by('-date', '-id'))
+    # Advances in the period — linked person ka combined list, source tag ke saath
+    advances_list = list(person_service.advance_qs(labour, period_start, period_end))
+    for adv in advances_list:
+        adv.source_label = person_service.role_label(adv.labour)
 
     # Holidays in the period (record only — no pay impact)
     holidays_list = list(LabourHoliday.objects.filter(
@@ -689,19 +716,33 @@ def labour_detail(request, labour_id):
     # Excel formula: Final Amount = Payment − Old Balance
     final_amount = payment - ob.amount
 
-    # Settlements within range
-    settlements = LabourSettlement.objects.filter(
-        labour=labour, settlement_date__gte=period_start, settlement_date__lte=period_end
+    # Settlements — linked person ki ek hi combined chain
+    settlements = person_service.settlements_qs(labour).filter(
+        settlement_date__gte=period_start, settlement_date__lte=period_end
     )
 
-    # Pending settlements before this period
-    pending_settlements = LabourSettlement.objects.filter(
-        labour=labour
-    ).order_by('-settlement_date')[:5]
+    pending_settlements = person_service.settlements_qs(labour).order_by(
+        '-settlement_date'
+    )[:5]
 
-    latest_settlement = LabourSettlement.objects.filter(labour=labour).order_by(
-        '-settlement_date', '-id'
-    ).first()
+    latest_settlement = person_service.latest_settlement(labour)
+
+    # Same-person linking (owner-confirmed, never name auto-merge)
+    can_link_people = (
+        not getattr(request, 'is_operator', False)
+        and not getattr(request, 'is_viewer', False)
+    )
+    linked_records = []
+    same_person_candidates = []
+    if can_link_people:
+        for member in person_service.person_members(labour):
+            if member.pk == labour.pk:
+                continue
+            member.also_label = person_service.role_label(member)
+            linked_records.append(member)
+        for candidate in person_service.same_name_candidates(labour):
+            candidate.also_label = person_service.role_label(candidate)
+            same_person_candidates.append(candidate)
 
     # Category-aware quick action (trip entry link differs per category)
     cat_icon = {
@@ -745,6 +786,12 @@ def labour_detail(request, labour_id):
         'rows_by_month': rows_by_month,
         'holiday_count': holiday_count,
         'today': today,
+        'person_linked': linked_now,
+        'person_combined_label': person_service.combined_label(labour),
+        'also_in': person_service.also_in_labels(labour),
+        'linked_records': linked_records,
+        'same_person_candidates': same_person_candidates,
+        'can_link_people': can_link_people,
         # Category-aware Back: jis parent list se detail khula (?from=) wahi,
         # warna apni category list. Kabhi hardcoded main list nahi.
         'back_url': _safe_back_url(
@@ -1212,22 +1259,17 @@ def jcb_trip_create(request):
                         note='Bhatta',
                     )
 
-            adv_saved, adv_skipped = [], []
+            adv_saved = []
             if advance_amount and advance_amount > 0:
                 for lab in labourers:
-                    if LabourAdvance.objects.filter(labour=lab, date=date).exists():
-                        adv_skipped.append(lab.name)
-                    else:
-                        LabourAdvance.objects.create(
-                            labour=lab,
-                            date=date,
-                            amount=advance_amount,
-                            note='Advance (JCB loading)',
-                        )
-                        adv_saved.append(lab.name)
+                    # Same-date advance ADD hota hai — purani entry overwrite nahi.
+                    person_service.add_advance(
+                        lab, date, advance_amount, 'Advance (JCB loading)'
+                    )
+                    adv_saved.append(lab.name)
 
             total_trips = sum(g.trip_count for g in groups)
-            adv_skip_msg = f" (advance pehle se tha: {', '.join(adv_skipped)})" if adv_skipped else ''
+            adv_skip_msg = ''
             if rows:
                 messages.success(
                     request,
@@ -1810,42 +1852,45 @@ def advance_create(request, labour_id=None):
         labour = op_lab
 
     if request.method == 'POST':
-        form = LabourAdvanceForm(request.POST, labour=labour)
+        form = LabourAdvanceForm(
+            request.POST, labour=labour, allow_duplicate_date=True,
+        )
         if op_lab is not None:
             form.fields.pop('labour', None)
         if form.is_valid():
             obj = form.save(commit=False)
             if labour is not None:
                 obj.labour = labour
-            try:
-                obj.save()
-            except Exception as e:  # unique constraint
-                messages.error(request, f'Already an advance for this labour on that date.')
-                if labour is not None:
-                    return redirect('labour:detail', labour_id=labour.id)
-                return render(request, 'labour/advance_form.html', {
-                    'form': form, 'page_title': 'Add Advance', 'labour': labour,
-                })
-            messages.success(request, f'Advance ₹{obj.amount} saved.')
+            # Same-date advance ADD hota hai — purani entry overwrite nahi.
+            row, created, previous = person_service.add_advance(
+                obj.labour, obj.date, obj.amount, obj.note,
+            )
+            if created:
+                messages.success(request, f'Advance ₹{obj.amount} saved.')
+            else:
+                messages.success(
+                    request,
+                    f'Advance ₹{obj.amount} added — same date total ab ₹{row.amount} '
+                    f'(pehle ₹{previous}).',
+                )
             if labour is not None:
                 return redirect('labour:detail', labour_id=labour.id)
             return redirect('labour:list')
-        else:
-            # Same-date advance already exists (unique check fails validation):
-            # send back to main page with a clear message instead of a dead re-render.
-            dup_date = _parse_date(request.POST.get('date'))
-            if labour is not None and dup_date is not None and LabourAdvance.objects.filter(labour=labour, date=dup_date).exists():
-                messages.error(request, f'Already an advance for this labour on that date.')
-                return redirect('labour:detail', labour_id=labour.id)
     else:
         form = LabourAdvanceForm(labour=labour)
         if op_lab is not None:
             form.fields.pop('labour', None)
 
+    today = timezone.localdate()
     return render(request, 'labour/advance_form.html', {
         'form': form,
         'page_title': 'Add Advance',
         'labour': labour,
+        'person_linked': person_service.is_linked(labour) if labour else False,
+        'advance_today_total': (
+            person_service.advance_total_for_date(labour, today) if labour else Decimal('0')
+        ),
+        'today': today,
     })
 
 @login_required(login_url='/login/')
@@ -1882,6 +1927,12 @@ def advance_edit(request, advance_id):
         'form': form,
         'page_title': 'Edit Advance',
         'labour': adv.labour,
+        'person_linked': person_service.is_linked(adv.labour),
+        'advance_today_total': person_service.advance_total_for_date(
+            adv.labour, adv.date
+        ),
+        'today': adv.date,
+        'editing_advance': adv,
     })
 
 
@@ -2167,20 +2218,48 @@ def advance_multi(request):
             ).order_by('name')
             if _norm_name(l.name) in _shown_keys and l.id not in _seen_ids
         ]
+    # Linked person ke ek hi row — current section ka record prefer karo.
+    # Pehle poora group collect karo, warna category pick pehle mile member
+    # par atak sakta hai (baad wala filtered record skip ho jata).
+    members_by_person = defaultdict(list)
+    for l in labours:
+        if l.person_id:
+            members_by_person[l.person_id].append(l)
+    pick_by_person = {}
+    for person_id, members in members_by_person.items():
+        if category_filter:
+            pick_by_person[person_id] = next(
+                (m for m in members if m.category == category_filter), members[0]
+            )
+        else:
+            pick_by_person[person_id] = min(members, key=lambda m: m.pk)
+    deduped = []
+    seen_persons = set()
+    for l in labours:
+        if not l.person_id:
+            deduped.append(l)
+        elif l.person_id not in seen_persons:
+            seen_persons.add(l.person_id)
+            deduped.append(pick_by_person[l.person_id])
+    labours = deduped
+    for l in labours:
+        l.also_in = person_service.also_in_labels(l)
+
     dup_names = _attach_dup_badges(labours)
-    # Existing advances for selected_date, to pre-fill
-    existing = {
-        a.labour_id: a
-        for a in LabourAdvance.objects.filter(date=selected_date)
+    # Existing advances for selected_date — linked person ka COMBINED total.
+    combined_amounts = {
+        l.id: person_service.advance_total_for_date(l, selected_date)
+        for l in labours
     }
-    # After a save, clear the amount inputs (reset) so it doesn't feel stuck,
-    # but keep the ✓ marker for labourers who already have an advance that day.
-    reset = request.GET.get('reset') == '1'
-    # Flatten to (labour, existing_amount, has_existing) tuples for easy template iteration
+    existing = {
+        l.id: combined_amounts[l.id]
+        for l in labours if combined_amounts[l.id]
+    }
+    # Input hamesha khali — kyunki save par amount ADD hota hai. Existing
+    # combined amount sirf label me dikhta hai (warna Save dobara double kar deta).
+    # Tuple: (labour, input_value, existing_combined_amount_or_None)
     labour_rows = [
-        (l,
-         None if reset else (existing[l.id].amount if l.id in existing else None),
-         l.id in existing)
+        (l, None, combined_amounts[l.id] or None)
         for l in labours
     ]
 
@@ -2196,10 +2275,10 @@ def advance_multi(request):
                 continue
             if amount <= 0:
                 continue
-            # Upsert: only one advance per labour per day
-            obj, created = LabourAdvance.objects.update_or_create(
-                labour=l, date=selected_date,
-                defaults={'amount': amount, 'note': request.POST.get(f'note_{l.id}', '').strip()},
+            # Same-date entry ADD hoti hai — kisi dusre section ki advance overwrite nahi.
+            person_service.add_advance(
+                l, selected_date, amount,
+                request.POST.get(f'note_{l.id}', '').strip(),
             )
             saved += 1
         if not saved:
@@ -2216,6 +2295,7 @@ def advance_multi(request):
         'category_filter': category_filter,
         'dup_names': dup_names,
         'split_names': _split_names_for_date(selected_date),
+        'has_linked_rows': any(l.also_in for l in labours),
     }
     return render(request, 'labour/advance_multi.html', context)
 
@@ -2324,6 +2404,49 @@ def labour_set_outstanding(request, labour_id):
 
 
 @login_required(login_url='/login/')
+@require_POST
+def person_link(request, labour_id, other_id):
+    """Do section records ko ek real person ke roop me link karo (owner confirm)."""
+    labour = get_object_or_404(Labour, pk=labour_id)
+    other = get_object_or_404(Labour, pk=other_id)
+    if getattr(request, 'is_operator', False) or getattr(request, 'is_viewer', False):
+        messages.info(request, 'Person link sirf owner kar sakta hai.')
+        return redirect('labour:detail', labour_id=labour.id)
+    try:
+        person_service.link_labours(labour, other)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(
+            request,
+            f'{labour.name} ({person_service.role_label(labour)}) ab '
+            f'{other.name} ({person_service.role_label(other)}) ke saath linked hai — '
+            f'advance aur outstanding combined rahenge.',
+        )
+    return redirect('labour:detail', labour_id=labour.id)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def person_unlink(request, labour_id):
+    """Linked record ko alag karo. Shared outstanding baaki person ke paas rehta hai."""
+    labour = get_object_or_404(Labour, pk=labour_id)
+    if getattr(request, 'is_operator', False) or getattr(request, 'is_viewer', False):
+        messages.info(request, 'Person unlink sirf owner kar sakta hai.')
+        return redirect('labour:detail', labour_id=labour.id)
+    if person_service.unlink_labour(labour):
+        messages.warning(
+            request,
+            f'{labour.name} ({person_service.role_label(labour)}) alag ho gaya. '
+            f'Shared outstanding baaki linked record ke paas rehta hai; '
+            f'is record ka outstanding ₹0 se shuru hoga.',
+        )
+    else:
+        messages.info(request, 'Ye record kisi person se linked nahi hai.')
+    return redirect('labour:detail', labour_id=labour.id)
+
+
+@login_required(login_url='/login/')
 @transaction.atomic
 def settlement_create(request, labour_id):
     labour = get_object_or_404(Labour, pk=labour_id)
@@ -2343,19 +2466,39 @@ def settlement_create(request, labour_id):
     if request.method == 'POST':
         form = LabourSettlementForm(request.POST)
         if form.is_valid():
-            settlement = form.save(commit=False)
-            settlement.labour = labour
-            settlement.old_balance_before = ob.amount
-            settlement.recalculate()
-            settlement.save()
-            # Update labour's old balance
-            ob.amount = settlement.final_old_balance
-            ob.save()
-            messages.success(
-                request,
-                f'Settlement saved for {labour.name}. New old balance: ₹{ob.amount}.',
+            # Linked person ke liye ek hi combined settlement chain — naya
+            # settlement purani (linked) settlement period se overlap na kare.
+            # Legacy/unlinked behaviour pe pehle jaisa hi rehta hai.
+            overlaps = (
+                person_service.is_linked(labour)
+                and person_service.has_overlapping_settlement(
+                    labour,
+                    form.cleaned_data['period_start'],
+                    form.cleaned_data['period_end'],
+                )
             )
-            return redirect('labour:detail', labour_id=labour.id)
+            if overlaps:
+                messages.error(
+                    request,
+                    'Is period ka settlement pehle se hai. Pehle overlap hatao '
+                    'ya alag period chuno — warna salary double count hogi.',
+                )
+                period_start = form.cleaned_data['period_start']
+                period_end = form.cleaned_data['period_end']
+            else:
+                settlement = form.save(commit=False)
+                settlement.labour = labour
+                settlement.old_balance_before = ob.amount
+                settlement.recalculate()
+                settlement.save()
+                # Update person's shared old balance
+                ob.amount = settlement.final_old_balance
+                ob.save()
+                messages.success(
+                    request,
+                    f'Settlement saved for {labour.name}. New old balance: ₹{ob.amount}.',
+                )
+                return redirect('labour:detail', labour_id=labour.id)
     else:
         # Preview wala period hi form me bhi dikhe — warna Save purani
         # default dates bhej deta hai aur galat hisaab save hota hai.
@@ -2379,6 +2522,8 @@ def settlement_create(request, labour_id):
         'labour': labour,
         'old_balance': ob,
         'preview': preview,
+        'person_linked': person_service.is_linked(labour),
+        'person_combined_label': person_service.combined_label(labour),
     }
     return render(request, 'labour/settlement_form.html', context)
 
@@ -2389,9 +2534,8 @@ def settlement_create(request, labour_id):
 # ----------------------------------------------------------------------------
 
 def _latest_settlement(labour):
-    return LabourSettlement.objects.filter(labour=labour).order_by(
-        '-settlement_date', '-id'
-    ).first()
+    """Linked person ki combined chain ka latest settlement."""
+    return person_service.latest_settlement(labour)
 
 
 @login_required(login_url='/login/')
@@ -2405,6 +2549,11 @@ def settlement_edit(request, settlement_id):
 
     if request.method == 'POST':
         form = LabourSettlementForm(request.POST, instance=settlement)
+        # Edit form me period static text hai (input nahi) — isliye POST me
+        # period fields aate hi nahi. Unhe validation se hatao, warna har
+        # edit "This field is required" par atak jayega.
+        form.fields.pop('period_start', None)
+        form.fields.pop('period_end', None)
         if form.is_valid():
             s = form.save(commit=False)
             # Period + old_balance_before locked — sirf amount/date/note badlo
@@ -2432,6 +2581,8 @@ def settlement_edit(request, settlement_id):
         'preview': settlement,
         'editing': True,
         'settlement': settlement,
+        'person_linked': person_service.is_linked(settlement.labour),
+        'person_combined_label': person_service.combined_label(settlement.labour),
     })
 
 
@@ -2461,29 +2612,31 @@ def settlement_revert(request, settlement_id):
 # ----------------------------------------------------------------------------
 
 def _labour_statement_for_period(labour, period_start, period_end):
-    """Full statement data for one labour in a period (mirrors labour_detail)."""
-    ob, _ = LabourOldBalance.objects.get_or_create(
-        labour=labour, defaults={'amount': Decimal('0')}
+    """Full statement data for one person in a period (mirrors labour_detail)."""
+    ob = person_service.ensure_old_balance(labour)
+    ids = person_service.scope_ids(labour)
+
+    rows = _day_aggregates_for_labour(
+        labour, period_start, period_end, combined=True
     )
 
-    rows = _day_aggregates_for_labour(labour, period_start, period_end)
+    combined = person_service.salary_totals(labour, period_start, period_end)
+    trip_total = combined['trip_total']
+    extra_total = combined['extra_total'] + combined['rozi_total']
+    advance_total = combined['advance_total']
 
-    trip_total = sum((r['trips_amount'] for r in rows), Decimal('0'))
-    extra_total = sum((r['extra_amount'] for r in rows), Decimal('0'))
-    advance_total = sum((r['advance_amount'] for r in rows), Decimal('0'))
-
-    driver_qs = LabourDriverPayment.objects.filter(labour=labour).filter(
+    driver_qs = LabourDriverPayment.objects.filter(labour_id__in=ids).filter(
         period_start__lte=period_end, period_end__gte=period_start
     )
-    driver_total = driver_qs.aggregate(t=Sum('amount'))['t'] or Decimal('0')
+    driver_total = combined['driver_total']
 
     trip_groups = list(
         LabourTripGroup.objects.filter(
-            labourers=labour, date__gte=period_start, date__lte=period_end
-        ).prefetch_related('labourers').order_by('-date', '-id')
+            labourers__id__in=ids, date__gte=period_start, date__lte=period_end
+        ).prefetch_related('labourers').distinct().order_by('-date', '-id')
     )
 
-    total_salary = trip_total + extra_total + driver_total
+    total_salary = combined['total_salary']
     payment = total_salary - advance_total
     final_amount = payment - ob.amount
 
@@ -2492,14 +2645,13 @@ def _labour_statement_for_period(labour, period_start, period_end):
         r['date'] for r in rows if r['trips_amount'] or r['extra_amount']
     })
 
-    settlements = list(LabourSettlement.objects.filter(
-        labour=labour,
+    settlements = list(person_service.settlements_qs(labour).filter(
         settlement_date__gte=period_start,
         settlement_date__lte=period_end,
     ))
 
     holidays = list(LabourHoliday.objects.filter(
-        labour=labour,
+        labour_id__in=ids,
         date__gte=period_start,
         date__lte=period_end,
     ).order_by('date', 'id'))
@@ -2511,14 +2663,14 @@ def _labour_statement_for_period(labour, period_start, period_end):
     # Day-type wise rozi counts (Labour Summary box: Half/Full/One&Half)
     rozi_day_counts = {'HALF': 0, 'FULL': 0, 'ONE_HALF': 0}
     for rz in LabourRozi.objects.filter(
-        labour=labour, date__gte=period_start, date__lte=period_end
-    ).order_by('-date', '-id'):
+        labour_id__in=ids, date__gte=period_start, date__lte=period_end
+    ).select_related('labour').order_by('-date', '-id'):
         rozi_by_date.setdefault(rz.date, {
             'day_type': rz.day_type,
             'day_label': ROZI_DAY_LABELS.get(
                 rz.day_type, rz.get_day_type_display()
             ),
-            'rate': _rozi_rate_for(labour, rz.day_type),
+            'rate': _rozi_rate_for(rz.labour, rz.day_type),
             'amount': rz.amount,
         })
         rozi_total += rz.amount
@@ -2558,7 +2710,9 @@ def labour_book(request):
 
     export = request.GET.get('export')
 
-    labours = list(Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True).order_by('name'))
+    labours = person_service.unique_person_labours(
+        Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True).order_by('name')
+    )
     statements = [
         _labour_statement_for_period(labour, period_start, period_end)
         for labour in labours
@@ -2580,7 +2734,9 @@ def _labour_summary_data(period_start, period_end):
     period_start = period_start or timezone.localdate().replace(day=1)
     period_end = period_end or timezone.localdate()
 
-    labours = list(Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True).order_by('name'))
+    labours = person_service.unique_person_labours(
+        Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True).order_by('name')
+    )
 
     # Aggregate per labour using the same statement builder as detail/book
     per_labour = []

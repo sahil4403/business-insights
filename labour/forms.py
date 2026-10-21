@@ -274,13 +274,23 @@ class LabourAdvanceForm(forms.ModelForm):
             }),
         }
 
-    def __init__(self, *args, labour=None, **kwargs):
+    def __init__(self, *args, labour=None, allow_duplicate_date=False, **kwargs):
         super().__init__(*args, **kwargs)
+        self.allow_duplicate_date = allow_duplicate_date
         self.fields['date'].initial = timezone.localdate()
         self.fields['labour'].queryset = Labour.objects.filter(is_active=True).exclude(is_vendor=True).exclude(is_one_day=True).order_by('name')
         if labour is not None:
             self.fields['labour'].initial = labour
             self.fields['labour'].disabled = True
+
+    def clean(self):
+        cleaned = super().clean()
+        # Same-date advance view me ADD hota hai (person_service.add_advance),
+        # isliye create form par unique-date/constraint check skip karo.
+        if getattr(self, 'allow_duplicate_date', False):
+            self._validate_unique = False
+            self._validate_constraints = False
+        return cleaned
 
 
 class LabourAdvanceMultiForm(forms.Form):

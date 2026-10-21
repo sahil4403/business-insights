@@ -43,6 +43,11 @@
         <div class="text-[12px] text-slate-500 font-semibold uppercase tracking-wider">
             {% if labours %}{{ labours|length }} labourers{% else %}No labour added yet{% endif %}
         </div>
+        {% if has_linked_rows %}
+            <div class="text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-1.5">
+                👥 Linked person ka existing combined amount dikh raha hai — naya amount usme ADD hoga, purani entry overwrite nahi hogi.
+            </div>
+        {% endif %}
 
         {% if labour_rows %}
             <div class="divide-y divide-slate-100">
@@ -52,8 +57,11 @@
                             {{ l.name }}
                             {% if l.show_badge %}<span class="text-[10px] text-amber-700 font-bold ml-1">· {{ l.role_badge }}</span>{% endif %}
                             {% if l.is_driver %}<span class="text-[10px] text-blue-600 font-bold ml-1">🚗</span>{% endif %}
+                            {% if l.also_in %}
+                                <span class="text-[9.5px] px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold ml-1">👥 combined</span>
+                            {% endif %}
                             {% if has_existing %}
-                                <span class="text-[10px] text-emerald-600 font-bold ml-1">✓</span>
+                                <span class="text-[10px] text-emerald-600 font-bold ml-1">✓ ₹{{ has_existing|floatformat:0 }} already</span>
                             {% endif %}
                             {% if l.last_advance %}
                                 <span class="text-[10px] text-slate-400 font-semibold ml-1">· last {{ l.last_advance|date:"d-M" }}</span>

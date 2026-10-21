@@ -109,6 +109,11 @@
             <p class="text-sm text-slate-500 mt-1">
                 {% if labour.is_driver and not labour.is_vendor %}🚗 Driver &nbsp;·&nbsp;{% endif %}
                 {{ cat_icon }} {{ labour.get_category_display }} · Per-trip settlement
+                {% if also_in %}
+                    <span class="inline-flex items-center gap-1 ml-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10.5px] font-bold align-middle">
+                        👥 Also in {{ also_in|join:", " }}
+                    </span>
+                {% endif %}
             </p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
@@ -174,6 +179,68 @@
             </div>
         </div>
     </div>
+{% endif %}
+
+<!-- Same person across sections -->
+{% if person_linked or same_person_candidates %}
+<details class="app-surface glass-panel p-3 md:p-4 mb-4" data-animate {% if same_person_candidates %}open{% endif %}>
+    <summary class="cursor-pointer list-none text-sm font-bold text-slate-800 flex items-center justify-between py-1">
+        <span>👥 Same Person</span>
+        <span class="text-slate-400 text-xs">▾</span>
+    </summary>
+    <div class="mt-3 space-y-3">
+        {% if person_linked %}
+            <div>
+                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Combined with</div>
+                <div class="flex flex-wrap items-center gap-2">
+                    {% for m in linked_records %}
+                        <a href="{% url 'labour:detail' m.id %}"
+                           class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-800 text-xs font-bold no-underline hover:bg-indigo-100">
+                            {{ m.name }} · {{ m.also_label }} →
+                        </a>
+                    {% endfor %}
+                </div>
+                <p class="text-[11.5px] text-slate-500 mt-2 mb-0">
+                    Advance, outstanding aur settlement sab combined hain — koi amount double count nahi hoti.
+                </p>
+                {% if can_link_people %}
+                <form method="post" action="{% url 'labour:person_unlink' labour.id %}" class="mt-2"
+                      onsubmit="return confirm('Unlink karne par shared outstanding baaki linked record ke paas rahega, is record ka outstanding ₹0 ho jayega. Purani settlements primary record ke paas rahengi. Continue?');">
+                    {% csrf_token %}
+                    <button type="submit" class="h-8 px-3 rounded-lg border border-amber-300 bg-white text-amber-700 text-xs font-bold hover:bg-amber-50">
+                        Unlink this record
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        {% endif %}
+        {% if same_person_candidates %}
+            <div class="border-t border-slate-100 pt-3">
+                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">Same naam mila — same person hai?</div>
+                <div class="space-y-2">
+                    {% for c in same_person_candidates %}
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-[13px] font-bold text-slate-800 truncate">{{ c.name }}</div>
+                                <div class="text-[11px] text-slate-500">{{ c.also_label }}{% if c.is_active %} · active{% endif %}</div>
+                            </div>
+                            {% if can_link_people %}
+                            <form method="post" action="{% url 'labour:person_link' labour.id c.id %}"
+                                  onsubmit="return confirm('{{ labour.name }} aur {{ c.name }} ko same person link karna hai? Advances, outstanding aur settlements combined ho jayenge.');">
+                                {% csrf_token %}
+                                <button type="submit" class="h-8 px-3 rounded-lg bg-brand-600 text-white text-xs font-bold whitespace-nowrap">
+                                    Link
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2 mb-0">Name match sirf suggestion hai — link tabhi hota hai jab aap confirm karo.</p>
+            </div>
+        {% endif %}
+    </div>
+</details>
 {% endif %}
 
 <!-- Quick actions -->
@@ -446,7 +513,12 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                     {% for a in day.advances %}
                     <div class="flex items-start justify-between py-1.5 {% if not forloop.last %}border-b border-slate-50{% endif %}">
                         <div>
-                            <div class="font-bold text-red-600 text-xs">💸 Advance Taken</div>
+                            <div class="font-bold text-red-600 text-xs">
+                                💸 Advance Taken
+                                {% if person_linked %}
+                                    <span class="ml-1 px-1.5 py-0.5 rounded bg-red-50 border border-red-100 text-red-500 text-[9.5px] font-bold uppercase tracking-wide align-middle">{{ a.source_label }}</span>
+                                {% endif %}
+                            </div>
                             {% if a.note %}<div class="text-[11px] text-slate-500">{{ a.note }}</div>{% endif %}
                         </div>
                         <div class="text-right shrink-0 flex items-center gap-1.5">
@@ -492,8 +564,13 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 <!-- Summary block (mirrors Excel layout) -->
 <details class="mb-4 app-surface rounded-xl overflow-hidden group" data-animate>
     <summary class="flex items-center justify-between p-4 md:p-5 cursor-pointer select-none">
-        <span class="font-bold text-slate-900 text-[15px] flex items-center gap-2">
+        <span class="font-bold text-slate-900 text-[15px] flex flex-wrap items-center gap-2">
             🧾 Settlement Summary · <span class="text-slate-500 text-sm font-semibold whitespace-nowrap">{{ period_start|date:"d-M" }} to {{ period_end|date:"d-M" }}</span>
+            {% if person_linked %}
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700">
+                    Combined ({{ person_combined_label }})
+                </span>
+            {% endif %}
         </span>
         <div class="flex items-center gap-2">
             <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide group-open:hidden">Show</span>
@@ -582,7 +659,10 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
 {% if settlements %}
 <div class="app-surface overflow-hidden" data-reveal>
     <div class="px-4 md:px-5 py-3.5 border-b border-slate-100">
-        <div class="font-bold text-slate-900 text-[15px]">Settlements in Range</div>
+        <div class="font-bold text-slate-900 text-[15px]">
+            Settlements in Range
+            {% if person_linked %}<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 ml-1">Combined ({{ person_combined_label }})</span>{% endif %}
+        </div>
     </div>
     {% for s in settlements %}
         <div class="px-4 py-3 border-b border-slate-100 last:border-0">

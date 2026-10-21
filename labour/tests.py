@@ -2678,3 +2678,301 @@ class GudduJcbRateTest(TestCase):
         group.refresh_from_db()
         self.assertEqual(group.rate_per_trip, Decimal('100'))
         self.assertEqual(group.total_amount, Decimal('200'))
+
+
+class PersonLinkTest(TestCase):
+    """Same person across sections — shared advance, outstanding, settlement."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='person-link-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.tractor = Labour.objects.create(
+            name='Mamaji',
+            category='TRACTOR',
+            is_active=True,
+            status='ACTIVE',
+        )
+        self.mistri = Labour.objects.create(
+            name='Mamaji',
+            category='MISTRI',
+            sub_category='MISTRI',
+            base_daily_rate=Decimal('500.00'),
+            is_active=True,
+            status='ACTIVE',
+        )
+        self.day = date(2026, 10, 5)
+
+    def _link(self):
+        from . import person_service
+        return person_service.link_labours(self.tractor, self.mistri)
+
+    def test_same_date_advance_adds_not_overwrites(self):
+        self.client.post(
+            reverse('labour:advance_add_for', args=[self.tractor.pk]),
+            data={'date': self.day.isoformat(), 'amount': '500', 'note': ''},
+        )
+        self.client.post(
+            reverse('labour:advance_add_for', args=[self.tractor.pk]),
+            data={'date': self.day.isoformat(), 'amount': '300', 'note': ''},
+        )
+
+        rows = LabourAdvance.objects.filter(labour=self.tractor, date=self.day)
+        self.assertEqual(rows.count(), 1)
+        self.assertEqual(rows.first().amount, Decimal('800.00'))
+
+    def test_link_merges_old_balance_into_primary(self):
+        from .models import LabourOldBalance
+
+        LabourOldBalance.objects.create(labour=self.tractor, amount=Decimal('500'))
+        LabourOldBalance.objects.create(labour=self.mistri, amount=Decimal('300'))
+
+        self._link()
+
+        self.assertEqual(
+            LabourOldBalance.objects.get(labour=self.tractor).amount,
+            Decimal('800'),
+        )
+        self.assertEqual(
+            LabourOldBalance.objects.get(labour=self.mistri).amount,
+            Decimal('0'),
+        )
+
+    def test_combined_advance_visible_from_both_sections(self):
+        from . import person_service
+
+        self._link()
+        LabourAdvance.objects.create(
+            labour=self.tractor, date=self.day, amount=Decimal('500'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.mistri, date=self.day, amount=Decimal('300'),
+        )
+
+        self.assertEqual(
+            person_service.advance_total_for_date(self.tractor, self.day),
+            Decimal('800'),
+        )
+        self.assertEqual(
+            person_service.advance_total_for_date(self.mistri, self.day),
+            Decimal('800'),
+        )
+
+    def test_same_name_is_only_suggestion_until_linked(self):
+        from . import person_service
+
+        candidates = person_service.same_name_candidates(self.tractor)
+        self.assertIn(self.mistri, candidates)
+        self.assertFalse(person_service.is_linked(self.tractor))
+        self.assertEqual(
+            person_service.advance_total(self.tractor), Decimal('0')
+        )
+
+    def test_linked_trip_share_counted_once(self):
+        from . import person_service
+
+        self._link()
+        group = LabourTripGroup.objects.create(
+            date=self.day,
+            trip_count=2,
+            rate_per_trip=Decimal('450'),
+            fill_type='HAND',
+        )
+        group.labourers.add(self.tractor, self.mistri)
+
+        totals = person_service.salary_totals(
+            self.tractor, date(2026, 10, 1), date(2026, 10, 31)
+        )
+        self.assertEqual(totals['trip_total'], Decimal('900'))
+
+    def test_combined_settlement_no_double_deduction(self):
+        from .models import LabourSettlement
+
+        self._link()
+        LabourExtraPayment.objects.create(
+            labour=self.tractor, date=self.day, amount=Decimal('1000'),
+        )
+        LabourRozi.objects.create(
+            labour=self.mistri, date=self.day, day_type='FULL',
+        )
+        LabourAdvance.objects.create(
+            labour=self.tractor, date=self.day, amount=Decimal('200'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.mistri, date=self.day, amount=Decimal('300'),
+        )
+        settlement = LabourSettlement(
+            labour=self.mistri,
+            settlement_date=date(2026, 10, 6),
+            period_start=date(2026, 10, 1),
+            period_end=date(2026, 10, 31),
+            old_balance_before=Decimal('0'),
+            old_balance_deducted=Decimal('0'),
+            cash_paid=Decimal('0'),
+        )
+
+        settlement.recalculate()
+
+        self.assertEqual(settlement.total_salary, Decimal('1800'))
+        self.assertEqual(settlement.total_advance, Decimal('500'))
+        self.assertEqual(settlement.net_payable, Decimal('1300'))
+        self.assertEqual(settlement.final_old_balance, Decimal('-1300'))
+
+    def test_unlink_leaves_shared_outstanding_with_remaining(self):
+        from .models import LabourOldBalance
+
+        LabourOldBalance.objects.create(labour=self.tractor, amount=Decimal('800'))
+        self._link()
+
+        response = self.client.post(
+            reverse('labour:person_unlink', args=[self.tractor.pk])
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.tractor.refresh_from_db()
+        self.assertIsNone(self.tractor.person_id)
+        self.assertIsNone(
+            Labour.objects.get(pk=self.mistri.pk).person_id
+        )
+        self.assertEqual(
+            LabourOldBalance.objects.get(labour=self.tractor).amount,
+            Decimal('0'),
+        )
+        self.assertEqual(
+            LabourOldBalance.objects.get(labour=self.mistri).amount,
+            Decimal('800'),
+        )
+
+    def test_link_view_and_detail_combined_label(self):
+        response = self.client.post(
+            reverse('labour:person_link', args=[self.tractor.pk, self.mistri.pk])
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.tractor.refresh_from_db()
+        self.assertIsNotNone(self.tractor.person_id)
+
+        detail = self.client.get(
+            reverse('labour:detail', args=[self.mistri.pk])
+        )
+        content = detail.content.decode()
+        self.assertIn('Combined (Tractor + Mistri)', content)
+        self.assertIn('Also in Tractor', content)
+
+    def test_overlap_blocks_only_new_settlement(self):
+        from .models import LabourSettlement
+
+        self._link()
+        existing = LabourSettlement.objects.create(
+            labour=self.tractor,
+            settlement_date=date(2026, 10, 6),
+            period_start=date(2026, 10, 1),
+            period_end=date(2026, 10, 10),
+        )
+
+        response = self.client.post(
+            reverse('labour:settle', args=[self.mistri.pk]),
+            data={
+                'settlement_date': '2026-10-11',
+                'period_start': '2026-10-05',
+                'period_end': '2026-10-15',
+                'old_balance_deducted': '0',
+                'cash_paid': '0',
+                'note': '',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(LabourSettlement.objects.count(), 1)
+
+        edit = self.client.post(
+            reverse('labour:settlement_edit', args=[existing.pk]),
+            data={
+                'settlement_date': '2026-10-06',
+                'old_balance_deducted': '0',
+                'cash_paid': '100',
+                'note': '',
+            },
+        )
+        self.assertEqual(edit.status_code, 302)
+        existing.refresh_from_db()
+        self.assertEqual(existing.cash_paid, Decimal('100'))
+
+        revert = self.client.post(
+            reverse('labour:settlement_revert', args=[existing.pk])
+        )
+        self.assertEqual(revert.status_code, 302)
+        self.assertEqual(LabourSettlement.objects.count(), 0)
+
+    def test_legacy_overlapping_settlements_editable_after_link(self):
+        from .models import LabourSettlement
+
+        first = LabourSettlement.objects.create(
+            labour=self.tractor,
+            settlement_date=date(2026, 10, 3),
+            period_start=date(2026, 10, 1),
+            period_end=date(2026, 10, 10),
+        )
+        second = LabourSettlement.objects.create(
+            labour=self.mistri,
+            settlement_date=date(2026, 10, 8),
+            period_start=date(2026, 10, 5),
+            period_end=date(2026, 10, 15),
+        )
+        self._link()
+
+        edit = self.client.post(
+            reverse('labour:settlement_edit', args=[second.pk]),
+            data={
+                'settlement_date': '2026-10-08',
+                'old_balance_deducted': '0',
+                'cash_paid': '50',
+                'note': '',
+            },
+        )
+        self.assertEqual(edit.status_code, 302)
+        second.refresh_from_db()
+        self.assertEqual(second.cash_paid, Decimal('50'))
+
+        revert = self.client.post(
+            reverse('labour:settlement_revert', args=[second.pk])
+        )
+        self.assertEqual(revert.status_code, 302)
+        self.assertTrue(LabourSettlement.objects.filter(pk=first.pk).exists())
+
+    def test_multi_advance_prefills_combined_and_adds(self):
+        self._link()
+        LabourAdvance.objects.create(
+            labour=self.tractor, date=self.day, amount=Decimal('500'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.mistri, date=self.day, amount=Decimal('300'),
+        )
+
+        response = self.client.get(
+            reverse('labour:advance_multi'),
+            {'date': self.day.isoformat(), 'category': 'MISTRI'},
+        )
+        rows = response.context['labour_rows']
+        mistri_row = next(row for row in rows if row[0].pk == self.mistri.pk)
+        self.assertEqual(mistri_row[2], Decimal('800'))
+
+        self.client.post(
+            reverse('labour:advance_multi'),
+            data={
+                'date': self.day.isoformat(),
+                'category': 'MISTRI',
+                f'amount_{self.mistri.pk}': '200',
+            },
+        )
+        self.assertEqual(
+            LabourAdvance.objects.get(labour=self.tractor, date=self.day).amount,
+            Decimal('500'),
+        )
+        self.assertEqual(
+            LabourAdvance.objects.get(labour=self.mistri, date=self.day).amount,
+            Decimal('500'),
+        )

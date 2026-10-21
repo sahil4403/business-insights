@@ -5,6 +5,24 @@ from django.db import models
 from master_data.models import LabourType
 
 
+class LabourPerson(models.Model):
+    """One real person, shared by section-specific Labour records.
+
+    A person may have a Tractor record and a Mistri Helper record (same human).
+    Linked records share one advance pool, one outstanding balance and one
+    settlement chain. Linking is always confirmed by the owner — never
+    auto-merged by name.
+    """
+    name = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return self.name or f'Person #{self.pk}'
+
+
 class Labour(models.Model):
     STATUS_CHOICES = [
         ('ACTIVE', 'Active'),
@@ -86,6 +104,16 @@ class Labour(models.Model):
                   "section (lists, counts, pickers); lives only in Trips."
     )
 
+    person = models.ForeignKey(
+        LabourPerson,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='labours',
+        help_text="Same real person ka doosra section record (link group). "
+                  "Linked records share advance, outstanding aur settlement.",
+    )
+
     base_daily_rate = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -118,8 +146,8 @@ class Labour(models.Model):
 
     @property
     def current_old_balance(self):
-        ob = LabourOldBalance.objects.filter(labour=self).first()
-        return ob.amount if ob else 0
+        from . import person_service
+        return person_service.old_balance_amount(self)
 
 
 class LabourTypeAssignment(models.Model):
@@ -778,40 +806,14 @@ class LabourSettlement(models.Model):
         return f"{self.labour.name} settle {self.settlement_date}"
 
     def recalculate(self):
-        """Recompute all calculated fields and write to LabourOldBalance."""
-        from django.db.models import Sum, Q
-        from decimal import Decimal
+        """Recompute all calculated fields (person-aware for linked records)."""
+        from . import person_service
 
-        period_q = Q(date__gte=self.period_start, date__lte=self.period_end)
-
-        # Trip shares for this labour
-        trip_total = Decimal('0')
-        for grp in LabourTripGroup.objects.filter(date__gte=self.period_start,
-                                                  date__lte=self.period_end):
-            n = grp.labourers.count()
-            if n and grp.labourers.filter(pk=self.labour.pk).exists():
-                trip_total += grp.total_amount / n
-
-        extra_total = LabourExtraPayment.objects.filter(
-            labour=self.labour, date__gte=self.period_start, date__lte=self.period_end
-        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-
-        rozi_total = LabourRozi.objects.filter(
-            labour=self.labour, date__gte=self.period_start, date__lte=self.period_end
-        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-
-        driver_total = LabourDriverPayment.objects.filter(
-            labour=self.labour,
-            period_start__lte=self.period_end,
-            period_end__gte=self.period_start,
-        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-
-        advance_total = LabourAdvance.objects.filter(
-            labour=self.labour, date__gte=self.period_start, date__lte=self.period_end
-        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-
-        self.total_salary = trip_total + extra_total + rozi_total + driver_total
-        self.total_advance = advance_total
+        totals = person_service.salary_totals(
+            self.labour, self.period_start, self.period_end
+        )
+        self.total_salary = totals['total_salary']
+        self.total_advance = totals['advance_total']
         self.net_payable = self.total_salary - self.total_advance
         # Period earning owner ko deni hai → old dues ghat-te hain;
         # cash owner ne diya → dues badhte hain.
