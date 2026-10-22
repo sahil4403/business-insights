@@ -3168,9 +3168,9 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
     - Loading: LabourTripGroup entries (operator + load label + count).
     - Trips: Trips-module records, same date (cancelled excluded),
       material + destination se grouped, driver counts combined.
-    - Tractor: HAND/JCB fill lines; location/drivers same-date Trips se
-      matched (pehle tractor-vehicle trips, warna us din ke trips me sabse
-      common destination; kuch na mile to blank — matlab stock ka kaam).
+    - Tractor: HAND/JCB aggregate fill lines (count only). Destination/
+      customer sirf verified per-Trip record lines par — aggregate line par
+      never, kyunki uska kisi ek order se koi link nahi hota.
     - Rozi tables: Mistri / Tractor Labour / Hyva+JCB groups me
       Sr No | Name | Rozi | Advance.
     Totals/math bilkul nahi badalte — sirf presentation ke liye naye keys.
@@ -3464,11 +3464,12 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             })
         row['hyva_materials'] = hyva_materials
 
-        # ---- TRACTOR (HAND/JCB fill lines + matched location/drivers) ----
-        # STRICT rule: location/drivers SIRF same-date tractor-vehicle trips
-        # se aate hain. Hyva trips se uthana galat attribution tha (Oct 9:
-        # tractor line me Hyva driver ka naam) — dobara na ho isliye koi
-        # fallback nahi: match na mile to location blank, driver blank.
+        # ---- TRACTOR (HAND/JCB aggregate fill lines + per-Trip records) ----
+        # Aggregate fill line ka kisi specific order se verified link nahi
+        # hota. Isliye uspar destination/customer kabhi mat lagao — warna
+        # (22-Oct) JCB stock line par din ke customer order ka destination
+        # chadh jata tha. Destination/customer sirf neeche wale verified
+        # per-Trip records me dikhte hain.
         # JCB trips bhi tractor_records me dikhao (reading calculation ke liye)
         trac = [t for t in recs
                 if 'tractor' in _vehicle_label(t).lower()]
@@ -3516,10 +3517,14 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
                     if dr.name not in b['plain_drivers']:
                         b['plain_drivers'].append(dr.name)
         for (mat, dest, cust), b in sorted(tbuckets.items()):
-            # Sirf "Stock" aur bina-customer Kosara internal hai. Customer
-            # ke saath Kosara real place hai — wahi dikhao.
+            # Customer link hi verified order/delivery hai. Bina customer wala
+            # Trip stock hai — uska asli destination nahi dikhana (warna
+            # stock trip par customer ka destination leak jaisa lagta hai).
+            # "Stock"/bina-customer Kosara internal label ke roop me dikhte hain.
             dl = dest.strip().lower()
-            is_stock_line = (dl == 'stock') or (dl == 'kosara' and not cust)
+            is_stock_line = (
+                not cust or dl == 'stock' or (dl == 'kosara' and not cust)
+            )
             # Include JCB reading fields for display
             is_jcb = 'jcb' in b['vehicle'].lower()
             # JCB reading fields: use the last matching trip's readings
@@ -3649,7 +3654,13 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             else:
                 row['tractor_lines'].append(
                     {'fill': f, 'count': fill_counts[f],
-                     'location': location, 'drivers': tdrivers,
+                     # Aggregate fill line ka kisi ek Trip se verified link
+                     # nahi hota — destination/customer kabhi mat lagao.
+                     # Verified destination/customer sirf tractor_records
+                     # (actual Trip) me dikhta hai. "Stock" label internal
+                     # jagah ke liye allowed hai.
+                     'location': location if is_stock else '',
+                     'drivers': [] if is_stock else tdrivers,
                      'is_stock': is_stock}
                 )
         row['tractor_records'] = trac_lines

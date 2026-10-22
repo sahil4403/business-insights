@@ -1896,7 +1896,7 @@ class DailyActivityDetailTest(TestCase):
             [r for r in data['day_list'] if r['date'] == self.day], []
         )
 
-    def test_tractor_lines_location_from_trips(self):
+    def test_tractor_fill_line_never_shows_unverified_location(self):
         from labour.models import LabourTripGroup
         from master_data.models import Material, VehicleType
         from trips.models import Trip
@@ -1939,10 +1939,10 @@ class DailyActivityDetailTest(TestCase):
         by_fill = {l['fill']: l for l in row['tractor_lines']}
         self.assertEqual(by_fill['HAND']['count'], 5)
         self.assertEqual(by_fill['JCB']['count'], 2)
-        # Pool total (5) HAND (5) se exact milta hai → details
-        self.assertEqual(by_fill['HAND']['location'], 'Pune')
+        # Aggregate fill line ka koi verified order link nahi — destination
+        # blank. Driver names display ke liye rehte hain.
+        self.assertEqual(by_fill['HAND']['location'], '')
         self.assertEqual(by_fill['HAND']['drivers'], [('Driver1', 5)])
-        # JCB (2) se match nahi → blank (galat attribution se behtar)
         self.assertEqual(by_fill['JCB']['location'], '')
         self.assertEqual(by_fill['JCB']['drivers'], [])
         # Loading me sirf load wale groups; pure tractor trips bahar.
@@ -1985,9 +1985,11 @@ class DailyActivityDetailTest(TestCase):
         row = self._day_row()
         # Trips section me tractor trip nahi
         self.assertEqual(row['trip_materials'], [])
-        # Tractor section me location phir bhi matched (count 2 == 2)
+        # Bina customer wala Trip stock hai — fill line par destination nahi.
         self.assertEqual(len(row['tractor_lines']), 1)
-        self.assertEqual(row['tractor_lines'][0]['location'], 'Pune')
+        self.assertEqual(row['tractor_lines'][0]['location'], '')
+        self.assertEqual(row['tractor_records'][0]['destination'], 'Stock')
+        self.assertEqual(row['tractor_records'][0]['customer'], '')
 
     def test_tractor_records_listed_in_tractor_section(self):
         # Tractor-vehicle record Trips me nahi, Tractor me detail ke saath.
@@ -2150,9 +2152,9 @@ class DailyActivityDetailTest(TestCase):
         self.assertEqual(row['tractor_records'][0]['drivers'], [])
         self.assertEqual(row['tractor_records'][0]['plain_drivers'], [])
 
-    def test_tractor_kosara_with_customer_shows_place(self):
-        # 6-Oct bug: Chauhan→Kosara trip par Place me "Stock" aa raha tha.
-        # Customer ke saath Kosara real place hai — wahi + driver dikho.
+    def test_tractor_kosara_with_customer_place_on_verified_record(self):
+        # Customer ke saath Kosara real place hai, par wo sirf verified
+        # per-Trip record line par dikhega — aggregate fill line par nahi.
         from labour.models import LabourTripGroup
         from master_data.models import CustomerType, Material, VehicleType
         from customers.models import Customer
@@ -2190,12 +2192,180 @@ class DailyActivityDetailTest(TestCase):
         t.drivers.set([self.d1])
         row = self._day_row()
         self.assertEqual(len(row['tractor_lines']), 1)
-        self.assertEqual(row['tractor_lines'][0]['location'], 'Kosara')
+        self.assertEqual(row['tractor_lines'][0]['location'], '')
         self.assertEqual(row['tractor_lines'][0]['drivers'], [('Driver1', 2)])
         self.assertFalse(row['tractor_lines'][0]['is_stock'])
         self.assertEqual(len(row['tractor_records']), 1)
         self.assertEqual(row['tractor_records'][0]['destination'], 'Kosara')
         self.assertEqual(row['tractor_records'][0]['customer'], 'Chauhan')
+
+    def test_stock_jcb_fill_never_inherits_customer_destination(self):
+        # 22-Oct bug: sirf 1 verified customer trip tha, par JCB stock fill
+        # line par usi customer ka destination/driver chadh gaya. Aggregate
+        # fill line ka koi verified order link nahi hota — destination blank.
+        from labour.models import LabourTripGroup
+        from master_data.models import CustomerType, Material, VehicleType
+        from customers.models import Customer
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        gj = LabourTripGroup.objects.create(
+            date=self.day, trip_count=1, rate_per_trip=Decimal('450'),
+            fill_type='JCB', load_type='',
+        )
+        gj.labourers.set([self.kishan])
+        gh = LabourTripGroup.objects.create(
+            date=self.day, trip_count=5, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        gh.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-DEST-LEAK', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-DEST-LEAK', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-LEAK-01', vehicle_type=vtype,
+            registration_number='MH-LEAK-TRAC',
+        )
+        ctype, _ = CustomerType.objects.get_or_create(
+            code='LEAK-CT', defaults={'name': 'LeakCust'}
+        )
+        cust = Customer.objects.create(
+            customer_code='LEAK-RAHIM', name='Rahim Bhaiya',
+            customer_type=ctype, is_active=True,
+        )
+        t = Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand,
+            destination='Itta Bhatti, Pipe Line', customer=cust,
+            vehicle=vehicle, trip_status='COMPLETED',
+            driver_trip_counts={str(self.kishan.pk): 1},
+        )
+        t.drivers.set([self.kishan])
+        row = self._day_row()
+        by_fill = {l['fill']: l for l in row['tractor_lines']}
+        self.assertEqual(by_fill['JCB']['count'], 1)
+        self.assertEqual(by_fill['JCB']['location'], '')
+        self.assertEqual(by_fill['JCB']['drivers'], [('Kishan', 1)])
+        self.assertEqual(by_fill['HAND']['count'], 4)
+        self.assertEqual(by_fill['HAND']['location'], '')
+        self.assertEqual(len(row['tractor_records']), 1)
+        rec = row['tractor_records'][0]
+        self.assertEqual(rec['destination'], 'Itta Bhatti, Pipe Line')
+        self.assertEqual(rec['customer'], 'Rahim Bhaiya')
+        self.assertEqual(rec['drivers'], [('Kishan', 1)])
+        # Render check: destination sirf verified record line par, JCB stock
+        # line driver ke saath par bina destination ke.
+        response = self.client.get(
+            reverse('labour:daily_activity'),
+            {'from_date': '2026-10-09', 'to_date': '2026-10-09'},
+        )
+        html = response.content.decode()
+        self.assertEqual(html.count('Itta Bhatti, Pipe Line'), 1)
+        self.assertIn('1 Trip JCB | 1 Kishan', html)
+
+    def test_only_stock_trips_show_no_destination(self):
+        # Unlinked/no-customer Trip stock hai — fill line par destination nahi.
+        from labour.models import LabourTripGroup
+        from master_data.models import Material, VehicleType
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        gj = LabourTripGroup.objects.create(
+            date=self.day, trip_count=1, rate_per_trip=Decimal('450'),
+            fill_type='JCB', load_type='',
+        )
+        gj.labourers.set([self.kishan])
+        gh = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        gh.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-ONLY-STOCK', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-ONLY-STOCK', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-STOCK-ONLY-01', vehicle_type=vtype,
+            registration_number='MH-STOCK-ONLY-TRAC',
+        )
+        Trip.objects.create(
+            trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+            total_amount=Decimal('100'), material=sand, destination='MIDC',
+            vehicle=vehicle, trip_status='COMPLETED',
+            driver_trip_counts={str(self.d1.pk): 1},
+        )
+        row = self._day_row()
+        for line in row['tractor_lines']:
+            self.assertEqual(line['location'], '')
+        by_fill = {l['fill']: l for l in row['tractor_lines']}
+        # Driver names display-only hain — destination ke saath hi nahi hate.
+        self.assertEqual(by_fill['JCB']['drivers'], [('Driver1', 1)])
+        self.assertEqual(by_fill['HAND']['drivers'], [])
+        self.assertEqual(len(row['tractor_records']), 1)
+        rec = row['tractor_records'][0]
+        self.assertEqual(rec['destination'], 'Stock')
+        self.assertEqual(rec['customer'], '')
+        self.assertEqual(rec['drivers'], [])
+        self.assertEqual(rec['plain_drivers'], [])
+
+    def test_two_customer_orders_keep_their_own_destinations(self):
+        # Do alag orders: aggregate fill line par ek bhi destination na aaye;
+        # har verified record apna destination/customer rakhe.
+        from labour.models import LabourTripGroup
+        from master_data.models import CustomerType, Material, VehicleType
+        from customers.models import Customer
+        from trips.models import Trip
+        from vehicles.models import Vehicle
+
+        gh = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        gh.labourers.set([self.kishan])
+        sand, _ = Material.objects.get_or_create(
+            code='SAND-TWO-ORDERS', defaults={'name': 'White Sand', 'unit': 'TRIP'}
+        )
+        vtype, _ = VehicleType.objects.get_or_create(
+            code='TRACTOR-TWO-ORDERS', defaults={'name': 'Tractor Trolley'}
+        )
+        vehicle = Vehicle.objects.create(
+            vehicle_code='TRAC-TWO-ORDERS-01', vehicle_type=vtype,
+            registration_number='MH-TWO-ORDERS-TRAC',
+        )
+        ctype, _ = CustomerType.objects.get_or_create(
+            code='TWO-ORDERS-CT', defaults={'name': 'TwoOrders'}
+        )
+        expected = set()
+        for code, name, dest in (
+            ('TWO-ORDERS-A', 'Customer A', 'Site A'),
+            ('TWO-ORDERS-B', 'Customer B', 'Site B'),
+        ):
+            cust = Customer.objects.create(
+                customer_code=code, name=name,
+                customer_type=ctype, is_active=True,
+            )
+            t = Trip.objects.create(
+                trip_date=self.day, quantity=Decimal('1'), rate=Decimal('100'),
+                total_amount=Decimal('100'), material=sand, destination=dest,
+                customer=cust, vehicle=vehicle, trip_status='COMPLETED',
+                driver_trip_counts={str(self.d1.pk): 1},
+            )
+            t.drivers.set([self.d1])
+            expected.add((dest, name))
+        row = self._day_row()
+        by_fill = {l['fill']: l for l in row['tractor_lines']}
+        self.assertEqual(by_fill['HAND']['count'], 2)
+        self.assertEqual(by_fill['HAND']['location'], '')
+        self.assertEqual(len(row['tractor_records']), 2)
+        self.assertEqual(
+            {(r['destination'], r['customer']) for r in row['tractor_records']},
+            expected,
+        )
 
     def test_tractor_customer_trips_subtracted_hand_first(self):
         # 12-Oct bug: fill 39 JCB + 5 HAND (= 44 labour trips) aur usi me
