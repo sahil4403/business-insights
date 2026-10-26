@@ -3880,10 +3880,9 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             names = dict(
                 Labour.objects.filter(id__in=per_labour.keys()).values_list('id', 'name')
             )
-        # Same-naam IDs: jiss din sirf EK role me trip kaam hua, us role ki
-        # section me Rozi (day-wage) fold karke dikhao — 16-Oct Mamaji: galat
-        # role ki FULL Rozi tractor row me. Extra/Advance hamesha apne record
-        # par rehte hain (15-Oct: Mistri Extra 100 alag row me).
+        # Same-naam IDs: jiss din sirf EK role me trip kaam hua, us worker
+        # ko grouped/merged dikhao. Rozi amount source category me hi rahega;
+        # target row me sirf merged metadata jayega.
         _nonzero = [
             lid for lid, vals in per_labour.items()
             if vals['rozi'] or vals['advance']
@@ -3917,26 +3916,13 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
             if not vals['rozi'] and not vals['advance']:
                 continue
             if lid in _fold_rozi:
-                # Sirf Rozi-pay fold hota hai; Extra/Advance apne record par.
+                # Grouping/merged metadata target par; amounts yahin rakho.
                 _t = _fold_rozi[lid]
                 _r = _agg.setdefault(
                     _t,
                     {'rozi': Decimal('0'), 'advance': Decimal('0'), 'ids': []},
                 )
-                _r['rozi'] += vals['rozi_pay']
                 _r['ids'].extend([_t, lid] if _t not in _r['ids'] else [lid])
-                _rest = vals['rozi'] - vals['rozi_pay']
-                if _rest or vals['advance']:
-                    _own = _agg.setdefault(
-                        lid,
-                        {'rozi': Decimal('0'), 'advance': Decimal('0'),
-                         'ids': []},
-                    )
-                    _own['rozi'] += _rest
-                    _own['advance'] += vals['advance']
-                    if lid not in _own['ids']:
-                        _own['ids'].append(lid)
-                continue
             _r = _agg.setdefault(
                 lid,
                 {'rozi': Decimal('0'), 'advance': Decimal('0'), 'ids': []},

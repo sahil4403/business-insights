@@ -913,6 +913,24 @@ class SameNameLabourTest(TestCase):
             is_active=True, status='ACTIVE',
         )
 
+    def _create_split_day(self):
+        from .models import LabourTripGroup
+
+        g = LabourTripGroup.objects.create(
+            date=self.day, trip_count=4, rate_per_trip=Decimal('450'),
+            fill_type='HAND', load_type='',
+        )
+        g.labourers.set([self.mamaji_tractor])
+        LabourRozi.objects.create(
+            labour=self.mamaji_mistri, date=self.day,
+            day_type='FULL', amount=Decimal('500'),
+        )
+        LabourAdvance.objects.create(
+            labour=self.mamaji_tractor, date=self.day,
+            amount=Decimal('1000'),
+        )
+        return g
+
     def test_rozi_page_lists_both_mamajis(self):
         response = self.client.get(
             reverse('labour:rozi_multi'), {'category': 'MISTRI'}
@@ -1053,37 +1071,168 @@ class SameNameLabourTest(TestCase):
         self.assertIn('Mamaji', response.context['split_names'])
 
     def test_same_name_merges_into_worked_section(self):
-        # Mamaji aaj tractor trip me tha (HAND group) + Rozi mistri record
-        # par + Advance tractor record par → Tractor me EK row (combined),
-        # Mistri khaali, flag nahi.
-        from .models import LabourTripGroup
+        # Same-naam grouping/merged metadata waise hi; Rozi apne Mistri
+        # section me aur Tractor trip apne Tractor section me.
         from .views import _daily_activity_data
 
-        g = LabourTripGroup.objects.create(
-            date=self.day, trip_count=4, rate_per_trip=Decimal('450'),
-            fill_type='HAND', load_type='',
-        )
-        g.labourers.set([self.mamaji_tractor])
-        LabourRozi.objects.create(
-            labour=self.mamaji_mistri, date=self.day,
-            day_type='FULL', amount=Decimal('500'),
-        )
-        LabourAdvance.objects.create(
-            labour=self.mamaji_tractor, date=self.day,
-            amount=Decimal('1000'),
-        )
+        self._create_split_day()
         data = _daily_activity_data(self.day, self.day)
         rows = [r for r in data['day_list'] if r['date'] == self.day]
         self.assertEqual(len(rows), 1)
         row = rows[0]
         self.assertEqual(row.get('dup_names', []), [])
-        self.assertEqual(row['rozi_tables']['mistri'], [])
+
+        self.assertEqual(len(row['rozi_tables']['mistri']), 1)
+        mrow = row['rozi_tables']['mistri'][0]
+        self.assertEqual(mrow['name'], 'Mamaji')
+        self.assertEqual(mrow['rozi'], Decimal('500'))
+        self.assertEqual(mrow['advance'], Decimal('0'))
+
         self.assertEqual(len(row['rozi_tables']['tractor']), 1)
         trow = row['rozi_tables']['tractor'][0]
         self.assertEqual(trow['name'], 'Mamaji')
-        self.assertEqual(trow['rozi'], Decimal('1800') + Decimal('500'))
+        self.assertEqual(trow['rozi'], Decimal('1800'))
         self.assertEqual(trow['advance'], Decimal('1000'))
         self.assertEqual(trow.get('merged'), 2)
+
+        total_rozi = sum(
+            (r['rozi'] for trows in row['rozi_tables'].values() for r in trows),
+            Decimal('0'),
+        )
+        self.assertEqual(total_rozi, Decimal('2300'))
+
+        self.assertEqual(data['trip_total'], Decimal('1800'))
+        self.assertEqual(data['extra_total'], Decimal('500'))
+        self.assertEqual(data['advance_total'], Decimal('1000'))
+        self.assertEqual(data['grand_trips'], Decimal('1800'))
+        self.assertEqual(data['grand_extra'], Decimal('500'))
+        self.assertEqual(data['grand_advance'], Decimal('1000'))
+        self.assertEqual(
+            data['day_rollup'][self.day],
+            {'trips': Decimal('1800'), 'extra': Decimal('500'),
+             'advance': Decimal('1000')},
+        )
+        self.assertEqual(row['trips'], Decimal('1800'))
+        self.assertEqual(row['extra'], Decimal('500'))
+        self.assertEqual(row['advance'], Decimal('1000'))
+
+    def test_page_and_exports_show_split_amounts(self):
+        self._create_split_day()
+        params = {'from_date': '2026-10-16', 'to_date': '2026-10-16'}
+
+        response = self.client.get(reverse('labour:daily_activity'), params)
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertEqual(html.count('Rozi — Mistri'), 1)
+        self.assertEqual(html.count('Rozi — Tractor Labour'), 1)
+
+        mistri_html = html.split('Rozi — Mistri', 1)[1].split('</table>', 1)[0]
+        self.assertEqual(mistri_html.count('Mamaji'), 1)
+        self.assertIn('₹500', mistri_html)
+        self.assertNotIn('₹1800', mistri_html)
+
+        tractor_html = (
+            html.split('Rozi — Tractor Labour', 1)[1]
+            .split('</table>', 1)[0]
+        )
+        self.assertEqual(tractor_html.count('Mamaji'), 1)
+        self.assertIn('₹1800', tractor_html)
+        self.assertIn('₹1000', tractor_html)
+        self.assertNotIn('₹2300', html)
+
+        response = self.client.get(
+            reverse('labour:daily_activity'), {**params, 'export': 'excel'},
+        )
+        self.assertEqual(response.status_code, 200)
+        workbook = load_workbook(
+            filename=BytesIO(response.content), read_only=True,
+        )
+        rows = [[cell.value for cell in row] for row in workbook.active.iter_rows()]
+        self.assertEqual(len([r for r in rows if r[0] == 'Rozi — Mistri']), 1)
+        self.assertEqual(
+            len([r for r in rows if r[0] == 'Rozi — Tractor Labour']), 1,
+        )
+
+        def row_after(title):
+            index = next(i for i, r in enumerate(rows) if r[0] == title)
+            return rows[index + 1]
+
+        self.assertEqual(row_after('Rozi — Mistri')[:4], [1, 'Mamaji', 500.0, 0.0])
+        self.assertEqual(
+            row_after('Rozi — Tractor Labour')[:4],
+            [1, 'Mamaji', 1800.0, 1000.0],
+        )
+
+        response = self.client.get(
+            reverse('labour:daily_activity'), {**params, 'export': 'csv'},
+        )
+        self.assertEqual(response.status_code, 200)
+        lines = response.content.decode().splitlines()
+        mistri_rows = [
+            line.split(',') for line in lines if line.startswith('Rozi-Mistri,')
+        ]
+        tractor_rows = [
+            line.split(',') for line in lines
+            if line.startswith('Rozi-Tractor,')
+        ]
+        self.assertEqual(len(mistri_rows), 1)
+        self.assertEqual(len(tractor_rows), 1)
+        self.assertEqual(mistri_rows[0][:3], ['Rozi-Mistri', '1', 'Mamaji'])
+        self.assertEqual(float(mistri_rows[0][3]), 500.0)
+        self.assertEqual(float(mistri_rows[0][4]), 0.0)
+        self.assertEqual(tractor_rows[0][:3], ['Rozi-Tractor', '1', 'Mamaji'])
+        self.assertEqual(float(tractor_rows[0][3]), 1800.0)
+        self.assertEqual(float(tractor_rows[0][4]), 1000.0)
+
+    def test_mistri_only_rozi_unchanged(self):
+        from .views import _daily_activity_data
+
+        LabourRozi.objects.create(
+            labour=self.mamaji_mistri, date=self.day,
+            day_type='FULL', amount=Decimal('500'),
+        )
+        data = _daily_activity_data(self.day, self.day)
+        row = next(r for r in data['day_list'] if r['date'] == self.day)
+        self.assertEqual(len(row['rozi_tables']['mistri']), 1)
+        self.assertEqual(
+            row['rozi_tables']['mistri'][0]['rozi'], Decimal('500'),
+        )
+        self.assertEqual(row['rozi_tables']['mistri'][0]['advance'], Decimal('0'))
+        self.assertEqual(row['rozi_tables']['tractor'], [])
+        self.assertEqual(row['rozi_tables']['hyva_jcb'], [])
+        self.assertEqual(data['trip_total'], Decimal('0'))
+        self.assertEqual(data['extra_total'], Decimal('500'))
+        self.assertEqual(data['advance_total'], Decimal('0'))
+        self.assertEqual(
+            data['day_rollup'][self.day],
+            {'trips': Decimal('0'), 'extra': Decimal('500'),
+             'advance': Decimal('0')},
+        )
+
+    def test_tractor_only_trip_unchanged(self):
+        from .views import _daily_activity_data
+
+        self._create_split_day()
+        LabourRozi.objects.filter(labour=self.mamaji_mistri).delete()
+        data = _daily_activity_data(self.day, self.day)
+        row = next(r for r in data['day_list'] if r['date'] == self.day)
+        self.assertEqual(row['rozi_tables']['mistri'], [])
+        self.assertEqual(len(row['rozi_tables']['tractor']), 1)
+        self.assertEqual(
+            row['rozi_tables']['tractor'][0]['rozi'], Decimal('1800'),
+        )
+        self.assertEqual(
+            row['rozi_tables']['tractor'][0]['advance'], Decimal('1000'),
+        )
+        self.assertEqual(row['rozi_tables']['hyva_jcb'], [])
+        self.assertEqual(data['trip_total'], Decimal('1800'))
+        self.assertEqual(data['extra_total'], Decimal('0'))
+        self.assertEqual(data['advance_total'], Decimal('1000'))
+        self.assertEqual(
+            data['day_rollup'][self.day],
+            {'trips': Decimal('1800'), 'extra': Decimal('0'),
+             'advance': Decimal('1000')},
+        )
 
     def test_same_name_stays_split_when_both_worked(self):
         # Dono roles me aaj trip kaam → alag rows + flag (user ka rule).
