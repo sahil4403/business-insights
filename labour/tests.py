@@ -3175,12 +3175,15 @@ class MinimumTripEarningTest(TestCase):
         self.period_start = date(2026, 10, 1)
         self.period_end = date(2026, 10, 31)
 
-    def _trip(self, labour, amount, day=None):
-        group = LabourTripGroup.objects.create(
+    def _trip(self, labour, amount, day=None, load_type='', trip_count=1):
+        group = LabourTripGroup(
             date=day or self.day,
-            trip_count=1,
+            trip_count=trip_count,
             rate_per_trip=Decimal(str(amount)),
+            load_type=load_type,
         )
+        group._keep_manual_rate = True
+        group.save()
         group.labourers.add(labour)
         return group
 
@@ -3307,6 +3310,139 @@ class MinimumTripEarningTest(TestCase):
         self.assertEqual(st['trip_payable'], Decimal('0'))
         self.assertEqual(st['total_salary'], Decimal('200'))
         self.assertTrue(st['rows'][0]['below_minimum'])
+
+    def test_breakdown_itemizes_below_minimum_day_and_sums_to_adjustment(self):
+        from .models import LabourMinimumEarning
+
+        LabourMinimumEarning.objects.update_or_create(
+            category='HYVA_DRIVER', defaults={'amount': Decimal('300')},
+        )
+        self._trip(self.hyva, 100, load_type='FLYASH_HYVA')
+        self._trip(self.hyva, 100, load_type='HALFTON_WHITE')
+        self._bhatta(self.hyva)
+
+        st = _labour_statement_for_period(
+            self.hyva, self.period_start, self.period_end,
+        )
+
+        self.assertEqual(st['minimum_adjustment'], Decimal('200'))
+        self.assertEqual(len(st['minimum_breakdown']), 1)
+        day = st['minimum_breakdown'][0]
+        self.assertEqual(day['date'], self.day)
+        self.assertEqual(day['trip_total'], Decimal('200'))
+        self.assertEqual(day['bhatta_total'], Decimal('200'))
+        self.assertEqual(day['not_counted'], Decimal('200'))
+        self.assertEqual(day['thresholds'], [Decimal('300')])
+        self.assertEqual(
+            {item['label'] for item in day['items']},
+            {'Fly Ash Hyva', 'Halfton White'},
+        )
+        self.assertEqual(
+            sum(item['amount'] for item in day['items']),
+            day['not_counted'],
+        )
+        self.assertTrue(all(item['below_minimum'] for item in day['items']))
+
+    def test_no_breakdown_when_minimum_rule_does_not_apply(self):
+        self._trip(self.hyva, 200, load_type='FLYASH_HYVA')
+        self._bhatta(self.hyva)
+
+        st = _labour_statement_for_period(
+            self.hyva, self.period_start, self.period_end,
+        )
+
+        self.assertEqual(st['minimum_adjustment'], Decimal('0'))
+        self.assertEqual(st['minimum_breakdown'], [])
+
+    def test_statement_pdf_and_excel_include_itemized_breakdown(self):
+        from pypdf import PdfReader
+
+        self._trip(self.hyva, 100, load_type='FLYASH_HYVA')
+        self._bhatta(self.hyva)
+        params = {
+            'from_date': self.period_start.isoformat(),
+            'to_date': self.period_end.isoformat(),
+        }
+
+        pdf = self.client.get(
+            reverse('labour:statement_export', args=[self.hyva.id]),
+            {**params, 'export': 'pdf'},
+        )
+        self.assertEqual(pdf.status_code, 200)
+        pdf_text = '\n'.join(
+            (page.extract_text() or '')
+            for page in PdfReader(BytesIO(pdf.content)).pages
+        )
+        for expected in (
+            'Not Counted - Day-wise Breakdown',
+            '20-Oct-2026', 'Fly Ash Hyva', '₹100.00',
+        ):
+            self.assertIn(expected, pdf_text)
+
+        excel = self.client.get(
+            reverse('labour:statement_export', args=[self.hyva.id]),
+            {**params, 'export': 'excel'},
+        )
+        workbook = load_workbook(filename=BytesIO(excel.content), read_only=True)
+        rows = [
+            [cell.value for cell in row]
+            for row in workbook.active.iter_rows()
+        ]
+        values = [cell for row in rows for cell in row]
+        self.assertIn('Not Counted - Day-wise Breakdown', values)
+        self.assertIn('20-Oct-2026', values)
+        self.assertIn('Fly Ash Hyva', values)
+        self.assertIn(100, values)
+
+    def test_summary_web_pdf_and_excel_include_itemized_breakdown(self):
+        from pypdf import PdfReader
+
+        self._trip(self.hyva, 100, load_type='FLYASH_HYVA')
+        self._bhatta(self.hyva)
+        params = {
+            'from_date': self.period_start.isoformat(),
+            'to_date': self.period_end.isoformat(),
+        }
+
+        web = self.client.get(reverse('labour:summary'), params)
+        self.assertEqual(web.status_code, 200)
+        content = web.content.decode()
+        for expected in ('Fly Ash Hyva', '20-Oct-2026', 'Not Counted'):
+            self.assertIn(expected, content)
+
+        pdf = self.client.get(
+            reverse('labour:summary'), {**params, 'export': 'pdf'},
+        )
+        pdf_text = '\n'.join(
+            (page.extract_text() or '')
+            for page in PdfReader(BytesIO(pdf.content)).pages
+        )
+        for expected in ('Fly Ash Hyva', '20-Oct-2026', '100'):
+            self.assertIn(expected, pdf_text)
+
+        excel = self.client.get(
+            reverse('labour:summary'), {**params, 'export': 'excel'},
+        )
+        workbook = load_workbook(filename=BytesIO(excel.content), read_only=True)
+        values = [
+            cell.value
+            for row in workbook.active.iter_rows()
+            for cell in row
+        ]
+        self.assertIn('Fly Ash Hyva', values)
+        self.assertIn('20-Oct-2026', values)
+
+    def test_detail_trip_row_shows_type_and_not_counted(self):
+        self._trip(self.hyva, 100, load_type='FLYASH_HYVA')
+        self._bhatta(self.hyva)
+
+        response = self.client.get(
+            reverse('labour:detail', args=[self.hyva.pk])
+        )
+
+        content = response.content.decode()
+        self.assertIn('Fly Ash Hyva', content)
+        self.assertIn('Not counted', content)
 
     def test_payment_summary_shows_not_counted_and_payable(self):
         from .views import _payment_summary_rows

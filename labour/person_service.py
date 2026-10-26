@@ -388,6 +388,7 @@ def day_earnings(members, period_start, period_end, combined=True,
     zero = Decimal('0')
 
     trip_by_group = {}
+    trip_items = []
     bhatta_by_group = {}
     bhatta_present = set()
     other_extra_by_date = {}
@@ -419,20 +420,40 @@ def day_earnings(members, period_start, period_end, combined=True,
                 if key in seen:
                     continue
                 seen.add(key)
+                group_key = (key, member.category, group.date)
                 _add(
                     trip_by_group,
-                    (key, member.category, group.date),
+                    group_key,
                     group.total_amount / n,
                 )
+                trip_items.append({
+                    'group_key': group_key,
+                    'group_id': group.pk,
+                    'date': group.date,
+                    'category': member.category,
+                    'label': group.load_label or 'Trip',
+                    'trip_count': group.trip_count,
+                    'amount': group.total_amount / n,
+                })
         else:
             n = len(group_members)
             if n:
                 member = in_scope[0]
+                group_key = (('l', member.pk), member.category, group.date)
                 _add(
                     trip_by_group,
-                    (('l', member.pk), member.category, group.date),
+                    group_key,
                     group.total_amount / n,
                 )
+                trip_items.append({
+                    'group_key': group_key,
+                    'group_id': group.pk,
+                    'date': group.date,
+                    'category': member.category,
+                    'label': group.load_label or 'Trip',
+                    'trip_count': group.trip_count,
+                    'amount': group.total_amount / n,
+                })
 
     for extra in LabourExtraPayment.objects.filter(
         labour_id__in=ids,
@@ -470,6 +491,8 @@ def day_earnings(members, period_start, period_end, combined=True,
                 'minimum_adjustment': zero,
                 'payable_amount': zero,
                 'below_minimum': False,
+                'trip_items': [],
+                'minimum_thresholds': [],
             }
         return days[day]
 
@@ -490,6 +513,25 @@ def day_earnings(members, period_start, period_end, combined=True,
             bucket['below_minimum'] = True
         else:
             bucket['trip_payable'] += amount
+
+    for item in trip_items:
+        key, category, day = item['group_key']
+        amount = trip_by_group[item['group_key']]
+        threshold = minimums.get(
+            category,
+            DEFAULT_MINIMUM_TRIP_EARNING,
+        )
+        has_bhatta = (key, category, day) in bhatta_present
+        item['minimum_amount'] = threshold
+        item['below_minimum'] = (
+            category in MINIMUM_RULE_CATEGORIES
+            and has_bhatta
+            and amount < threshold
+        )
+        bucket = _day(day)
+        bucket['trip_items'].append(item)
+        if item['below_minimum'] and threshold not in bucket['minimum_thresholds']:
+            bucket['minimum_thresholds'].append(threshold)
 
     for (key, category, day), amount in bhatta_by_group.items():
         bucket = _day(day)

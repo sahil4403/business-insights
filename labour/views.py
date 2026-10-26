@@ -162,6 +162,8 @@ def _day_aggregates_for_labour(labour, period_start, period_end, combined=False)
             'extra_amount': data['extra_amount'],
             'payable_amount': data['payable_amount'],
             'advance_amount': zero,
+            'trip_items': data['trip_items'],
+            'minimum_thresholds': data['minimum_thresholds'],
         })
 
     rows_by_date = {row['date']: row for row in rows}
@@ -178,6 +180,8 @@ def _day_aggregates_for_labour(labour, period_start, period_end, combined=False)
                 'extra_amount': zero,
                 'payable_amount': zero,
                 'advance_amount': zero,
+                'trip_items': [],
+                'minimum_thresholds': [],
             }
             rows.append(rows_by_date[day])
         return rows_by_date[day]
@@ -188,6 +192,23 @@ def _day_aggregates_for_labour(labour, period_start, period_end, combined=False)
 
     rows.sort(key=lambda row: row['date'], reverse=True)
     return rows
+
+
+def _minimum_breakdown_rows(rows):
+    """Day-wise minimum-rule breakdown from the central day rows."""
+    breakdown = []
+    for row in sorted(rows, key=lambda r: r['date']):
+        if not row['minimum_adjustment']:
+            continue
+        breakdown.append({
+            'date': row['date'],
+            'trip_total': row['trips_amount'],
+            'bhatta_total': row['bhatta_amount'],
+            'not_counted': row['minimum_adjustment'],
+            'thresholds': row['minimum_thresholds'],
+            'items': row['trip_items'],
+        })
+    return breakdown
 
 
 # Rozi day-type labels as the Mistri understands them.
@@ -756,6 +777,13 @@ def labour_detail(request, labour_id):
 
     # Minimum-rule badge/metadata per date (raw trip amount stays visible).
     rule_by_date = {r['date']: r for r in rows}
+    rule_items = {
+        item['group_id']: item
+        for rule in rule_by_date.values()
+        for item in rule['trip_items']
+    }
+    for g in trip_groups:
+        g.below_minimum = rule_items.get(g.pk, {}).get('below_minimum', False)
     for bucket in trip_groups_by_date:
         rule = rule_by_date.get(bucket['date'])
         if rule:
@@ -2707,6 +2735,15 @@ def _labour_statement_for_period(labour, period_start, period_end):
             labourers__id__in=ids, date__gte=period_start, date__lte=period_end
         ).prefetch_related('labourers').distinct().order_by('-date', '-id')
     )
+    rule_items = {
+        item['group_id']: item
+        for row in rows
+        for item in row['trip_items']
+    }
+    for group in trip_groups:
+        group.below_minimum = rule_items.get(
+            group.pk, {},
+        ).get('below_minimum', False)
 
     total_salary = combined['total_salary']
     payment = total_salary - advance_total
@@ -2774,6 +2811,7 @@ def _labour_statement_for_period(labour, period_start, period_end):
         'holiday_count': len(holidays),
         'driver_payments': list(driver_qs),
         'trip_groups': trip_groups,
+        'minimum_breakdown': _minimum_breakdown_rows(rows),
     }
 
 
@@ -2832,6 +2870,7 @@ def _labour_summary_data(period_start, period_end):
             'advance_total': st['advance_total'],
             'total_salary': st['total_salary'],
             'final_amount': st['final_amount'],
+            'minimum_breakdown': st['minimum_breakdown'],
         }
         per_labour.append(item)
         cat = cat_totals.setdefault(l.category, {
@@ -2987,6 +3026,14 @@ def _labour_summary_excel(data):
                 cell = ws.cell(row=r, column=col, value=float(p[key]))
                 cell.number_format = '#,##0.00'
             r += 1
+        for p in cat_people:
+            if not p['minimum_breakdown']:
+                continue
+            r = _write_minimum_breakdown_excel(
+                ws, r + 1, p['minimum_breakdown'], header_fill,
+                header_font, total_fill, _F(bold=True), _F, _A,
+                title=f"Not Counted - Day-wise Breakdown - {p['labour'].name}",
+            )
         r += 1
 
     for col, width in [(1, 26), (2, 10), (3, 12), (4, 14), (5, 12), (6, 12), (7, 12), (8, 15), (9, 12)]:
@@ -3112,6 +3159,21 @@ def _labour_summary_pdf(data):
         p_table = Table(pdata, colWidths=[30 * mm, 20 * mm, 20 * mm, 20 * mm, 20 * mm, 20 * mm, 22 * mm, 20 * mm])
         apply_data_table_style(p_table)
         elements.append(KeepTogether([p_table]))
+        for p in cat_people:
+            if not p['minimum_breakdown']:
+                continue
+            elements.append(Spacer(1, 3 * mm))
+            elements.append(Paragraph(
+                f"Not Counted - Day-wise Breakdown - {p['labour'].name}",
+                _wrapped_style(
+                    'MinBreakHead', fontSize=8.5, leading=11,
+                    textColor=colors.HexColor('#92400e'),
+                ),
+            ))
+            elements.append(Spacer(1, 1.5 * mm))
+            elements.append(KeepTogether([_minimum_breakdown_pdf_table(
+                p['minimum_breakdown'], styles, font_name,
+            )]))
         elements.append(Spacer(1, 5 * mm))
 
     elements += build_thankyou_note(font_name=font_name)
@@ -4300,6 +4362,50 @@ def labour_statement_export(request, labour_id):
     )
 
 
+def _write_minimum_breakdown_excel(
+    ws, start_row, breakdown, header_fill, header_font, total_fill,
+    total_font, font_cls, align_cls, title='Not Counted - Day-wise Breakdown',
+):
+    """Write the itemized minimum-rule breakdown and return the next row."""
+    rr = start_row
+    ws.cell(row=rr, column=1, value=title).font = font_cls(bold=True, size=11)
+    rr += 1
+    headers = [
+        'Date', 'Trip / Material', 'Trips', 'Amount ₹',
+        'Day Total ₹', 'Min ₹', 'Bhatta ₹', 'Not Counted ₹',
+    ]
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row=rr, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = align_cls(horizontal='center', vertical='center')
+    rr += 1
+
+    for day in breakdown:
+        thresholds = ' / '.join(
+            f"₹{amount:,.0f}" for amount in day['thresholds']
+        ) or '—'
+        for index, item in enumerate(day['items']):
+            ws.cell(row=rr, column=1, value=day['date'].strftime('%d-%b-%Y'))
+            ws.cell(row=rr, column=2, value=item['label'])
+            ws.cell(row=rr, column=3, value=item['trip_count'])
+            ws.cell(row=rr, column=4, value=float(item['amount'])).number_format = '#,##0.00'
+            if index == 0:
+                ws.cell(row=rr, column=5, value=float(day['trip_total'])).number_format = '#,##0.00'
+                ws.cell(row=rr, column=6, value=thresholds)
+                ws.cell(row=rr, column=7, value=float(day['bhatta_total'])).number_format = '#,##0.00'
+                ws.cell(row=rr, column=8, value=float(day['not_counted'])).number_format = '#,##0.00'
+            rr += 1
+
+    total = sum((day['not_counted'] for day in breakdown), Decimal('0'))
+    ws.cell(row=rr, column=1, value='TOTAL').font = total_font
+    ws.cell(row=rr, column=8, value=float(total)).number_format = '#,##0.00'
+    ws.cell(row=rr, column=8).font = total_font
+    for col in range(1, 9):
+        ws.cell(row=rr, column=col).fill = total_fill
+    return rr + 2
+
+
 def _labour_book_excel(statements, period_start, period_end, filename='labour_book.xlsx'):
     from openpyxl.styles import PatternFill as _PF, Font as _F, Alignment as _A
     from openpyxl.utils import get_column_letter as gcl
@@ -4498,6 +4604,8 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                     extra = extra_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
                     advance = advance_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
                     desc = _trip_group_desc(labour, g)
+                    if getattr(g, 'below_minimum', False):
+                        desc += ' · Not counted'
                     # Is labour ke share ka amount dikhao (group ka full amount NAHI).
                     n = g.labourers.count() or 1
                     share = g.total_amount / n
@@ -4585,6 +4693,12 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                 elif is_advanced:
                     ws.cell(row=rr, column=2).font = _F(color='DC2626')
                 rr += 1
+
+            if st.get('minimum_breakdown'):
+                rr = _write_minimum_breakdown_excel(
+                    ws, rr, st['minimum_breakdown'], header_fill,
+                    header_font, total_fill, total_font, _F, _A,
+                )
 
         # ---- SETTLEMENTS (simple, optional) ----
         if st['settlements']:
@@ -4804,6 +4918,61 @@ def _payment_summary_rows(st, extra_label='Total Extra'):
     return rows
 
 
+def _minimum_breakdown_pdf_table(breakdown, styles, font_name):
+    """Day-wise minimum-rule items for statements/book PDFs."""
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Paragraph, Table
+
+    from core.pdf_utils import apply_data_table_style
+
+    widths = [22 * mm, 68 * mm, 24 * mm, 20 * mm, 22 * mm, 26 * mm]
+    data = [[
+        Paragraph('<b>Date</b>', styles['header']),
+        Paragraph('<b>Trip / Material</b>', styles['header']),
+        Paragraph('<b>Day Total ₹</b>', styles['header_r']),
+        Paragraph('<b>Min ₹</b>', styles['header_r']),
+        Paragraph('<b>Bhatta ₹</b>', styles['header_r']),
+        Paragraph('<b>Not Counted ₹</b>', styles['header_r']),
+    ]]
+    for day in breakdown:
+        thresholds = ' / '.join(
+            f"₹{amount:,.0f}" for amount in day['thresholds']
+        ) or '—'
+        for index, item in enumerate(day['items']):
+            label = (
+                f"{item['label']} x{item['trip_count']} = "
+                f"₹{item['amount']:,.2f}"
+            )
+            if item['below_minimum']:
+                label += ' (not counted)'
+            if index == 0:
+                day_total = f"₹{day['trip_total']:,.2f}"
+                bhatta = f"₹{day['bhatta_total']:,.2f}"
+                not_counted = f"₹{day['not_counted']:,.2f}"
+            else:
+                day_total = bhatta = not_counted = ''
+            data.append([
+                Paragraph(day['date'].strftime('%d-%b-%Y'), styles['body']),
+                Paragraph(label, styles['body']),
+                Paragraph(day_total, styles['body_r']),
+                Paragraph(thresholds if index == 0 else '', styles['body_r']),
+                Paragraph(bhatta, styles['body_r']),
+                Paragraph(not_counted, styles['body_r']),
+            ])
+    total = sum((day['not_counted'] for day in breakdown), Decimal('0'))
+    data.append([
+        Paragraph('<b>TOTAL</b>', styles['body']),
+        Paragraph('', styles['body']),
+        Paragraph('', styles['body_r']),
+        Paragraph('', styles['body_r']),
+        Paragraph('', styles['body_r']),
+        Paragraph(f"<b>₹{total:,.2f}</b>", styles['body_r']),
+    ])
+    table = Table(data, repeatRows=1, colWidths=widths)
+    apply_data_table_style(table, total_row=True)
+    return table
+
+
 def _summary_flowables(st, labour, styles, font_name):
     """WORK + PAYMENT SUMMARY blocks — page-split se protected.
 
@@ -4931,6 +5100,14 @@ def _summary_flowables(st, labour, styles, font_name):
     blocks.append(Spacer(1, 12))
     blocks.append(Paragraph('<b>PAYMENT SUMMARY</b>', summary_head))
     blocks.append(p_table)
+    if st.get('minimum_breakdown'):
+        blocks.append(Spacer(1, 12))
+        blocks.append(Paragraph(
+            '<b>Not Counted - Day-wise Breakdown</b>', summary_head,
+        ))
+        blocks.append(_minimum_breakdown_pdf_table(
+            st['minimum_breakdown'], styles, font_name,
+        ))
     return blocks
 
 
@@ -5205,6 +5382,8 @@ def _labour_book_pdf(statements, period_start, period_end, filename='labour_book
                     extra = extra_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
                     advance = advance_by_date.get(d, Decimal('0')) if first_of_day else Decimal('0')
                     desc = _trip_group_desc(labour, g)
+                    if getattr(g, 'below_minimum', False):
+                        desc += ' · Not counted'
                     # Is labour ke share ka amount dikhao (group ka full amount NAHI).
                     n = g.labourers.count() or 1
                     share = g.total_amount / n

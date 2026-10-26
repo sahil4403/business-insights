@@ -208,6 +208,50 @@
                 </tbody>
             </table>
         </div>
+        {% for p in people %}{% if p.category == c.code and p.minimum_breakdown %}
+        <div class="mt-3 pt-3 border-t border-slate-200">
+            <div class="font-bold text-[12px] text-amber-800 mb-1.5">{{ p.labour.name }} — Not Counted (Day-wise)</div>
+            <div class="overflow-x-auto whitespace-nowrap pb-1">
+                <table class="w-full text-[12px]">
+                    <thead>
+                        <tr class="text-left text-slate-500 text-[10px] uppercase">
+                            <th class="py-1.5 px-2">Date</th>
+                            <th class="py-1.5 px-2">Trip / Material</th>
+                            <th class="py-1.5 px-2 text-right">Day Total</th>
+                            <th class="py-1.5 px-2 text-right">Min</th>
+                            <th class="py-1.5 px-2 text-right">Bhatta</th>
+                            <th class="py-1.5 px-2 text-right">Not Counted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in p.minimum_breakdown %}
+                            {% for item in day.items %}
+                            <tr class="border-t border-slate-100">
+                                <td class="py-1.5 px-2 text-slate-600">{{ day.date|date:"d-M-Y" }}</td>
+                                <td class="py-1.5 px-2 text-slate-700">{{ item.label }} ×{{ item.trip_count }} = ₹{{ item.amount|floatformat:2 }}{% if item.below_minimum %} <span class="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1 py-0.5">Not counted</span>{% endif %}</td>
+                                {% if forloop.first %}
+                                <td class="py-1.5 px-2 text-right rv">₹{{ day.trip_total|floatformat:2 }}</td>
+                                <td class="py-1.5 px-2 text-right rv">{% for threshold in day.thresholds %}₹{{ threshold|floatformat:0 }}{% if not forloop.last %} / {% endif %}{% endfor %}</td>
+                                <td class="py-1.5 px-2 text-right rv">₹{{ day.bhatta_total|floatformat:2 }}</td>
+                                <td class="py-1.5 px-2 text-right rv neg">₹{{ day.not_counted|floatformat:2 }}</td>
+                                {% else %}
+                                <td class="py-1.5 px-2"></td>
+                                <td class="py-1.5 px-2"></td>
+                                <td class="py-1.5 px-2"></td>
+                                <td class="py-1.5 px-2"></td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        {% endfor %}
+                        <tr class="border-t border-slate-200 total-row">
+                            <td class="py-1.5 px-2 font-bold text-slate-800" colspan="5">TOTAL</td>
+                            <td class="py-1.5 px-2 text-right font-bold text-slate-800">₹{{ p.minimum_adjustment|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}{% endfor %}
     </div>
     {% endwith %}
     {% endfor %}
