@@ -3369,10 +3369,20 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         day_trips_map[t.trip_date].append(t)
     day_list = data['day_list']
     data['has_trip_records'] = bool(day_trips_map)
-    # Din jinme sirf Trips-module records hain (labour entry nahi) —
-    # wo bhi dikhne chahiye (zero labour totals ke saath).
+    holidays_qs = (
+        LabourHoliday.objects
+        .filter(labour__category__in=('HYVA_DRIVER', 'JCB_OPERATOR'))
+        .select_related('labour')
+        .order_by('date', 'labour__name', 'id')
+    )
+    if period_start is not None and period_end is not None:
+        holidays_qs = holidays_qs.filter(date__range=(period_start, period_end))
+    holidays_by_day = defaultdict(list)
+    for holiday in holidays_qs:
+        holidays_by_day[holiday.date].append(holiday)
+    data['has_holidays'] = bool(holidays_by_day)
     have = {row['date'] for row in day_list}
-    for d in sorted(day_trips_map):
+    for d in sorted(set(day_trips_map) | set(holidays_by_day)):
         if d not in have:
             day_list.append({
                 'date': d, 'trips': Decimal('0'), 'extra': Decimal('0'),
@@ -3429,6 +3439,7 @@ def _attach_daily_detail_sections(data, labour_groups, period_start, period_end)
         d = row['date']
         groups = [g for g in labour_groups if g.date == d]
         recs = day_trips_map.get(d, [])
+        row['day_holidays'] = holidays_by_day.get(d, [])
 
         # ---- LOADING (sirf JCB operator) + HYVA (hyva drivers) ----
         # Pure tractor groups (load khaali) yahan nahi — wo tractor me.
@@ -4047,6 +4058,15 @@ def _daily_activity_excel(data, filename='daily_activity.xlsx'):
         r += 2
         ws.cell(row=r, column=1,
                 value=f"DAY {row['date'].strftime('%d-%b-%Y')}").font = _F(bold=True, color='2563EB')
+        if row.get('day_holidays'):
+            r += 1
+            ws.cell(row=r, column=1, value='Holidays').font = bold
+            for holiday in row['day_holidays']:
+                r += 1
+                ws.cell(row=r, column=1, value='Holiday')
+                ws.cell(row=r, column=2, value=holiday.labour.name)
+                ws.cell(row=r, column=3, value=holiday.labour.get_category_display())
+                ws.cell(row=r, column=4, value=holiday.note)
         if row.get('loadings'):
             r += 1
             ws.cell(row=r, column=1, value='Loading').font = bold
@@ -4214,6 +4234,10 @@ def _daily_activity_csv(data, filename='daily_activity.csv'):
     writer.writerow(['DAY DETAIL (Loading / Trips / Tractor / Rozi)'])
     for row in data['day_list']:
         writer.writerow([row['date'].strftime('%d-%b-%Y')])
+        for holiday in row.get('day_holidays', []):
+            writer.writerow(['Holiday', holiday.labour.name,
+                             holiday.labour.get_category_display(),
+                             holiday.note])
         for ld in row.get('loadings', []):
             writer.writerow(['Loading', ld['count'], ld['label'], ld['worker']])
         for tm in row.get('trip_materials', []):

@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from openpyxl import load_workbook
 
-from .models import Labour, LabourAdvance, LabourDriverPayment, LabourExtraPayment, LabourRozi, LabourTripGroup
+from .models import Labour, LabourAdvance, LabourDriverPayment, LabourExtraPayment, LabourHoliday, LabourRozi, LabourTripGroup
 from .views import _labour_statement_for_period, _labour_type_label
 
 
@@ -2707,6 +2707,206 @@ class DailyActivityPageRenderTest(TestCase):
                         'vnd.openxmlformats-officedocument',
                         response['Content-Type'],
                     )
+
+
+class DailyActivityHolidayTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='daily-holiday-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.day = date(2026, 10, 9)
+        self.holiday_only_day = date(2026, 10, 10)
+        self.working = Labour.objects.create(
+            name='Working Hyva', category='HYVA_DRIVER',
+            is_active=True, status='ACTIVE',
+        )
+        self.holiday_hyva = Labour.objects.create(
+            name='Holiday Hyva', category='HYVA_DRIVER',
+            is_active=True, status='ACTIVE',
+        )
+        self.holiday_jcb = Labour.objects.create(
+            name='Holiday JCB', category='JCB_OPERATOR',
+            is_active=True, status='ACTIVE',
+        )
+        self.mistri = Labour.objects.create(
+            name='Holiday Mistri', category='MISTRI', sub_category='MISTRI',
+            is_active=True, status='ACTIVE',
+        )
+        group = LabourTripGroup.objects.create(
+            date=self.day, trip_count=2, rate_per_trip=Decimal('100'),
+            fill_type='HAND', load_type='WHITE_HYVA',
+        )
+        group.labourers.set([self.working])
+        self.trip_total = group.total_amount
+
+    def _create_holidays(self, day=None, include_working=False, include_mistri=False):
+        day = day or self.day
+        holidays = [
+            LabourHoliday.objects.create(
+                labour=self.holiday_hyva, date=day, note='Mela',
+            ),
+            LabourHoliday.objects.create(
+                labour=self.holiday_jcb, date=day, note='Family function',
+            ),
+        ]
+        if include_working:
+            holidays.append(LabourHoliday.objects.create(
+                labour=self.working, date=day, note='Leave',
+            ))
+        if include_mistri:
+            holidays.append(LabourHoliday.objects.create(
+                labour=self.mistri, date=day, note='Not a driver',
+            ))
+        return holidays
+
+    def _day_row(self, start, end):
+        from .views import _daily_activity_data
+
+        data = _daily_activity_data(start, end)
+        return data, data['day_list']
+
+    def test_holiday_workers_shown_without_money_impact(self):
+        from .views import _daily_activity_data
+
+        before = _daily_activity_data(self.day, self.day)
+        self._create_holidays(include_working=True, include_mistri=True)
+        after = _daily_activity_data(self.day, self.day)
+
+        row = next(r for r in after['day_list'] if r['date'] == self.day)
+        self.assertEqual(
+            {h.labour.name for h in row['day_holidays']},
+            {'Holiday Hyva', 'Holiday JCB', 'Working Hyva'},
+        )
+        self.assertNotIn('Holiday Mistri', {
+            h.labour.name for h in row['day_holidays']
+        })
+        self.assertTrue(any(
+            r['name'] == 'Working Hyva'
+            for r in row['rozi_tables']['hyva_jcb']
+        ))
+
+        for key in (
+            'trip_count_total', 'trip_total', 'extra_total', 'advance_total',
+            'driver_total', 'settle_cash', 'settle_deduct', 'grand_trips',
+            'grand_extra', 'grand_advance',
+        ):
+            self.assertEqual(before[key], after[key], key)
+        self.assertEqual(before['days'], after['days'])
+        self.assertEqual(before['day_rollup'], after['day_rollup'])
+
+    def test_holiday_only_date_is_day_list_only(self):
+        self._create_holidays(day=self.holiday_only_day)
+
+        data, rows = self._day_row(self.day, self.holiday_only_day)
+        holiday_row = next(
+            r for r in rows if r['date'] == self.holiday_only_day
+        )
+        self.assertEqual(
+            [h.labour.name for h in holiday_row['day_holidays']],
+            ['Holiday Hyva', 'Holiday JCB'],
+        )
+        self.assertEqual(holiday_row['trips'], Decimal('0'))
+        self.assertEqual(holiday_row['extra'], Decimal('0'))
+        self.assertEqual(holiday_row['advance'], Decimal('0'))
+        self.assertEqual(data['days'], [self.day])
+        self.assertNotIn(self.holiday_only_day, data['day_rollup'])
+        self.assertEqual(data['trip_count_total'], 2)
+        self.assertEqual(data['trip_total'], self.trip_total)
+
+    def test_page_renders_holiday_badge_without_actions(self):
+        holidays = self._create_holidays(include_working=True)
+
+        response = self.client.get(
+            reverse('labour:daily_activity'),
+            {'from_date': self.day.isoformat(), 'to_date': self.day.isoformat()},
+        )
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('>Holiday</span>', html)
+        self.assertIn('Holiday Hyva', html)
+        self.assertIn('Holiday JCB', html)
+        self.assertIn('Working Hyva', html)
+        self.assertIn('Mela', html)
+        self.assertIn('Hyva Driver', html)
+        self.assertIn('JCB Operator', html)
+        for holiday in holidays:
+            self.assertNotIn(
+                reverse('labour:holiday_delete', args=[holiday.id]), html,
+            )
+
+    def test_holiday_only_date_renders_on_page(self):
+        self._create_holidays(day=self.holiday_only_day)
+
+        response = self.client.get(
+            reverse('labour:daily_activity'),
+            {'from_date': self.holiday_only_day.isoformat(),
+             'to_date': self.holiday_only_day.isoformat()},
+        )
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('Holiday Hyva', html)
+        self.assertIn('Holiday JCB', html)
+        self.assertNotIn('Is period me koi entry nahi hai', html)
+
+    def test_excel_and_csv_include_holidays_in_day_detail_only(self):
+        self._create_holidays()
+
+        response = self.client.get(
+            reverse('labour:daily_activity'),
+            {'from_date': self.day.isoformat(), 'to_date': self.day.isoformat(),
+             'export': 'excel'},
+        )
+        self.assertEqual(response.status_code, 200)
+        workbook = load_workbook(filename=BytesIO(response.content), read_only=True)
+        rows = [[cell.value for cell in row] for row in workbook.active.iter_rows()]
+        holiday_row = next(
+            row for row in rows
+            if row[0] == 'Holiday' and row[1] == 'Holiday Hyva'
+        )
+        self.assertEqual(holiday_row[2], 'Hyva Driver')
+        self.assertEqual(holiday_row[3], 'Mela')
+        self.assertFalse(any(
+            'HOLIDAYS DETAIL' in str(value)
+            for row in rows for value in row if value
+        ))
+
+        response = self.client.get(
+            reverse('labour:daily_activity'),
+            {'from_date': self.day.isoformat(), 'to_date': self.day.isoformat(),
+             'export': 'csv'},
+        )
+        self.assertEqual(response.status_code, 200)
+        text = response.content.decode()
+        self.assertIn('Holiday,Holiday Hyva,Hyva Driver,Mela', text)
+        self.assertIn('Holiday,Holiday JCB,JCB Operator,Family function', text)
+        self.assertNotIn('HOLIDAYS DETAIL', text)
+
+    def test_viewer_can_view_but_gets_no_holiday_actions(self):
+        from django.contrib.auth.models import Group
+
+        self._create_holidays()
+        viewer = get_user_model().objects.create_user(
+            username='daily-holiday-viewer',
+            password='test-password-123',
+        )
+        viewer.groups.add(Group.objects.get_or_create(name='Viewer')[0])
+        self.client.force_login(viewer)
+
+        response = self.client.get(
+            reverse('labour:daily_activity'),
+            {'from_date': self.day.isoformat(), 'to_date': self.day.isoformat()},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Holiday Hyva', response.content.decode())
+        self.assertNotIn(
+            reverse('labour:holiday_delete', args=[
+                self.holiday_hyva.holidays.get(date=self.day).id
+            ]),
+            response.content.decode(),
+        )
 
 
 class TripAddAnotherTest(TestCase):
