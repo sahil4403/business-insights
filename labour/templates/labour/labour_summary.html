@@ -98,8 +98,12 @@
             <div class="vl">{{ data.grand.workers }}</div>
         </div>
         <div class="stat-card">
-            <div class="lb">Total Earned</div>
+            <div class="lb">Payable Amount</div>
             <div class="vl">₹{{ data.grand.total_salary|floatformat:0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="lb">Not Counted</div>
+            <div class="vl">₹{{ data.grand.minimum_adjustment|floatformat:0 }}</div>
         </div>
         <div class="stat-card">
             <div class="lb">Advance</div>
@@ -131,10 +135,11 @@
                         <th class="py-1.5 px-2">Category</th>
                         <th class="py-1.5 px-2 text-right">Workers</th>
                         <th class="py-1.5 px-2 text-right">Trips</th>
+                        <th class="py-1.5 px-2 text-right">Not Counted</th>
                         <th class="py-1.5 px-2 text-right">Extra/Rozi</th>
                         <th class="py-1.5 px-2 text-right">Driver ₹</th>
                         <th class="py-1.5 px-2 text-right">Advance</th>
-                        <th class="py-1.5 px-2 text-right">Earned</th>
+                        <th class="py-1.5 px-2 text-right">Payable</th>
                         <th class="py-1.5 px-2 text-right">Final</th>
                     </tr>
                 </thead>
@@ -144,6 +149,7 @@
                         <td class="py-2 px-2 font-bold text-slate-800">{{ c.label }}</td>
                         <td class="py-2 px-2 text-right text-slate-600">{{ c.workers }}</td>
                         <td class="py-2 px-2 text-right rv pos">₹{{ c.trip_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right rv neg">₹{{ c.minimum_adjustment|floatformat:0 }}</td>
                         <td class="py-2 px-2 text-right rv pos">₹{{ c.extra_total|floatformat:0 }}</td>
                         <td class="py-2 px-2 text-right rv pos">₹{{ c.driver_total|floatformat:0 }}</td>
                         <td class="py-2 px-2 text-right rv neg">₹{{ c.advance_total|floatformat:0 }}</td>
@@ -155,6 +161,7 @@
                         <td class="py-2 px-2 font-bold text-slate-800">TOTAL</td>
                         <td class="py-2 px-2 text-right font-bold text-slate-800">{{ data.grand.workers }}</td>
                         <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.trip_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.minimum_adjustment|floatformat:0 }}</td>
                         <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.extra_total|floatformat:0 }}</td>
                         <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.driver_total|floatformat:0 }}</td>
                         <td class="py-2 px-2 text-right font-bold text-slate-800">₹{{ data.grand.advance_total|floatformat:0 }}</td>
@@ -177,10 +184,11 @@
                     <tr class="text-left text-slate-500 text-[11px] uppercase">
                         <th class="py-1.5 px-2">Labour</th>
                         <th class="py-1.5 px-2 text-right">Trips</th>
+                        <th class="py-1.5 px-2 text-right">Not Counted</th>
                         <th class="py-1.5 px-2 text-right">Extra/Rozi</th>
                         <th class="py-1.5 px-2 text-right">Driver ₹</th>
                         <th class="py-1.5 px-2 text-right">Advance</th>
-                        <th class="py-1.5 px-2 text-right">Earned</th>
+                        <th class="py-1.5 px-2 text-right">Payable</th>
                         <th class="py-1.5 px-2 text-right">Final</th>
                     </tr>
                 </thead>
@@ -189,6 +197,7 @@
                     <tr class="cat-row hover:bg-slate-50 transition-colors">
                         <td class="py-2 px-2 font-semibold text-slate-700"><a href="{% url 'labour:detail' p.labour.id %}" class="text-brand-700 no-underline hover:underline">{{ p.labour.name }}</a></td>
                         <td class="py-2 px-2 text-right rv pos">₹{{ p.trip_total|floatformat:0 }}</td>
+                        <td class="py-2 px-2 text-right rv neg">₹{{ p.minimum_adjustment|floatformat:0 }}</td>
                         <td class="py-2 px-2 text-right rv pos">₹{{ p.extra_total|floatformat:0 }}</td>
                         <td class="py-2 px-2 text-right rv pos">₹{{ p.driver_total|floatformat:0 }}</td>
                         <td class="py-2 px-2 text-right rv neg">₹{{ p.advance_total|floatformat:0 }}</td>

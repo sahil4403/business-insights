@@ -372,7 +372,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
             <summary class="flex items-center justify-between gap-2 px-4 md:px-5 py-3 cursor-pointer select-none">
                 <span class="font-bold text-slate-900 text-[14px]">📅 {{ m.label }}</span>
                 <span class="flex items-center gap-2 shrink-0">
-                    <span class="text-[11px] text-slate-500 num">{{ m.rows|length }} day{{ m.rows|length|pluralize }} · ₹{{ m.trip_total|floatformat:0 }}</span>
+                    <span class="text-[11px] text-slate-500 num">{{ m.rows|length }} day{{ m.rows|length|pluralize }} · ₹{{ m.trip_total|floatformat:0 }}{% if is_minimum_rule_role and m.minimum_adjustment > 0 %} · Payable ₹{{ m.payable_total|floatformat:0 }}{% endif %}</span>
                     <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide group-open:hidden">Show</span>
                     <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-wide hidden group-open:inline-block">Hide</span>
                 </span>
@@ -386,17 +386,22 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                         <th class="px-4 py-3">Date</th>
                         <th class="px-4 py-3 text-right">Trips Amount</th>
                         <th class="px-4 py-3 text-right">{% if labour.category == 'HYVA_DRIVER' or labour.category == 'JCB_OPERATOR' %}Bhatta / Rozi{% else %}Extra{% endif %}</th>
-                        <th class="px-4 py-3 text-right">Total (T+E)</th>
+                        <th class="px-4 py-3 text-right">Payable</th>
                         <th class="px-4 py-3 text-right">Advance</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for r in m.rows %}
                         <tr class="border-t border-slate-100">
-                            <td class="px-4 py-3 font-semibold text-slate-800">{{ r.date|date:"d-M-Y" }}</td>
+                            <td class="px-4 py-3 font-semibold text-slate-800">
+                                {{ r.date|date:"d-M-Y" }}
+                                {% if r.below_minimum %}
+                                <div class="text-[10px] font-bold text-amber-700 mt-0.5">Not counted (below minimum)</div>
+                                {% endif %}
+                            </td>
                             <td class="px-4 py-3 text-right num">₹{{ r.trips_amount|floatformat:2 }}</td>
                             <td class="px-4 py-3 text-right num">₹{{ r.extra_amount|floatformat:2 }}</td>
-                            <td class="px-4 py-3 text-right num font-bold">₹{{ r.trips_amount|add:r.extra_amount|floatformat:2 }}</td>
+                            <td class="px-4 py-3 text-right num font-bold">₹{{ r.payable_amount|floatformat:2 }}</td>
                             <td class="px-4 py-3 text-right num text-red-600">₹{{ r.advance_amount|floatformat:2 }}</td>
                         </tr>
                     {% endfor %}
@@ -409,8 +414,13 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
             {% for r in m.rows %}
                 <div class="border-b border-slate-100 last:border-0 py-2.5">
                     <div class="flex items-center justify-between mb-1.5">
-                        <div class="font-semibold text-slate-800 text-[13px]">{{ r.date|date:"d-M-Y" }}</div>
-                        <div class="text-[11px] text-slate-400 num">Total ₹{{ r.trips_amount|add:r.extra_amount|floatformat:0 }}</div>
+                        <div class="font-semibold text-slate-800 text-[13px]">
+                            {{ r.date|date:"d-M-Y" }}
+                            {% if r.below_minimum %}
+                            <div class="text-[10px] font-bold text-amber-700 mt-0.5">Not counted (below minimum)</div>
+                            {% endif %}
+                        </div>
+                        <div class="text-[11px] text-slate-400 num">Payable ₹{{ r.payable_amount|floatformat:0 }}</div>
                     </div>
                     <div class="grid grid-cols-3 gap-2 text-[12px]">
                         <div>
@@ -459,6 +469,9 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                     <div class="flex items-center gap-2">
                         <span class="text-[12px] font-extrabold text-slate-900">{{ day.date|date:"d-M-Y" }}</span>
                         <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-semibold">{{ day.trip_count }} trip{{ day.trip_count|pluralize }}</span>
+                        {% if day.below_minimum %}
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold">Not counted (below minimum)</span>
+                        {% endif %}
                     </div>
                     <div class="num font-extrabold text-brand-700 text-[13px]">₹{{ day.trip_total|floatformat:2 }}</div>
                 </div>
@@ -592,8 +605,14 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                 <div class="lbl">Driver Payment</div>
                 <div class="val num">₹{{ driver_total|floatformat:2 }}</div>
             </div>
+            {% if is_minimum_rule_role and minimum_adjustment > 0 %}
+            <div class="summary-card" style="background: #fffbeb; border-color: #fde68a;">
+                <div class="lbl" style="color: #92400e;">Not counted (below minimum)</div>
+                <div class="val num" style="color: #b45309;">-₹{{ minimum_adjustment|floatformat:2 }}</div>
+            </div>
+            {% endif %}
             <div class="summary-card" style="background: #eef7f5; border-color: #d5ebe6;">
-                <div class="lbl" style="color: #115248;">Total Salary</div>
+                <div class="lbl" style="color: #115248;">{% if is_minimum_rule_role %}Payable Amount{% else %}Total Salary{% endif %}</div>
                 <div class="val num" style="color: #115248;">₹{{ total_salary|floatformat:2 }}</div>
             </div>
             <div class="summary-card">

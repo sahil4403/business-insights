@@ -3146,3 +3146,350 @@ class PersonLinkTest(TestCase):
             LabourAdvance.objects.get(labour=self.mistri, date=self.day).amount,
             Decimal('500'),
         )
+
+
+class MinimumTripEarningTest(TestCase):
+    """Hyva/JCB minimum trip earning: Bhatta-only when daily trips are low."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='minimum-trip-tester',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.day = date(2026, 10, 20)
+        self.hyva = Labour.objects.create(
+            name='Min Hyva',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+            is_driver=True,
+        )
+        self.jcb = Labour.objects.create(
+            name='Min JCB',
+            category='JCB_OPERATOR',
+            is_active=True,
+            status='ACTIVE',
+        )
+        self.period_start = date(2026, 10, 1)
+        self.period_end = date(2026, 10, 31)
+
+    def _trip(self, labour, amount, day=None):
+        group = LabourTripGroup.objects.create(
+            date=day or self.day,
+            trip_count=1,
+            rate_per_trip=Decimal(str(amount)),
+        )
+        group.labourers.add(labour)
+        return group
+
+    def _bhatta(self, labour, amount=200, day=None):
+        return LabourExtraPayment.objects.create(
+            labour=labour,
+            date=day or self.day,
+            amount=Decimal(str(amount)),
+            note='Bhatta',
+        )
+
+    def _totals(self, labour):
+        from . import person_service
+
+        return person_service.salary_totals(
+            labour, self.period_start, self.period_end
+        )
+
+    def test_below_threshold_with_bhatta_counts_only_bhatta(self):
+        self._trip(self.hyva, 100)
+        self._bhatta(self.hyva)
+
+        totals = self._totals(self.hyva)
+
+        self.assertEqual(totals['trip_total'], Decimal('100'))
+        self.assertEqual(totals['trip_payable'], Decimal('0'))
+        self.assertEqual(totals['minimum_adjustment'], Decimal('100'))
+        self.assertEqual(totals['bhatta_total'], Decimal('200'))
+        self.assertEqual(totals['total_salary'], Decimal('200'))
+
+    def test_at_threshold_with_bhatta_counts_trip_and_bhatta(self):
+        self._trip(self.hyva, 200)
+        self._bhatta(self.hyva)
+
+        totals = self._totals(self.hyva)
+
+        self.assertEqual(totals['trip_payable'], Decimal('200'))
+        self.assertEqual(totals['minimum_adjustment'], Decimal('0'))
+        self.assertEqual(totals['total_salary'], Decimal('400'))
+
+    def test_below_threshold_without_bhatta_counts_trip(self):
+        self._trip(self.hyva, 100)
+
+        totals = self._totals(self.hyva)
+
+        self.assertEqual(totals['trip_payable'], Decimal('100'))
+        self.assertEqual(totals['minimum_adjustment'], Decimal('0'))
+        self.assertEqual(totals['total_salary'], Decimal('100'))
+
+    def test_two_trips_same_day_are_summed_before_threshold(self):
+        self._trip(self.hyva, 100)
+        self._trip(self.hyva, 150)
+        self._bhatta(self.hyva)
+
+        totals = self._totals(self.hyva)
+
+        self.assertEqual(totals['trip_total'], Decimal('250'))
+        self.assertEqual(totals['trip_payable'], Decimal('250'))
+        self.assertEqual(totals['minimum_adjustment'], Decimal('0'))
+        self.assertEqual(totals['total_salary'], Decimal('450'))
+
+    def test_linked_same_role_trips_are_summed_before_threshold(self):
+        from . import person_service
+
+        hyva_second = Labour.objects.create(
+            name='Min Hyva Second',
+            category='HYVA_DRIVER',
+            is_active=True,
+            status='ACTIVE',
+        )
+        person_service.link_labours(self.hyva, hyva_second)
+        self._trip(self.hyva, 100)
+        self._trip(hyva_second, 100)
+        self._bhatta(self.hyva)
+
+        totals = self._totals(self.hyva)
+
+        self.assertEqual(totals['trip_total'], Decimal('200'))
+        self.assertEqual(totals['trip_payable'], Decimal('200'))
+        self.assertEqual(totals['minimum_adjustment'], Decimal('0'))
+        self.assertEqual(totals['total_salary'], Decimal('400'))
+
+    def test_jcb_uses_its_own_threshold(self):
+        from .models import LabourMinimumEarning
+
+        LabourMinimumEarning.objects.update_or_create(
+            category='HYVA_DRIVER', defaults={'amount': Decimal('200')},
+        )
+        LabourMinimumEarning.objects.update_or_create(
+            category='JCB_OPERATOR', defaults={'amount': Decimal('300')},
+        )
+        self._trip(self.jcb, 250)
+        self._bhatta(self.jcb)
+
+        totals = self._totals(self.jcb)
+
+        self.assertEqual(totals['trip_payable'], Decimal('0'))
+        self.assertEqual(totals['minimum_adjustment'], Decimal('250'))
+        self.assertEqual(totals['total_salary'], Decimal('200'))
+
+    def test_detail_shows_not_counted_label_and_payable_amount(self):
+        self._trip(self.hyva, 100)
+        self._bhatta(self.hyva)
+
+        response = self.client.get(
+            reverse('labour:detail', args=[self.hyva.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('Not counted (below minimum)', content)
+        self.assertIn('Payable Amount', content)
+
+    def test_statement_exposes_payable_and_adjustment(self):
+        self._trip(self.hyva, 100)
+        self._bhatta(self.hyva)
+
+        st = _labour_statement_for_period(
+            self.hyva, self.period_start, self.period_end,
+        )
+
+        self.assertEqual(st['trip_total'], Decimal('100'))
+        self.assertEqual(st['minimum_adjustment'], Decimal('100'))
+        self.assertEqual(st['trip_payable'], Decimal('0'))
+        self.assertEqual(st['total_salary'], Decimal('200'))
+        self.assertTrue(st['rows'][0]['below_minimum'])
+
+    def test_payment_summary_shows_not_counted_and_payable(self):
+        from .views import _payment_summary_rows
+
+        self._trip(self.hyva, 100)
+        self._bhatta(self.hyva)
+
+        rows = _payment_summary_rows(self._statement(), 'Total Bhatta')
+        values = dict((label, value) for label, value in rows if label)
+
+        self.assertEqual(
+            values['Less: Not Counted (below minimum)'],
+            Decimal('-100'),
+        )
+        self.assertEqual(values['Payable Amount'], Decimal('200'))
+
+    def _statement(self):
+        return _labour_statement_for_period(
+            self.hyva, self.period_start, self.period_end,
+        )
+
+    def test_summary_page_and_exports_include_not_counted(self):
+        self._trip(self.hyva, 100)
+        self._bhatta(self.hyva)
+
+        response = self.client.get(
+            reverse('labour:summary'),
+            {'from_date': self.period_start.isoformat(),
+             'to_date': self.period_end.isoformat()},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Not Counted', response.content.decode())
+
+        for export in ('excel', 'pdf'):
+            response = self.client.get(
+                reverse('labour:summary'),
+                {'from_date': self.period_start.isoformat(),
+                 'to_date': self.period_end.isoformat(),
+                 'export': export},
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_new_settlement_preview_uses_minimum_rule(self):
+        self._trip(self.hyva, 100)
+        self._bhatta(self.hyva)
+
+        response = self.client.get(
+            reverse('labour:settle', args=[self.hyva.pk]),
+            {'period_start': self.period_start.isoformat(),
+             'period_end': self.period_end.isoformat()},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context['preview'].total_salary, Decimal('200')
+        )
+
+    def test_existing_saved_settlement_is_not_recalculated_on_edit(self):
+        from .models import LabourSettlement
+
+        self._trip(self.hyva, 100)
+        self._bhatta(self.hyva)
+        settlement = LabourSettlement.objects.create(
+            labour=self.hyva,
+            settlement_date=self.day,
+            period_start=self.period_start,
+            period_end=self.period_end,
+            total_salary=Decimal('999'),
+            total_advance=Decimal('0'),
+            net_payable=Decimal('999'),
+            old_balance_before=Decimal('0'),
+            old_balance_deducted=Decimal('0'),
+            cash_paid=Decimal('0'),
+            final_old_balance=Decimal('-999'),
+        )
+
+        response = self.client.post(
+            reverse('labour:settlement_edit', args=[settlement.pk]),
+            data={
+                'settlement_date': self.day.isoformat(),
+                'old_balance_deducted': '0',
+                'cash_paid': '50',
+                'note': '',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        settlement.refresh_from_db()
+        self.assertEqual(settlement.total_salary, Decimal('999'))
+        self.assertEqual(settlement.total_advance, Decimal('0'))
+        self.assertEqual(settlement.net_payable, Decimal('999'))
+        self.assertEqual(settlement.final_old_balance, Decimal('-949'))
+
+    def test_saved_settlement_totals_are_not_rewritten_by_statement_or_exports(self):
+        from .models import LabourSettlement
+
+        self._trip(self.hyva, 100)
+        self._bhatta(self.hyva)
+        settlement = LabourSettlement.objects.create(
+            labour=self.hyva,
+            settlement_date=self.day,
+            period_start=self.period_start,
+            period_end=self.period_end,
+            total_salary=Decimal('999'),
+            total_advance=Decimal('0'),
+            net_payable=Decimal('999'),
+            old_balance_before=Decimal('0'),
+            old_balance_deducted=Decimal('0'),
+            cash_paid=Decimal('0'),
+            final_old_balance=Decimal('-999'),
+        )
+
+        _labour_statement_for_period(self.hyva, self.period_start, self.period_end)
+        self.client.get(
+            reverse('labour:statement_export', args=[self.hyva.pk]),
+            {'from_date': self.period_start.isoformat(),
+             'to_date': self.period_end.isoformat(), 'export': 'excel'},
+        )
+        self.client.get(
+            reverse('labour:statement_export', args=[self.hyva.pk]),
+            {'from_date': self.period_start.isoformat(),
+             'to_date': self.period_end.isoformat()},
+        )
+
+        settlement.refresh_from_db()
+        self.assertEqual(settlement.total_salary, Decimal('999'))
+        self.assertEqual(settlement.net_payable, Decimal('999'))
+        self.assertEqual(settlement.final_old_balance, Decimal('-999'))
+
+
+class MinimumEarningSettingsTest(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.owner = user_model.objects.create_user(
+            username='minimum-owner', password='test-password-123',
+        )
+        self.viewer = user_model.objects.create_user(
+            username='minimum-viewer', password='test-password-123',
+        )
+        from django.contrib.auth.models import Group
+        self.viewer.groups.add(Group.objects.get_or_create(name='Viewer')[0])
+        self.operator_user = user_model.objects.create_user(
+            username='minimum-operator', password='test-password-123',
+        )
+        self.operator_labour = Labour.objects.create(
+            name='Operator Own',
+            category='JCB_OPERATOR',
+            is_active=True,
+            status='ACTIVE',
+            user=self.operator_user,
+        )
+        self.client.force_login(self.owner)
+
+    def test_owner_sees_note_and_can_save_thresholds(self):
+        from .models import LabourMinimumEarning
+
+        response = self.client.get(reverse('labour:minimum_earning'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            'Changing this affects unsettled records.',
+            response.content.decode(),
+        )
+
+        response = self.client.post(
+            reverse('labour:minimum_earning'),
+            {'hyva_amount': '250', 'jcb_amount': '300'},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            LabourMinimumEarning.objects.get(category='HYVA_DRIVER').amount,
+            Decimal('250'),
+        )
+        self.assertEqual(
+            LabourMinimumEarning.objects.get(category='JCB_OPERATOR').amount,
+            Decimal('300'),
+        )
+
+    def test_viewer_cannot_open_settings(self):
+        self.client.force_login(self.viewer)
+        response = self.client.get(reverse('labour:minimum_earning'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_operator_cannot_open_settings(self):
+        self.client.force_login(self.operator_user)
+        response = self.client.get(reverse('labour:minimum_earning'))
+        self.assertEqual(response.status_code, 302)

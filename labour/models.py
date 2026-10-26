@@ -604,6 +604,33 @@ class LabourExtraPayment(models.Model):
         return f"{self.labour.name} · {self.date} · ₹{self.amount}"
 
 
+class LabourMinimumEarning(models.Model):
+    """Per-role minimum trip earning threshold for daily Bhatta rule.
+
+    When Bhatta is ticked and the worker's total trip earning for that day is
+    below this amount, only Bhatta is paid for that day. Defaults to ₹200 for
+    Hyva Driver and JCB Operator; editable only by the owner.
+    """
+
+    category = models.CharField(
+        max_length=30,
+        choices=Labour.CATEGORY_CHOICES,
+        unique=True,
+    )
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('200'),
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['category']
+
+    def __str__(self):
+        return f"{self.get_category_display()} · ₹{self.amount}"
+
+
 class LabourAdvance(models.Model):
     """Daily cash advance (only created if advance was actually taken)."""
     labour = models.ForeignKey(

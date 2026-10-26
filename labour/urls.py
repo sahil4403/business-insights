@@ -6,6 +6,7 @@ app_name = 'labour'
 
 urlpatterns = [
     path('', views.labour_list, name='list'),
+    path('minimum-earning/', views.minimum_earning, name='minimum_earning'),
     path('category/<str:category_code>/', views.labour_category_detail, name='category_detail'),
     path('add/', views.labour_create, name='create'),
     path('<int:labour_id>/edit/', views.labour_edit, name='edit'),

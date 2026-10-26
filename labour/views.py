@@ -36,6 +36,7 @@ from .forms import (
     LabourDriverPaymentForm,
     LabourSettlementForm,
     LabourRoziForm,
+    LabourMinimumEarningForm,
 )
 from .models import (
     Labour,
@@ -47,6 +48,7 @@ from .models import (
     LabourSettlement,
     LabourRozi,
     LabourHoliday,
+    LabourMinimumEarning,
 )
 from . import person_service
 
@@ -54,6 +56,39 @@ from . import person_service
 # ----------------------------------------------------------------------------
 # Helpers
 # ----------------------------------------------------------------------------
+
+@login_required(login_url='/login/')
+def minimum_earning(request):
+    """Owner-only Hyva/JCB minimum trip-earning thresholds."""
+    if getattr(request, 'is_operator', False) or getattr(request, 'is_viewer', False):
+        return redirect('labour:list')
+
+    amounts = person_service.minimum_amounts()
+    if request.method == 'POST':
+        form = LabourMinimumEarningForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                for category, field in (
+                    ('HYVA_DRIVER', 'hyva_amount'),
+                    ('JCB_OPERATOR', 'jcb_amount'),
+                ):
+                    LabourMinimumEarning.objects.update_or_create(
+                        category=category,
+                        defaults={'amount': form.cleaned_data[field]},
+                    )
+            messages.success(request, 'Minimum trip earning settings saved.')
+            return redirect('labour:minimum_earning')
+    else:
+        form = LabourMinimumEarningForm(initial={
+            'hyva_amount': amounts.get('HYVA_DRIVER'),
+            'jcb_amount': amounts.get('JCB_OPERATOR'),
+        })
+
+    return render(request, 'labour/minimum_earning.html', {
+        'form': form,
+        'page_title': 'Minimum Trip Earning',
+    })
+
 
 def _parse_date(s, default=None):
     if not s:
@@ -100,68 +135,58 @@ def _per_labour_trip_share(labour, period_start, period_end):
 
 def _day_aggregates_for_labour(labour, period_start, period_end, combined=False):
     """
-    Build per-day rows: Date | Trips amount | Extra | Total | Advance.
+    Build per-day rows: Date | Trips amount | Extra | Payable | Advance.
+
     combined=True → linked person ke saare sections ka day-wise data
     (Book/statement/PDF ke liye); detail page section-specific rehta hai.
-    Returns list of dicts.
+    Trip amounts remain raw; `trip_payable`/`payable_amount` include the
+    Hyva/JCB minimum-earning rule, and `below_minimum` marks affected days.
     """
-    ids = person_service.scope_ids(labour) if combined else [labour.pk]
-    id_set = set(ids)
-
-    # Build a per-date map of all values
-    days = {}
-
-    def _ensure(d):
-        if d not in days:
-            days[d] = {
-                'date': d,
-                'trips_amount': Decimal('0'),
-                'extra_amount': Decimal('0'),
-                'advance_amount': Decimal('0'),
-            }
-        return days[d]
-
-    # Trips: walk groups in range (labourers prefetched — per-group queries nahi).
-    groups = list(
-        LabourTripGroup.objects.filter(
-            date__gte=period_start, date__lte=period_end,
-            labourers__id__in=ids,
-        ).distinct().prefetch_related('labourers')
+    members = (
+        person_service.person_members(labour) if combined else [labour]
     )
-    for grp in groups:
-        members = list(grp.labourers.all())
-        if not any(m.pk in id_set for m in members):
-            continue
-        if combined:
-            # Same person ke do records ek group me ho to share ek hi baar.
-            persons = set()
-            for m in members:
-                persons.add(('p', m.person_id) if m.person_id else ('l', m.pk))
-            n = len(persons)
-        else:
-            n = len(members)
-        if n:
-            _ensure(grp.date)['trips_amount'] += grp.total_amount / n
+    day_data = person_service.day_earnings(
+        members, period_start, period_end, combined=combined,
+    )
 
-    # Extras
-    for ep in LabourExtraPayment.objects.filter(
-        labour_id__in=ids, date__gte=period_start, date__lte=period_end
-    ):
-        _ensure(ep.date)['extra_amount'] += ep.amount
+    zero = Decimal('0')
+    rows = []
+    for day, data in sorted(day_data.items(), reverse=True):
+        rows.append({
+            'date': day,
+            'trips_amount': data['trip_total'],
+            'trip_payable': data['trip_payable'],
+            'bhatta_amount': data['bhatta_total'],
+            'minimum_adjustment': data['minimum_adjustment'],
+            'below_minimum': data['below_minimum'],
+            'extra_amount': data['extra_amount'],
+            'payable_amount': data['payable_amount'],
+            'advance_amount': zero,
+        })
 
-    # Rozi (daily wages) — counted like extra into the day total
-    for rz in LabourRozi.objects.filter(
-        labour_id__in=ids, date__gte=period_start, date__lte=period_end
-    ):
-        _ensure(rz.date)['extra_amount'] += rz.amount
+    rows_by_date = {row['date']: row for row in rows}
+
+    def _row(day):
+        if day not in rows_by_date:
+            rows_by_date[day] = {
+                'date': day,
+                'trips_amount': zero,
+                'trip_payable': zero,
+                'bhatta_amount': zero,
+                'minimum_adjustment': zero,
+                'below_minimum': False,
+                'extra_amount': zero,
+                'payable_amount': zero,
+                'advance_amount': zero,
+            }
+            rows.append(rows_by_date[day])
+        return rows_by_date[day]
 
     # Advances — linked person ke saare sections ka combined pool.
-    for ad in person_service.advance_qs(labour, period_start, period_end):
-        _ensure(ad.date)['advance_amount'] += ad.amount
+    for advance in person_service.advance_qs(labour, period_start, period_end):
+        _row(advance.date)['advance_amount'] += advance.amount
 
-    # Sort by date desc
-    rows = list(days.values())
-    rows.sort(key=lambda r: r['date'], reverse=True)
+    rows.sort(key=lambda row: row['date'], reverse=True)
     return rows
 
 
@@ -599,13 +624,26 @@ def labour_detail(request, labour_id):
     if linked_now:
         combined = person_service.salary_totals(labour, period_start, period_end)
         trip_total = combined['trip_total']
+        trip_payable = combined['trip_payable']
+        bhatta_total = combined['bhatta_total']
+        minimum_adjustment = combined['minimum_adjustment']
         extra_total = combined['extra_total'] + combined['rozi_total']
         advance_total = combined['advance_total']
     else:
         combined = None
         trip_total = sum((r['trips_amount'] for r in rows), Decimal('0'))
+        trip_payable = sum((r['trip_payable'] for r in rows), Decimal('0'))
+        bhatta_total = sum((r['bhatta_amount'] for r in rows), Decimal('0'))
+        minimum_adjustment = sum(
+            (r['minimum_adjustment'] for r in rows), Decimal('0')
+        )
         extra_total = sum((r['extra_amount'] for r in rows), Decimal('0'))
         advance_total = sum((r['advance_amount'] for r in rows), Decimal('0'))
+
+    is_minimum_rule_role = any(
+        member.category in person_service.MINIMUM_RULE_CATEGORIES
+        for member in person_service.person_members(labour)
+    )
 
     # Month-wise grouping for Daily Activity (each month collapsible under its name)
     rows_by_month = []
@@ -619,10 +657,14 @@ def labour_detail(request, labour_id):
                 'label': r['date'].strftime('%B %Y'),
                 'rows': [],
                 'trip_total': Decimal('0'),
+                'payable_total': Decimal('0'),
+                'minimum_adjustment': Decimal('0'),
             })
         bucket = rows_by_month[_month_order[key]]
         bucket['rows'].append(r)
         bucket['trip_total'] += r['trips_amount']
+        bucket['payable_total'] += r['payable_amount']
+        bucket['minimum_adjustment'] += r['minimum_adjustment']
 
     # Driver payment for the period (overlapping ranges) — linked person ke saare records
     driver_qs = LabourDriverPayment.objects.filter(
@@ -688,6 +730,9 @@ def labour_detail(request, labour_id):
                 'holidays': [],
                 'trip_total': Decimal('0'),
                 'trip_count': 0,
+                'below_minimum': False,
+                'minimum_adjustment': Decimal('0'),
+                'bhatta_total': Decimal('0'),
             })
         return trip_groups_by_date[_day_order[d]]
 
@@ -709,9 +754,19 @@ def labour_detail(request, labour_id):
         bucket = _get_bucket(hd.date)
         bucket['holidays'].append(hd)
 
+    # Minimum-rule badge/metadata per date (raw trip amount stays visible).
+    rule_by_date = {r['date']: r for r in rows}
+    for bucket in trip_groups_by_date:
+        rule = rule_by_date.get(bucket['date'])
+        if rule:
+            bucket['below_minimum'] = rule['below_minimum']
+            bucket['minimum_adjustment'] = rule['minimum_adjustment']
+            bucket['bhatta_total'] = rule['bhatta_amount']
+
     trip_groups_by_date.sort(key=lambda x: x['date'], reverse=True)
 
-    total_salary = trip_total + extra_total + driver_total
+    salary_before_minimum = trip_total + extra_total + driver_total
+    total_salary = trip_payable + extra_total + driver_total
     payment = total_salary - advance_total
     # Excel formula: Final Amount = Payment − Old Balance
     final_amount = payment - ob.amount
@@ -768,10 +823,16 @@ def labour_detail(request, labour_id):
         'period_start': period_start,
         'period_end': period_end,
         'trip_total': trip_total,
+        'trip_payable': trip_payable,
+        'bhatta_total': bhatta_total,
+        'minimum_adjustment': minimum_adjustment,
         'extra_total': extra_total,
         'driver_total': driver_total,
         'advance_total': advance_total,
         'total_salary': total_salary,
+        'payable_amount': total_salary,
+        'salary_before_minimum': salary_before_minimum,
+        'is_minimum_rule_role': is_minimum_rule_role,
         'payment': payment,
         'latest_settlement_id': latest_settlement.id if latest_settlement else None,
         'final_amount': final_amount,
@@ -2560,7 +2621,15 @@ def settlement_edit(request, settlement_id):
             s.period_start = settlement.period_start
             s.period_end = settlement.period_end
             s.old_balance_before = settlement.old_balance_before
-            s.recalculate()
+            # Saved settlement ka salary/advance snapshot kabhi recalculate
+            # nahi karna — minimum rule sirf naye settlements par lagti hai.
+            s.total_salary = settlement.total_salary
+            s.total_advance = settlement.total_advance
+            s.net_payable = settlement.net_payable
+            s.final_old_balance = (
+                s.old_balance_before - s.net_payable
+                - s.old_balance_deducted + s.cash_paid
+            )
             s.save()
             ob = _ensure_old_balance(settlement.labour)
             ob.amount = s.final_old_balance
@@ -2622,6 +2691,9 @@ def _labour_statement_for_period(labour, period_start, period_end):
 
     combined = person_service.salary_totals(labour, period_start, period_end)
     trip_total = combined['trip_total']
+    trip_payable = combined['trip_payable']
+    bhatta_total = combined['bhatta_total']
+    minimum_adjustment = combined['minimum_adjustment']
     extra_total = combined['extra_total'] + combined['rozi_total']
     advance_total = combined['advance_total']
 
@@ -2685,10 +2757,15 @@ def _labour_statement_for_period(labour, period_start, period_end):
         'rozi_total': rozi_total,
         'rozi_day_counts': rozi_day_counts,
         'trip_total': trip_total,
+        'trip_payable': trip_payable,
+        'bhatta_total': bhatta_total,
+        'minimum_adjustment': minimum_adjustment,
         'extra_total': extra_total,
         'driver_total': driver_total,
         'advance_total': advance_total,
         'total_salary': total_salary,
+        'payable_amount': total_salary,
+        'salary_before_minimum': total_salary + minimum_adjustment,
         'payment': payment,
         'final_amount': final_amount,
         'present_days': present_days,
@@ -2747,6 +2824,9 @@ def _labour_summary_data(period_start, period_end):
             'labour': l,
             'category': l.category,
             'trip_total': st['trip_total'],
+            'trip_payable': st['trip_payable'],
+            'bhatta_total': st['bhatta_total'],
+            'minimum_adjustment': st['minimum_adjustment'],
             'extra_total': st['extra_total'],
             'driver_total': st['driver_total'],
             'advance_total': st['advance_total'],
@@ -2757,6 +2837,9 @@ def _labour_summary_data(period_start, period_end):
         cat = cat_totals.setdefault(l.category, {
             'workers': 0,
             'trip_total': Decimal('0'),
+            'trip_payable': Decimal('0'),
+            'bhatta_total': Decimal('0'),
+            'minimum_adjustment': Decimal('0'),
             'extra_total': Decimal('0'),
             'driver_total': Decimal('0'),
             'advance_total': Decimal('0'),
@@ -2765,6 +2848,9 @@ def _labour_summary_data(period_start, period_end):
         })
         cat['workers'] += 1
         cat['trip_total'] += st['trip_total']
+        cat['trip_payable'] += st['trip_payable']
+        cat['bhatta_total'] += st['bhatta_total']
+        cat['minimum_adjustment'] += st['minimum_adjustment']
         cat['extra_total'] += st['extra_total']
         cat['driver_total'] += st['driver_total']
         cat['advance_total'] += st['advance_total']
@@ -2783,6 +2869,9 @@ def _labour_summary_data(period_start, period_end):
     grand = {
         'workers': sum(c['workers'] for c in cat_rows),
         'trip_total': sum(c['trip_total'] for c in cat_rows),
+        'trip_payable': sum(c['trip_payable'] for c in cat_rows),
+        'bhatta_total': sum(c['bhatta_total'] for c in cat_rows),
+        'minimum_adjustment': sum(c['minimum_adjustment'] for c in cat_rows),
         'extra_total': sum(c['extra_total'] for c in cat_rows),
         'driver_total': sum(c['driver_total'] for c in cat_rows),
         'advance_total': sum(c['advance_total'] for c in cat_rows),
@@ -2844,7 +2933,7 @@ def _labour_summary_excel(data):
     ws.cell(row=3, column=1, value='Generated via Business Insights System').font = _F(size=9, color='94A3B8')
 
     # ---- Category summary table ----
-    headers = ['Category', 'Workers', 'Trip ₹', 'Extra ₹', 'Driver ₹', 'Advance ₹', 'Total Earned ₹', 'Final ₹']
+    headers = ['Category', 'Workers', 'Trip ₹', 'Not Counted ₹', 'Extra ₹', 'Driver ₹', 'Advance ₹', 'Payable ₹', 'Final ₹']
     hr = 5
     for col, h in enumerate(headers, start=1):
         cell = ws.cell(row=hr, column=col, value=h)
@@ -2856,8 +2945,9 @@ def _labour_summary_excel(data):
     for cat in data['cat_rows']:
         ws.cell(row=r, column=1, value=cat['label'])
         ws.cell(row=r, column=2, value=cat['workers'])
-        for col, key in [(3, 'trip_total'), (4, 'extra_total'), (5, 'driver_total'),
-                         (6, 'advance_total'), (7, 'total_salary'), (8, 'final_amount')]:
+        for col, key in [(3, 'trip_total'), (4, 'minimum_adjustment'), (5, 'extra_total'),
+                         (6, 'driver_total'), (7, 'advance_total'), (8, 'total_salary'),
+                         (9, 'final_amount')]:
             cell = ws.cell(row=r, column=col, value=float(cat[key]))
             cell.number_format = '#,##0.00'
         r += 1
@@ -2866,11 +2956,12 @@ def _labour_summary_excel(data):
     g = data['grand']
     ws.cell(row=r, column=1, value='TOTAL')
     ws.cell(row=r, column=2, value=g['workers'])
-    for col, key in [(3, 'trip_total'), (4, 'extra_total'), (5, 'driver_total'),
-                     (6, 'advance_total'), (7, 'total_salary'), (8, 'final_amount')]:
+    for col, key in [(3, 'trip_total'), (4, 'minimum_adjustment'), (5, 'extra_total'),
+                     (6, 'driver_total'), (7, 'advance_total'), (8, 'total_salary'),
+                     (9, 'final_amount')]:
         cell = ws.cell(row=r, column=col, value=float(g[key]))
         cell.number_format = '#,##0.00'
-    for col in range(1, 9):
+    for col in range(1, 10):
         ws.cell(row=r, column=col).fill = total_fill
         ws.cell(row=r, column=col).font = _F(bold=True)
     r += 2
@@ -2882,21 +2973,23 @@ def _labour_summary_excel(data):
             continue
         ws.cell(row=r, column=1, value=f"{cat['label']} — Labour Detail").font = _F(bold=True, size=12)
         r += 1
-        for col, h in enumerate(['Labour', 'Trip ₹', 'Extra ₹', 'Driver ₹', 'Advance ₹', 'Total Earned ₹', 'Final ₹'], start=1):
+        for col, h in enumerate(['Labour', 'Trip ₹', 'Not Counted ₹', 'Extra ₹', 'Driver ₹', 'Advance ₹', 'Payable ₹', 'Final ₹'], start=1):
             cell = ws.cell(row=r, column=col, value=h)
             cell.fill = header_fill
             cell.font = header_font
         r += 1
         for p in cat_people:
             ws.cell(row=r, column=1, value=p['labour'].name)
-            for col, key in [(2, 'trip_total'), (3, 'extra_total'), (4, 'driver_total'),
-                             (5, 'advance_total'), (6, 'total_salary'), (7, 'final_amount')]:
+            for col, key in [(2, 'trip_total'), (3, 'minimum_adjustment'),
+                             (4, 'extra_total'), (5, 'driver_total'),
+                             (6, 'advance_total'), (7, 'total_salary'),
+                             (8, 'final_amount')]:
                 cell = ws.cell(row=r, column=col, value=float(p[key]))
                 cell.number_format = '#,##0.00'
             r += 1
         r += 1
 
-    for col, width in [(1, 26), (2, 10), (3, 12), (4, 12), (5, 12), (6, 12), (7, 15), (8, 12)]:
+    for col, width in [(1, 26), (2, 10), (3, 12), (4, 14), (5, 12), (6, 12), (7, 12), (8, 15), (9, 12)]:
         ws.column_dimensions[chr(64 + col)].width = width
 
     response = HttpResponse(
@@ -2952,7 +3045,7 @@ def _labour_summary_pdf(data):
     # ---- KPI cards ----
     cards = [
         {'label': 'Workers', 'value': data['grand']['workers']},
-        {'label': 'Total Earned', 'value': f"₹{data['grand']['total_salary']:,.0f}"},
+        {'label': 'Payable Amount', 'value': f"₹{data['grand']['total_salary']:,.0f}"},
         {'label': 'Advance', 'value': f"₹{data['grand']['advance_total']:,.0f}"},
         {'label': 'Final', 'value': f"₹{data['grand']['final_amount']:,.0f}"},
     ]
@@ -2964,13 +3057,14 @@ def _labour_summary_pdf(data):
     cell_r = _wrapped_style('CellR', fontSize=8, leading=10, textColor=colors.HexColor('#0f172a'), alignment=2)
     head_cell = _wrapped_style('HeadCell', fontSize=8, leading=10, textColor=colors.white)
 
-    cat_headers = ['Category', 'Workers', 'Trip ₹', 'Extra ₹', 'Driver ₹', 'Advance ₹', 'Earned ₹', 'Final ₹']
+    cat_headers = ['Category', 'Workers', 'Trip ₹', 'Not Counted ₹', 'Extra ₹', 'Driver ₹', 'Advance ₹', 'Payable ₹', 'Final ₹']
     tdata = [[Paragraph(h, head_cell) for h in cat_headers]]
     for cat in data['cat_rows']:
         tdata.append([
             Paragraph(f"<b>{cat['label']}</b>", cell_lbl),
             Paragraph(str(cat['workers']), cell_r),
             Paragraph(f"{cat['trip_total']:,.0f}", cell_r),
+            Paragraph(f"{cat['minimum_adjustment']:,.0f}", cell_r),
             Paragraph(f"{cat['extra_total']:,.0f}", cell_r),
             Paragraph(f"{cat['driver_total']:,.0f}", cell_r),
             Paragraph(f"{cat['advance_total']:,.0f}", cell_r),
@@ -2982,13 +3076,14 @@ def _labour_summary_pdf(data):
         Paragraph('<b>TOTAL</b>', cell_lbl),
         Paragraph(str(g['workers']), cell_r),
         Paragraph(f"<b>{g['trip_total']:,.0f}</b>", cell_r),
+        Paragraph(f"<b>{g['minimum_adjustment']:,.0f}</b>", cell_r),
         Paragraph(f"<b>{g['extra_total']:,.0f}</b>", cell_r),
         Paragraph(f"<b>{g['driver_total']:,.0f}</b>", cell_r),
         Paragraph(f"<b>{g['advance_total']:,.0f}</b>", cell_r),
         Paragraph(f"<b>{g['total_salary']:,.0f}</b>", cell_r),
         Paragraph(f"<b>{g['final_amount']:,.0f}</b>", cell_r),
     ])
-    cat_table = Table(tdata, colWidths=[32 * mm, 20 * mm, 23 * mm, 23 * mm, 23 * mm, 23 * mm, 25 * mm, 23 * mm])
+    cat_table = Table(tdata, colWidths=[28 * mm, 15 * mm, 20 * mm, 20 * mm, 20 * mm, 20 * mm, 20 * mm, 22 * mm, 21 * mm])
     apply_data_table_style(cat_table, total_row=True)
     elements.append(cat_table)
     elements.append(Spacer(1, 8 * mm))
@@ -3001,19 +3096,20 @@ def _labour_summary_pdf(data):
         sec_title = _wrapped_style('SecTitle', fontSize=10.5, leading=14, textColor=BRAND_DARK)
         elements.append(Paragraph(f"{cat['label']} — Labour Detail", sec_title))
         elements.append(Spacer(1, 2 * mm))
-        p_headers = ['Labour', 'Trip ₹', 'Extra ₹', 'Driver ₹', 'Advance ₹', 'Earned ₹', 'Final ₹']
+        p_headers = ['Labour', 'Trip ₹', 'Not Counted ₹', 'Extra ₹', 'Driver ₹', 'Advance ₹', 'Payable ₹', 'Final ₹']
         pdata = [[Paragraph(h, head_cell) for h in p_headers]]
         for p in cat_people:
             pdata.append([
                 Paragraph(p['labour'].name, cell_lbl),
                 Paragraph(f"{p['trip_total']:,.0f}", cell_r),
+                Paragraph(f"{p['minimum_adjustment']:,.0f}", cell_r),
                 Paragraph(f"{p['extra_total']:,.0f}", cell_r),
                 Paragraph(f"{p['driver_total']:,.0f}", cell_r),
                 Paragraph(f"{p['advance_total']:,.0f}", cell_r),
                 Paragraph(f"{p['total_salary']:,.0f}", cell_r),
                 Paragraph(f"{p['final_amount']:,.0f}", cell_r),
             ])
-        p_table = Table(pdata, colWidths=[42 * mm, 24 * mm, 24 * mm, 24 * mm, 25 * mm, 26 * mm, 24 * mm])
+        p_table = Table(pdata, colWidths=[30 * mm, 20 * mm, 20 * mm, 20 * mm, 20 * mm, 20 * mm, 22 * mm, 20 * mm])
         apply_data_table_style(p_table)
         elements.append(KeepTogether([p_table]))
         elements.append(Spacer(1, 5 * mm))
@@ -4273,6 +4369,24 @@ def _labour_book_excel(statements, period_start, period_end, filename='labour_bo
                 ('Old Balance', st['old_balance'], False),
                 ('FINAL AMOUNT', st['final_amount'], True),
             ]
+        elif labour.category in ('HYVA_DRIVER', 'JCB_OPERATOR'):
+            summary_items = [
+                ('Trip Wages', st['trip_total'], False),
+                ('Bhatta / Extra', st['extra_total'], False),
+                ('Driver Payment', st['driver_total'], False),
+            ]
+            if st['minimum_adjustment']:
+                summary_items.append((
+                    'Less: Not Counted (below minimum)',
+                    -st['minimum_adjustment'], False,
+                ))
+            summary_items.extend([
+                ('Payable Amount', st['total_salary'], False),
+                ('Advance', st['advance_total'], False),
+                ('Payment', st['payment'], False),
+                ('Old Balance', st['old_balance'], False),
+                ('FINAL AMOUNT', st['final_amount'], True),
+            ])
         else:
             summary_items = [
                 ('Trip Wages', st['trip_total'], False),
@@ -4667,11 +4781,20 @@ def _payment_summary_rows(st, extra_label='Total Extra'):
     ]
     if st['driver_total']:
         rows.append(('Month Payment', st['driver_total']))
+    adjustment = st.get('minimum_adjustment', Decimal('0'))
+    if adjustment:
+        rows.append((
+            'Less: Not Counted (below minimum)',
+            -adjustment,
+        ))
     rows.append((None, None))
-    rows.append((
-        'Total Income Earned',
-        st['trip_total'] + st['extra_total'] + st['driver_total'],
-    ))
+    if adjustment:
+        rows.append(('Payable Amount', st['total_salary']))
+    else:
+        rows.append((
+            'Total Income Earned',
+            st['trip_total'] + st['extra_total'] + st['driver_total'],
+        ))
     rows.append((None, None))
     rows.extend([
         ('Total Advanced', st['advance_total']),
@@ -4784,6 +4907,16 @@ def _summary_flowables(st, labour, styles, font_name):
             p_data.append([
                 Paragraph(label, styles['body']),
                 Paragraph(f'<font color="#dc2626">₹{value:,.2f}</font>', styles['body_r']),
+            ])
+        elif label == 'Less: Not Counted (below minimum)':
+            p_data.append([
+                Paragraph(label, styles['body']),
+                Paragraph(f'<font color="#b45309">₹{value:,.2f}</font>', styles['body_r']),
+            ])
+        elif label == 'Payable Amount':
+            p_data.append([
+                Paragraph(f"<b>{label}</b>", styles['body']),
+                Paragraph(f"<b>₹{value:,.2f}</b>", styles['body_r']),
             ])
         else:
             p_data.append([

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block scrolltopbar %}
+<div class="flex items-center gap-2 px-3 py-2">
+    <a href="{% url 'labour:list' %}"
+       class="shrink-0 h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold flex items-center gap-1 active:bg-slate-50">← Back</a>
+    <span class="flex-1 truncate font-bold text-sm text-slate-800">{{ page_title }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-2" data-animate>{{ page_title }}</h1>
+    <p class="text-sm text-slate-500 mb-4">
+        Hyva Driver aur JCB Operator ke liye ek din ki minimum trip earning set karein.
+        Bhatta tick hone par isse kam trip amount payable me count nahi hota.
+    </p>
+
+    <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-4" data-animate>
+        <div class="text-sm font-bold text-amber-900">Changing this affects unsettled records.</div>
+        <div class="text-xs text-amber-800 mt-1">Already saved settlements apne purane totals hi dikhayenge.</div>
+    </div>
+
+    <form method="post" class="app-surface p-4 md:p-5 space-y-4" data-animate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div>
+            <label class="label" for="{{ form.hyva_amount.id_for_label }}">{{ form.hyva_amount.label }}</label>
+            {{ form.hyva_amount }}
+            {% if form.hyva_amount.errors %}<p class="text-xs text-red-600 mt-1">{{ form.hyva_amount.errors|join:", " }}</p>{% endif %}
+            <p class="text-xs text-slate-400 mt-1">Default ₹200. Sirf Bhatta wale din par lagta hai.</p>
+        </div>
+
+        <div>
+            <label class="label" for="{{ form.jcb_amount.id_for_label }}">{{ form.jcb_amount.label }}</label>
+            {{ form.jcb_amount }}
+            {% if form.jcb_amount.errors %}<p class="text-xs text-red-600 mt-1">{{ form.jcb_amount.errors|join:", " }}</p>{% endif %}
+            <p class="text-xs text-slate-400 mt-1">JCB ka apna threshold; Hyva se alag ho sakta hai.</p>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+            <a href="{% url 'labour:list' %}" class="btn btn-ghost flex-1">Cancel</a>
+            <button type="submit" class="btn btn-primary flex-1">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

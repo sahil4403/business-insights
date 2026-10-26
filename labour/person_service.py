@@ -14,12 +14,16 @@ from .models import (
     LabourAdvance,
     LabourDriverPayment,
     LabourExtraPayment,
+    LabourMinimumEarning,
     LabourOldBalance,
     LabourPerson,
     LabourRozi,
     LabourSettlement,
     LabourTripGroup,
 )
+
+MINIMUM_RULE_CATEGORIES = ('HYVA_DRIVER', 'JCB_OPERATOR')
+DEFAULT_MINIMUM_TRIP_EARNING = Decimal('200')
 
 
 # ---------------------------------------------------------------------------
@@ -342,51 +346,233 @@ def add_advance(labour, day, amount, note=''):
 # Salary + advance totals (combined for linked person)
 # ---------------------------------------------------------------------------
 
-def salary_totals(labour, period_start, period_end):
-    """Trip share + extra + rozi + driver payment across the whole person."""
-    ids = scope_ids(labour)
-    id_set = set(ids)
+def minimum_amounts():
+    """Current per-role minimum trip earning thresholds."""
+    return {
+        row.category: row.amount
+        for row in LabourMinimumEarning.objects.all()
+    }
 
-    trip_total = Decimal('0')
+
+def _person_key(member, combined):
+    """Same linked person ke records ko ek key me dedupe karo (combined only)."""
+    if combined and member.person_id:
+        return ('p', member.person_id)
+    return ('l', member.pk)
+
+
+def day_earnings(members, period_start, period_end, combined=True,
+                 minimum_amounts_map=None):
+    """Per-day trip, Bhatta, extra, Rozi and minimum-rule breakdown.
+
+    The minimum rule is evaluated per person + role + date, so a linked
+    person's same-role records do not get the threshold twice. Cross-role
+    records keep their own role threshold. `combined=False` is for the
+    section-specific detail rows and preserves the raw member-count split.
+
+    Returned dict keys are dates; each value has raw and payable amounts plus
+    `extra_amount` (all extras + Rozi) for existing day-row templates.
+    """
+    members = list(members)
+    if not members:
+        return {}
+
+    ids = [m.pk for m in members]
+    id_set = set(ids)
+    if minimum_amounts_map is not None:
+        minimums = minimum_amounts_map
+    elif any(m.category in MINIMUM_RULE_CATEGORIES for m in members):
+        minimums = minimum_amounts()
+    else:
+        minimums = {}
+    zero = Decimal('0')
+
+    trip_by_group = {}
+    bhatta_by_group = {}
+    bhatta_present = set()
+    other_extra_by_date = {}
+    rozi_by_date = {}
+
+    def _add(bucket, key, value):
+        bucket[key] = bucket.get(key, zero) + value
+
     groups = LabourTripGroup.objects.filter(
         date__gte=period_start, date__lte=period_end,
         labourers__id__in=ids,
     ).distinct().prefetch_related('labourers')
     for group in groups:
-        members = list(group.labourers.all())
-        if not any(m.pk in id_set for m in members):
+        group_members = list(group.labourers.all())
+        in_scope = [m for m in group_members if m.pk in id_set]
+        if not in_scope:
             continue
-        # Same person ke do records ek hi group me ho to share ek hi baar.
-        persons = set()
-        for member in members:
-            key = ('p', member.person_id) if member.person_id else ('l', member.pk)
-            persons.add(key)
-        if persons:
-            trip_total += group.total_amount / len(persons)
 
-    extra_total = LabourExtraPayment.objects.filter(
-        labour_id__in=ids, date__gte=period_start, date__lte=period_end
-    ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+        if combined:
+            # Denominator = unique real persons in the group, same as the
+            # existing combined salary total. Add this person's share once.
+            persons = {_person_key(m, True) for m in group_members}
+            n = len(persons)
+            if not n:
+                continue
+            seen = set()
+            for member in in_scope:
+                key = _person_key(member, True)
+                if key in seen:
+                    continue
+                seen.add(key)
+                _add(
+                    trip_by_group,
+                    (key, member.category, group.date),
+                    group.total_amount / n,
+                )
+        else:
+            n = len(group_members)
+            if n:
+                member = in_scope[0]
+                _add(
+                    trip_by_group,
+                    (('l', member.pk), member.category, group.date),
+                    group.total_amount / n,
+                )
 
-    rozi_total = LabourRozi.objects.filter(
-        labour_id__in=ids, date__gte=period_start, date__lte=period_end
-    ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-
-    driver_total = LabourDriverPayment.objects.filter(
+    for extra in LabourExtraPayment.objects.filter(
         labour_id__in=ids,
+        date__gte=period_start,
+        date__lte=period_end,
+    ).select_related('labour'):
+        member = extra.labour
+        key = _person_key(member, combined)
+        group_key = (key, member.category, extra.date)
+        if extra.note == 'Bhatta':
+            _add(bhatta_by_group, group_key, extra.amount)
+            bhatta_present.add(group_key)
+        else:
+            _add(other_extra_by_date, extra.date, extra.amount)
+
+    for rozi in LabourRozi.objects.filter(
+        labour_id__in=ids,
+        date__gte=period_start,
+        date__lte=period_end,
+    ):
+        _add(rozi_by_date, rozi.date, rozi.amount)
+
+    days = {}
+
+    def _day(day):
+        if day not in days:
+            days[day] = {
+                'date': day,
+                'trip_total': zero,
+                'trip_payable': zero,
+                'bhatta_total': zero,
+                'other_extra_total': zero,
+                'rozi_total': zero,
+                'extra_amount': zero,
+                'minimum_adjustment': zero,
+                'payable_amount': zero,
+                'below_minimum': False,
+            }
+        return days[day]
+
+    for (key, category, day), amount in trip_by_group.items():
+        bucket = _day(day)
+        bucket['trip_total'] += amount
+        threshold = minimums.get(
+            category,
+            DEFAULT_MINIMUM_TRIP_EARNING,
+        )
+        has_bhatta = (key, category, day) in bhatta_present
+        if (
+            category in MINIMUM_RULE_CATEGORIES
+            and has_bhatta
+            and amount < threshold
+        ):
+            bucket['minimum_adjustment'] += amount
+            bucket['below_minimum'] = True
+        else:
+            bucket['trip_payable'] += amount
+
+    for (key, category, day), amount in bhatta_by_group.items():
+        bucket = _day(day)
+        bucket['bhatta_total'] += amount
+
+    for day, amount in other_extra_by_date.items():
+        bucket = _day(day)
+        bucket['other_extra_total'] += amount
+        bucket['extra_amount'] += amount
+
+    for day, amount in rozi_by_date.items():
+        bucket = _day(day)
+        bucket['rozi_total'] += amount
+        bucket['extra_amount'] += amount
+
+    for bucket in days.values():
+        bucket['extra_amount'] += bucket['bhatta_total']
+        # trip_total - adjustment, kept explicit even if adjustment is zero.
+        bucket['payable_amount'] = (
+            bucket['trip_payable'] + bucket['extra_amount']
+        )
+
+    return days
+
+
+def salary_totals(labour, period_start, period_end):
+    """Trip share + extra + rozi + driver payment across the whole person.
+
+    `trip_total` is always the raw trip figure (so the ledger can still show
+    every trip). `trip_payable` is the amount after the Hyva/JCB minimum
+    earning rule; `total_salary` uses that payable amount.
+    """
+    members = person_members(labour)
+    minimums = (
+        minimum_amounts()
+        if any(m.category in MINIMUM_RULE_CATEGORIES for m in members)
+        else {}
+    )
+    days = day_earnings(
+        members, period_start, period_end,
+        combined=True, minimum_amounts_map=minimums,
+    )
+
+    trip_total = sum((d['trip_total'] for d in days.values()), Decimal('0'))
+    trip_payable = sum(
+        (d['trip_payable'] for d in days.values()), Decimal('0')
+    )
+    bhatta_total = sum(
+        (d['bhatta_total'] for d in days.values()), Decimal('0')
+    )
+    other_extra_total = sum(
+        (d['other_extra_total'] for d in days.values()), Decimal('0')
+    )
+    rozi_total = sum((d['rozi_total'] for d in days.values()), Decimal('0'))
+    minimum_adjustment = sum(
+        (d['minimum_adjustment'] for d in days.values()), Decimal('0')
+    )
+
+    extra_total = bhatta_total + other_extra_total
+    driver_total = LabourDriverPayment.objects.filter(
+        labour_id__in=[m.pk for m in members],
         period_start__lte=period_end,
         period_end__gte=period_start,
     ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
 
+    total_salary = (
+        trip_payable + extra_total + rozi_total + driver_total
+    )
     advance_total_value = advance_total(labour, period_start, period_end)
 
     return {
         'trip_total': trip_total,
+        'trip_payable': trip_payable,
+        'bhatta_total': bhatta_total,
+        'other_extra_total': other_extra_total,
+        'minimum_adjustment': minimum_adjustment,
         'extra_total': extra_total,
         'rozi_total': rozi_total,
         'driver_total': driver_total,
-        'total_salary': trip_total + extra_total + rozi_total + driver_total,
+        'total_salary': total_salary,
+        'payable_amount': total_salary,
         'advance_total': advance_total_value,
+        'days': days,
     }
 
 

@@ -404,3 +404,15 @@ class LabourRoziForm(forms.ModelForm):
             self.fields['labour'].initial = labour
             self.fields['labour'].disabled = True
 
+
+class LabourMinimumEarningForm(forms.Form):
+    hyva_amount = forms.DecimalField(
+        label='Hyva Driver minimum trip earning (₹)',
+        max_digits=12, decimal_places=2, min_value=0,
+        widget=forms.NumberInput(attrs={'class': 'input', 'step': '0.01'}),
+    )
+    jcb_amount = forms.DecimalField(
+        label='JCB Operator minimum trip earning (₹)',
+        max_digits=12, decimal_places=2, min_value=0,
+        widget=forms.NumberInput(attrs={'class': 'input', 'step': '0.01'}),
+    )
